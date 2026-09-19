@@ -10,6 +10,8 @@ import SelectPractices from './pages/SelectPractices';
 import Tracker from './pages/Tracker';
 import Congrats from './pages/Congrats';
 import Progress from './pages/Progress';
+import Landing from './pages/Landing';
+import PersonalJourney from './pages/PersonalJourney';
 
 // Lazy-load the heavy Three.js pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -105,6 +107,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Progress />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/personal-journey"
+        element={
+          <ProtectedRoute>
+            <PersonalJourney />
           </ProtectedRoute>
         }
       />
