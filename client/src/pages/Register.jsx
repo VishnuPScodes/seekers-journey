@@ -32,7 +32,11 @@ export default function Register() {
       await register(form.name, form.email, form.password);
       navigate('/select-practices');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      const msg = err.response?.data?.message
+        || (err.code === 'ERR_NETWORK' ? 'Cannot reach server. Check your connection.' : null)
+        || err.message
+        || 'Registration failed. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
