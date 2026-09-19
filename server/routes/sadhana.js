@@ -4,6 +4,12 @@ const auth = require('../middleware/auth');
 const SadhanaLog = require('../models/SadhanaLog');
 const User = require('../models/User');
 
+// ─── Level Calculation ────────────────────────────────────────────────────────
+function scoreToLevel(score) {
+  const level = Math.floor(score / 100) + 1;
+  return Math.min(Math.max(level, 1), 108);
+}
+
 // ─── Scoring Constants ────────────────────────────────────────────────────────
 const SCORE_ONCE = 10;        // points for doing a practice once
 const SCORE_TWICE = 25;       // points for doing a practice twice (bonus)
@@ -78,6 +84,17 @@ router.post('/log', auth, async (req, res) => {
       { practices: scoredPractices, totalScore, isPerfectDay },
       { upsert: true, new: true }
     );
+
+    // Also increment cumulative score on the User document
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $inc: { totalCumulativeScore: totalScore } },
+      { new: true }
+    );
+    const newLevel = scoreToLevel(updatedUser.totalCumulativeScore);
+    if (newLevel !== updatedUser.currentLevel) {
+      await User.findByIdAndUpdate(req.user._id, { currentLevel: newLevel });
+    }
 
     res.json({ message: 'Sadhana log saved!', log, totalScore, isPerfectDay });
   } catch (err) {

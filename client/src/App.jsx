@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,6 +11,10 @@ import Tracker from './pages/Tracker';
 import Congrats from './pages/Congrats';
 import Progress from './pages/Progress';
 import Landing from './pages/Landing';
+
+// Lazy-load the heavy Three.js game page
+const KailashJourney = lazy(() => import('./pages/KailashJourney'));
+
 // import LifeTracker from './pages/LifeTracker';
 // import LifeMetrics from './pages/LifeMetrics';
 
@@ -45,7 +49,24 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* 
+      <Route
+        path="/journey"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={
+              <div className="page" style={{ background: '#0a0618' }}>
+                <div style={{ textAlign: 'center', color: '#a78bfa' }}>
+                  <div className="spinner" style={{ width: 40, height: 40, margin: '0 auto 16px', borderColor: '#7c3aed transparent #7c3aed transparent' }} />
+                  <p style={{ fontFamily: 'Cinzel, serif', fontSize: 16 }}>Loading Kailash Journey...</p>
+                </div>
+              </div>
+            }>
+              <KailashJourney />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      {/*
       <Route
         path="/life-tracker"
         element={
@@ -94,4 +115,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

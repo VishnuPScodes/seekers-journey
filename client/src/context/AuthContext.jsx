@@ -12,6 +12,14 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('sadhana_token');
     if (stored && token) {
       setUser(JSON.parse(stored));
+      // Refresh user data from server to get latest score/level
+      api.get('/user/me').then(({ data }) => {
+        const updated = JSON.parse(stored);
+        updated.totalCumulativeScore = data.totalCumulativeScore || 0;
+        updated.currentLevel = data.currentLevel || 1;
+        setUser(updated);
+        localStorage.setItem('sadhana_user', JSON.stringify(updated));
+      }).catch(() => {});
     }
     setLoading(false);
   }, []);

@@ -32,6 +32,17 @@ const userSchema = new mongoose.Schema({
     default: 0,
     min: 0,
   },
+  totalCumulativeScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  currentLevel: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 108,
+  },
 }, { timestamps: true });
 
 // Hash password before save

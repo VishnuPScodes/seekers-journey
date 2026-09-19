@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut } from 'lucide-react';
+import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -27,6 +27,7 @@ export default function Navbar() {
   const navItems = [
     { path: '/', label: 'Home', icon: <Home size={18} strokeWidth={1.5} />, id: 'nav-home' },
     { path: '/tracker', label: 'Sadhana Tracker', icon: <BookOpen size={18} strokeWidth={1.5} />, id: 'nav-tracker' },
+    { path: '/journey', label: 'Kailash Journey', icon: <Mountain size={18} strokeWidth={1.5} />, id: 'nav-journey' },
     // { path: '/life-tracker', label: 'Life Journal', icon: '🌱', id: 'nav-life-tracker' },
     // { path: '/life-metrics', label: 'Life Metrics', icon: '📊', id: 'nav-life-metrics' },
     { path: '/select-practices', label: 'Practices', icon: <Settings size={18} strokeWidth={1.5} />, id: 'nav-select-practices' },
