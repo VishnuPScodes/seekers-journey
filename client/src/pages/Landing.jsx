@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SadhanaBubble from '../components/SadhanaBubble';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +18,8 @@ export default function Landing() {
   const [currentLevel, setCurrentLevel] = useState(user?.currentLevel || 1);
   const [leveledUpMsg, setLeveledUpMsg] = useState(null);
 
-  // Bubble tap counts (session only, resets on page reload)
-  const [sessionTaps, setSessionTaps] = useState({});
+  // Today's practice counts (synchronized with today's SadhanaLog)
+  const [todayCounts, setTodayCounts] = useState({});
 
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -39,11 +39,18 @@ export default function Landing() {
     }
   }, [user?.totalCumulativeScore, user?.currentLevel]);
 
-  // ── Fetch today's status
+  // ── Fetch today's status & pre-fill practice counts from SadhanaLog
   useEffect(() => {
     const fetchToday = async () => {
       try {
-        await api.get('/sadhana/today');
+        const { data } = await api.get('/sadhana/today');
+        if (data.log && Array.isArray(data.log.practices)) {
+          const counts = {};
+          data.log.practices.forEach(p => {
+            counts[p.name] = p.count || 0;
+          });
+          setTodayCounts(counts);
+        }
       } catch (err) {
         console.error('Error loading landing data:', err);
       } finally {
@@ -53,39 +60,30 @@ export default function Landing() {
     fetchToday();
   }, []);
 
-  // ── Sadhana bubble tap handler
+  // ── Sadhana bubble tap handler — writes directly to unified SadhanaLog
   const handleBubbleTap = useCallback(async (practiceName) => {
-    // Optimistic update
-    const prevScore = totalScore;
-    const prevLevel = currentLevel;
-    const newScore = totalScore + 10;
-    const newLevel = Math.min(Math.floor(newScore / POINTS_PER_LEVEL) + 1, 108);
-
-    setTotalScore(newScore);
-    setCurrentLevel(newLevel);
-    setSessionTaps(prev => ({ ...prev, [practiceName]: (prev[practiceName] || 0) + 1 }));
-
-    if (newLevel > prevLevel) {
-      const loc = getLocation(newLevel);
-      setLeveledUpMsg(`🎉 Level ${newLevel}! You've reached ${loc.name}`);
-      setTimeout(() => setLeveledUpMsg(null), 4000);
-    }
-
-    // Sync to server
     try {
-      const { data } = await api.post('/user/tap-sadhana');
+      const { data } = await api.post('/user/tap-sadhana', { practiceName });
       setTotalScore(data.totalCumulativeScore);
       setCurrentLevel(data.currentLevel);
-      updateUser({ totalCumulativeScore: data.totalCumulativeScore, currentLevel: data.currentLevel });
+      setTodayCounts(prev => ({
+        ...prev,
+        [practiceName]: data.count,
+      }));
+      updateUser({
+        totalCumulativeScore: data.totalCumulativeScore,
+        currentLevel: data.currentLevel,
+      });
+
+      if (data.leveledUp) {
+        const loc = getLocation(data.currentLevel);
+        setLeveledUpMsg(`🎉 Level ${data.currentLevel}! You've reached ${loc.name}`);
+        setTimeout(() => setLeveledUpMsg(null), 4000);
+      }
     } catch (err) {
-      // Roll back on failure
-      setTotalScore(prevScore);
-      setCurrentLevel(prevLevel);
       console.error('Failed to record tap:', err);
     }
-  }, [totalScore, currentLevel, updateUser]);
-
-
+  }, [updateUser]);
 
   const selectedPractices = user?.selectedPractices || [];
 
@@ -197,17 +195,22 @@ export default function Landing() {
             <div className="sadhana-bubbles-section animate-in" style={{ animationDelay: '0.1s' }}>
               <div className="sadhana-bubbles-label">
                 <Zap size={12} style={{ color: '#fbbf24' }} />
-                Tap to practice • Each tap = +10 pts
+                Daily Practice Bubbles • Tap to record
               </div>
               <div className="sadhana-bubbles-grid">
-                {selectedPractices.map(name => (
-                  <SadhanaBubble
-                    key={name}
-                    name={name}
-                    totalTaps={sessionTaps[name] || 0}
-                    onTap={handleBubbleTap}
-                  />
-                ))}
+                {selectedPractices.map(name => {
+                  const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
+                  const dailyTarget = targetConfig?.dailyTarget || 2;
+                  return (
+                    <SadhanaBubble
+                      key={name}
+                      name={name}
+                      totalTaps={todayCounts[name] || 0}
+                      dailyTarget={dailyTarget}
+                      onTap={handleBubbleTap}
+                    />
+                  );
+                })}
               </div>
             </div>
           ) : (

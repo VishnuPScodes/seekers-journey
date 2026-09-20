@@ -1,12 +1,24 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { PRACTICE_ICONS } from '../utils/practiceIcons';
-import { Hand } from 'lucide-react';
+import { Hand, Check } from 'lucide-react';
 
-export default function SadhanaBubble({ name, totalTaps = 0, onTap, disabled = false }) {
+export default function SadhanaBubble({
+  name,
+  totalTaps = 0,
+  dailyTarget = 2,
+  onTap,
+  disabled = false,
+}) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [localTaps, setLocalTaps] = useState(totalTaps);
   const [scoreFloat, setScoreFloat] = useState(null);
   const [floatKey, setFloatKey] = useState(0);
+
+  useEffect(() => {
+    setLocalTaps(totalTaps);
+  }, [totalTaps]);
+
+  const isDone = localTaps >= dailyTarget;
 
   const handleTap = useCallback((e) => {
     if (disabled || isAnimating) return;
@@ -25,27 +37,37 @@ export default function SadhanaBubble({ name, totalTaps = 0, onTap, disabled = f
 
     // Animate the card
     setIsAnimating(true);
-    setLocalTaps(prev => prev + 1);
+    const nextTaps = localTaps + 1;
+    setLocalTaps(nextTaps);
     setFloatKey(k => k + 1);
-    setScoreFloat('+10');
+
+    // If beyond target, still recorded but doesn't add score
+    if (localTaps >= dailyTarget) {
+      setScoreFloat('✓ recorded');
+    } else if (localTaps === 0) {
+      setScoreFloat('+10');
+    } else {
+      setScoreFloat('+15');
+    }
+
     setTimeout(() => {
       setIsAnimating(false);
       setScoreFloat(null);
-    }, 700);
+    }, 750);
 
     onTap && onTap(name);
-  }, [disabled, isAnimating, name, onTap]);
+  }, [disabled, isAnimating, localTaps, dailyTarget, name, onTap]);
 
   const taps = localTaps;
-  const glowIntensity = Math.min(taps * 0.15, 1);
+  const glowIntensity = Math.min(taps * 0.2, 1);
 
   return (
     <div
-      className={`sadhana-bubble ${isAnimating ? 'bubble-tap' : ''} ${taps > 0 ? 'bubble-active' : ''}`}
+      className={`sadhana-bubble ${isAnimating ? 'bubble-tap' : ''} ${taps > 0 ? 'bubble-active' : ''} ${isDone ? 'bubble-done' : ''}`}
       onClick={handleTap}
       role="button"
       tabIndex={0}
-      aria-label={`${name}: ${taps} taps today`}
+      aria-label={`${name}: ${taps} of ${dailyTarget} completed`}
       onKeyDown={(e) => e.key === 'Enter' && handleTap(e)}
       style={{
         '--glow-opacity': glowIntensity,
@@ -70,10 +92,21 @@ export default function SadhanaBubble({ name, totalTaps = 0, onTap, disabled = f
       {/* Name */}
       <div className="bubble-name">{name}</div>
 
-      {/* Tap count badge */}
-      {taps > 0 && (
-        <div className="bubble-count-badge">
-          {taps}×
+      {/* Target & Tap count badge */}
+      <div className={`bubble-count-badge ${isDone ? 'badge-done' : ''}`}>
+        {isDone ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Check size={12} strokeWidth={3} /> {taps}/{dailyTarget}
+          </span>
+        ) : (
+          <span>{taps}/{dailyTarget}</span>
+        )}
+      </div>
+
+      {/* If done, show subtle prompt that seeker can record another session */}
+      {isDone && (
+        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, opacity: 0.8 }}>
+          + record more
         </div>
       )}
 

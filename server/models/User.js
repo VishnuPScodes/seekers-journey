@@ -23,6 +23,23 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  practiceConfig: [{
+    name: { type: String, required: true },
+    dailyTarget: { type: Number, default: 2, min: 1 },
+    category: { type: String, default: 'General' },
+    desc: { type: String, default: '' },
+    isCustom: { type: Boolean, default: false },
+  }],
+  customPractices: [{
+    name: { type: String, required: true },
+    category: { type: String, default: 'General' },
+    dailyTarget: { type: Number, default: 1, min: 1 },
+    desc: { type: String, default: '' },
+  }],
+  lastActivityDate: {
+    type: Date,
+    default: Date.now,
+  },
   practicesSelected: {
     type: Boolean,
     default: false,

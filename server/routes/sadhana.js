@@ -3,57 +3,13 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const SadhanaLog = require('../models/SadhanaLog');
 const User = require('../models/User');
-
-// ─── Level Calculation ────────────────────────────────────────────────────────
-function scoreToLevel(score) {
-  const level = Math.floor(score / 100) + 1;
-  return Math.min(Math.max(level, 1), 108);
-}
-
-// ─── Scoring Constants ────────────────────────────────────────────────────────
-const SCORE_ONCE = 10;        // points for doing a practice once
-const SCORE_TWICE = 25;       // points for doing a practice twice (bonus)
-const PERFECT_DAY_BONUS = 20; // bonus if ALL selected practices done >= once
-
-// Bonus points for kapalabhati rounds in Shakti Chalana Kriya
-const KAPALABHATI_SCORES = {
-  20:  5,
-  50:  10,
-  100: 20,
-  150: 30,
-  200: 45,
-};
-
-function calculateScore(practices, selectedPractices) {
-  let total = 0;
-  const scoredPractices = practices.map(p => {
-    let score = 0;
-    if (p.count === 1) score = SCORE_ONCE;
-    if (p.count === 2) score = SCORE_TWICE;
-
-    // Extra bonus for kapalabhati rounds (Shakti Chalana Kriya only)
-    if (p.kapalabhatiCount && KAPALABHATI_SCORES[p.kapalabhatiCount]) {
-      score += KAPALABHATI_SCORES[p.kapalabhatiCount];
-    }
-
-    total += score;
-    return { ...p, score };
-  });
-
-  // Perfect day bonus: all selected practices done at least once
-  const doneNames = practices.filter(p => p.count > 0).map(p => p.name);
-  const isPerfectDay = selectedPractices.length > 0 &&
-    selectedPractices.every(sp => doneNames.includes(sp));
-
-  if (isPerfectDay) total += PERFECT_DAY_BONUS;
-
-  return { scoredPractices, totalScore: total, isPerfectDay };
-}
+const JourneyEvent = require('../models/JourneyEvent');
+const { scoreToLevel, calculateSadhanaScore } = require('../utils/scoring');
 
 // POST /api/sadhana/log — save today's sadhana log with score
 router.post('/log', auth, async (req, res) => {
   try {
-    const { practices } = req.body;
+    const { practices, source = 'tracker' } = req.body;
 
     if (!practices || !Array.isArray(practices)) {
       return res.status(400).json({ message: 'Invalid practices data' });
@@ -61,42 +17,101 @@ router.post('/log', auth, async (req, res) => {
 
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // ── TESTING: duplicate-submission block temporarily disabled ─────────────
-    // const existing = await SadhanaLog.findOne({ userId: req.user._id, date: today });
-    // if (existing) {
-    //   return res.status(409).json({
-    //     message: "You've already completed your sadhana for today. See you tomorrow! 🙏",
-    //     alreadySubmitted: true,
-    //     log: existing,
-    //   });
-    // }
-    // ─────────────────────────────────────────────────────────────────────────
-
     const user = await User.findById(req.user._id);
-    const { scoredPractices, totalScore, isPerfectDay } = calculateScore(
-      practices,
-      user.selectedPractices
-    );
-
-    // Upsert (testing mode — overwrites today's log freely)
-    const log = await SadhanaLog.findOneAndUpdate(
-      { userId: req.user._id, date: today },
-      { practices: scoredPractices, totalScore, isPerfectDay },
-      { upsert: true, new: true }
-    );
-
-    // Also increment cumulative score on the User document
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      { $inc: { totalCumulativeScore: totalScore } },
-      { new: true }
-    );
-    const newLevel = scoreToLevel(updatedUser.totalCumulativeScore);
-    if (newLevel !== updatedUser.currentLevel) {
-      await User.findByIdAndUpdate(req.user._id, { currentLevel: newLevel });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ message: 'Sadhana log saved!', log, totalScore, isPerfectDay });
+    // Existing score for today ensures no double counting
+    const existingLog = await SadhanaLog.findOne({ userId: req.user._id, date: today });
+    const oldScore = existingLog ? (existingLog.totalScore || 0) : 0;
+
+    const { scoredPractices, totalScore, isPerfectDay } = calculateSadhanaScore(
+      practices,
+      user.selectedPractices,
+      user.practiceConfig
+    );
+
+    const deltaScore = totalScore - oldScore;
+
+    // Upsert today's log
+    const log = await SadhanaLog.findOneAndUpdate(
+      { userId: req.user._id, date: today },
+      { practices: scoredPractices, totalScore, isPerfectDay, source },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // Increment cumulative score only by deltaScore
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $inc: { totalCumulativeScore: deltaScore },
+        $set: { lastActivityDate: new Date() },
+      },
+      { new: true }
+    );
+
+    const newLevel = scoreToLevel(updatedUser.totalCumulativeScore);
+    const oldLevel = updatedUser.currentLevel || 1;
+    if (newLevel !== oldLevel) {
+      updatedUser.currentLevel = newLevel;
+      await updatedUser.save();
+    }
+
+    // ── Auto-generate JourneyEvent milestones (non-blocking) ──
+    try {
+      // 1. Major level milestone
+      if (newLevel > oldLevel && (newLevel % 5 === 0 || newLevel === 108 || (newLevel === 2 && oldLevel === 1))) {
+        const existingMilestone = await JourneyEvent.findOne({
+          userId: req.user._id,
+          category: 'milestone',
+          'metadata.level': newLevel,
+        });
+        if (!existingMilestone) {
+          await JourneyEvent.create({
+            userId: req.user._id,
+            type: 'auto',
+            category: 'milestone',
+            title: `Ascended to Level ${newLevel}`,
+            description: `Attained Level ${newLevel} on the path with ${updatedUser.totalCumulativeScore} cumulative sadhana points.`,
+            icon: '🏔️',
+            metadata: { level: newLevel, score: updatedUser.totalCumulativeScore },
+            date: new Date(),
+          });
+        }
+      }
+
+      // 2. First Perfect Day milestone
+      if (isPerfectDay && (!existingLog || !existingLog.isPerfectDay)) {
+        const pastPerfect = await JourneyEvent.findOne({
+          userId: req.user._id,
+          title: 'First Perfect Sadhana Day',
+        });
+        if (!pastPerfect) {
+          await JourneyEvent.create({
+            userId: req.user._id,
+            type: 'auto',
+            category: 'sadhana',
+            title: 'First Perfect Sadhana Day',
+            description: 'Completed all dedicated daily sadhana practices and targets in a single day.',
+            icon: '✨',
+            date: new Date(),
+          });
+        }
+      }
+    } catch (milestoneErr) {
+      console.warn('Auto journey event milestone error (non-fatal):', milestoneErr.message);
+    }
+
+    res.json({
+      message: 'Sadhana log saved!',
+      log,
+      totalScore,
+      deltaScore,
+      isPerfectDay,
+      totalCumulativeScore: updatedUser.totalCumulativeScore,
+      currentLevel: updatedUser.currentLevel,
+    });
   } catch (err) {
     console.error('Sadhana log error:', err);
     res.status(500).json({ message: 'Server error saving sadhana log' });

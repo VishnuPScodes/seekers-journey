@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const practiceEntrySchema = new mongoose.Schema({
   name: { type: String, required: true },
-  count: { type: Number, default: 0, min: 0, max: 2 },
+  count: { type: Number, default: 0, min: 0 },
   score: { type: Number, default: 0 }, // points earned for this practice
   kapalabhatiCount: { type: Number, default: null }, // only for Shakti Chalana Kriya
 });
@@ -20,6 +20,11 @@ const sadhanaLogSchema = new mongoose.Schema({
   practices: [practiceEntrySchema],
   totalScore: { type: Number, default: 0 },
   isPerfectDay: { type: Boolean, default: false }, // all selected practices done ≥ once
+  source: {
+    type: String,
+    enum: ['tracker', 'bubble', 'api'],
+    default: 'tracker',
+  },
   pradakshinaCount: { type: Number, default: 0, min: 0 },
   guruPujaAttended: { type: Boolean, default: false },
   focusPercentage: { type: Number, default: 0 },

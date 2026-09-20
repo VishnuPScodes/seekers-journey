@@ -2448,6 +2448,31 @@ h1.page-title {
   text-align: center;
 }
 
+.bubble-count-badge.badge-done {
+  background: var(--emerald-400);
+  color: #06281e;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+}
+
+.sadhana-bubble.bubble-done {
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.sadhana-bubble.bubble-done .bubble-name {
+  color: var(--emerald-400);
+}
+
+.sadhana-bubble.bubble-done .bubble-icon {
+  color: var(--emerald-400);
+}
+
+.tracker-minus-btn:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
 .bubble-score-float {
   position: absolute;
   top: 50%;

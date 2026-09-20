@@ -3,39 +3,62 @@ import api from '../api';
 
 const AuthContext = createContext(null);
 
+const OLD_TOKEN_KEY = 'sadhana_token';
+const OLD_USER_KEY = 'sadhana_user';
+const TOKEN_KEY = 'seekers_token';
+const USER_KEY = 'seekers_user';
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('sadhana_user');
-    const token = localStorage.getItem('sadhana_token');
+    // ── Graceful localStorage Key Migration ──
+    let token = localStorage.getItem(TOKEN_KEY);
+    let stored = localStorage.getItem(USER_KEY);
+
+    if (!token && localStorage.getItem(OLD_TOKEN_KEY)) {
+      token = localStorage.getItem(OLD_TOKEN_KEY);
+      stored = localStorage.getItem(OLD_USER_KEY);
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      if (stored) localStorage.setItem(USER_KEY, stored);
+      localStorage.removeItem(OLD_TOKEN_KEY);
+      localStorage.removeItem(OLD_USER_KEY);
+    }
+
     if (stored && token) {
-      setUser(JSON.parse(stored));
-      // Refresh user data from server to get latest score/level
-      api.get('/user/me').then(({ data }) => {
-        const updated = JSON.parse(stored);
-        updated.totalCumulativeScore = data.totalCumulativeScore || 0;
-        updated.currentLevel = data.currentLevel || 1;
-        setUser(updated);
-        localStorage.setItem('sadhana_user', JSON.stringify(updated));
-      }).catch(() => {});
+      try {
+        setUser(JSON.parse(stored));
+        // Refresh user data from server to get latest score/level
+        api.get('/user/me').then(({ data }) => {
+          const updated = JSON.parse(stored);
+          updated.totalCumulativeScore = data.totalCumulativeScore || 0;
+          updated.currentLevel = data.currentLevel || 1;
+          if (data.practiceConfig) updated.practiceConfig = data.practiceConfig;
+          if (data.customPractices) updated.customPractices = data.customPractices;
+          if (data.selectedPractices) updated.selectedPractices = data.selectedPractices;
+          setUser(updated);
+          localStorage.setItem(USER_KEY, JSON.stringify(updated));
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Failed to parse stored user profile:', err);
+      }
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('sadhana_token', data.token);
-    localStorage.setItem('sadhana_user', JSON.stringify(data.user));
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   };
 
   const register = async (name, email, password) => {
     const { data } = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('sadhana_token', data.token);
-    localStorage.setItem('sadhana_user', JSON.stringify(data.user));
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   };
@@ -43,12 +66,14 @@ export function AuthProvider({ children }) {
   const updateUser = (updates) => {
     const updated = { ...user, ...updates };
     setUser(updated);
-    localStorage.setItem('sadhana_user', JSON.stringify(updated));
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
   };
 
   const logout = () => {
-    localStorage.removeItem('sadhana_token');
-    localStorage.removeItem('sadhana_user');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(OLD_TOKEN_KEY);
+    localStorage.removeItem(OLD_USER_KEY);
     setUser(null);
   };
 

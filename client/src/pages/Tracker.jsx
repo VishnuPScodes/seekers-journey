@@ -3,14 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api';
-import { CheckCircle, Sunrise, Star, Trophy, Calendar, Hand, Wind } from 'lucide-react';
+import { CheckCircle, Sunrise, Star, Trophy, Calendar, Hand, Wind, Minus } from 'lucide-react';
 import { PRACTICE_ICONS } from '../utils/practiceIcons';
 import { useSadhanaSound } from '../hooks/useBowlSound';
 
-function getStatusLabel(count) {
+function getStatusLabel(count, target = 2) {
   if (count === 0) return 'Tap to mark as done';
-  if (count === 1) return 'Done once • Tap for second round';
-  return 'Completed twice ✓';
+  if (count === 1 && target > 1) return 'Done once • Tap for second round';
+  if (count >= target) {
+    if (count === target) return target === 2 ? 'Completed twice ✓' : `Completed target (${count}/${target}) ✓`;
+    return `${count}× completed ✓ (${target} scored)`;
+  }
+  return `${count} of ${target} completed`;
 }
 
 const SHAKTI = 'Shakti Chalana Kriya';
@@ -130,7 +134,7 @@ function AlreadyDone({ log }) {
               }}>
                 <span style={{ display: 'flex' }}>{PRACTICE_ICONS[p.name] || <Hand size={20} strokeWidth={1.5} />}</span>
                 <span style={{ flex: 1, color: 'var(--text-primary)' }}>{p.name}</span>
-                <span style={{ color: p.count === 2 ? 'var(--emerald-400)' : 'var(--amber-400)', fontWeight: 600, fontSize: 12 }}>
+                <span style={{ color: p.count >= 2 ? 'var(--emerald-400)' : 'var(--amber-400)', fontWeight: 600, fontSize: 12 }}>
                   {p.count}× done
                 </span>
               </div>
@@ -153,7 +157,7 @@ function AlreadyDone({ log }) {
 
 // ─── Main Tracker ─────────────────────────────────────────────────────────────
 export default function Tracker() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [practices, setPractices] = useState(() =>
@@ -184,12 +188,23 @@ export default function Tracker() {
     }
   }, [user?.selectedPractices]);
 
-  // ── Check on mount if today is already submitted ──────────────────────────
+  // ── Check on mount and pre-fill practices from today's SadhanaLog ──────────
   useEffect(() => {
     const checkToday = async () => {
       try {
         const { data } = await api.get('/sadhana/today');
-        setTodayLog(data.log || false); // false = not done yet, object = done
+        if (data.log && Array.isArray(data.log.practices) && data.log.practices.length > 0) {
+          const logMap = new Map(data.log.practices.map(p => [p.name, p]));
+          setPractices(prev => prev.map(p => {
+            const entry = logMap.get(p.name);
+            return entry ? { ...p, count: entry.count } : p;
+          }));
+          const shaktiEntry = data.log.practices.find(p => p.name === SHAKTI);
+          if (shaktiEntry?.kapalabhatiCount) {
+            setKapalabhatiCount(shaktiEntry.kapalabhatiCount);
+          }
+        }
+        setTodayLog(data.log || false);
       } catch {
         setTodayLog(false); // fail open — let them try
       } finally {
@@ -212,17 +227,24 @@ export default function Tracker() {
 
     setPractices(prev => {
       const updated = [...prev];
-      const newCount = (updated[index].count + 1) % 3;
+      const newCount = updated[index].count + 1;
       updated[index] = { ...updated[index], count: newCount };
-      // Clear kapalabhati if Shakti is reset to 0
-      if (updated[index].name === SHAKTI && newCount === 0) {
-        setKapalabhatiCount(null);
-      }
-      // Play the unique sound for this practice
       playSound(updated[index].name, newCount);
       return updated;
     });
   }, [playSound]);
+
+  const decrement = useCallback((index) => {
+    setPractices(prev => {
+      const updated = [...prev];
+      const newCount = Math.max(0, updated[index].count - 1);
+      updated[index] = { ...updated[index], count: newCount };
+      if (updated[index].name === SHAKTI && newCount === 0) {
+        setKapalabhatiCount(null);
+      }
+      return updated;
+    });
+  }, []);
 
   const completedCount = practices.filter(p => p.count > 0).length;
   const progressPercent = practices.length > 0
@@ -241,9 +263,16 @@ export default function Tracker() {
         p.name === SHAKTI ? { ...p, kapalabhatiCount } : p
       );
       const { data } = await api.post('/sadhana/log', { practices: payload });
+      if (data.totalCumulativeScore !== undefined) {
+        updateUser({
+          totalCumulativeScore: data.totalCumulativeScore,
+          currentLevel: data.currentLevel,
+        });
+      }
       navigate('/congrats', {
         state: {
-          practices: payload,
+          // Use server-scored practices so Congrats can display p.score directly
+          practices: data.log?.practices || payload,
           totalScore: data.totalScore,
           isPerfectDay: data.isPerfectDay,
         },
@@ -306,7 +335,7 @@ export default function Tracker() {
               </div>
               <h1 className="page-title handwriting-font" style={{ fontSize: 28, marginBottom: 2 }}>Today's Sadhana</h1>
               <p className="page-desc" style={{ marginBottom: 14, fontSize: 12 }}>
-                Tap a practice once or twice to record your session
+                Tap a practice to record your session
               </p>
             </div>
 
@@ -325,41 +354,89 @@ export default function Tracker() {
 
             {/* Practice cards */}
             <div className="tracker-grid">
-              {practices.map((practice, index) => (
-                <React.Fragment key={practice.name}>
-                  <div
-                    id={`tracker-card-${index}`}
-                    className={`tracker-card ${
-                      practice.count === 1 ? 'done-once' : practice.count === 2 ? 'done-twice' : ''
-                    }`}
-                    onClick={(e) => tap(index, e)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${practice.name}: ${getStatusLabel(practice.count)}`}
-                    onKeyDown={(e) => e.key === 'Enter' && tap(index, e)}
-                  >
-                    <span className="tracker-card-icon" style={{ display: 'flex' }}>
-                      {PRACTICE_ICONS[practice.name] || <Hand size={20} strokeWidth={1.5} />}
-                    </span>
-                    <div className="tracker-card-info">
-                      <div className="tracker-card-name">{practice.name}</div>
-                      <div className="tracker-card-status">{getStatusLabel(practice.count)}</div>
-                    </div>
-                    <div className="tracker-card-dots">
-                      <div className="dot" />
-                      <div className="dot" />
-                    </div>
-                  </div>
+              {practices.map((practice, index) => {
+                const targetConfig = (user?.practiceConfig || []).find(c => c.name === practice.name);
+                const dailyTarget = targetConfig?.dailyTarget || 2;
+                const isCompleted = practice.count >= dailyTarget;
+                const isDoneOnce = practice.count === 1 && dailyTarget > 1;
 
-                  {/* Kapalabhati picker — shown only for Shakti when done */}
-                  {practice.name === SHAKTI && practice.count > 0 && (
-                    <KapalabhatiPicker
-                      value={kapalabhatiCount}
-                      onChange={setKapalabhatiCount}
-                    />
-                  )}
-                </React.Fragment>
-              ))}
+                return (
+                  <React.Fragment key={practice.name}>
+                    <div
+                      id={`tracker-card-${index}`}
+                      className={`tracker-card ${
+                        isDoneOnce ? 'done-once' : isCompleted ? 'done-twice' : ''
+                      }`}
+                      onClick={(e) => tap(index, e)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${practice.name}: ${getStatusLabel(practice.count, dailyTarget)}`}
+                      onKeyDown={(e) => e.key === 'Enter' && tap(index, e)}
+                    >
+                      <span className="tracker-card-icon" style={{ display: 'flex' }}>
+                        {PRACTICE_ICONS[practice.name] || <Hand size={20} strokeWidth={1.5} />}
+                      </span>
+                      <div className="tracker-card-info">
+                        <div className="tracker-card-name">{practice.name}</div>
+                        <div className="tracker-card-status">{getStatusLabel(practice.count, dailyTarget)}</div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {practice.count > 0 && (
+                          <button
+                            type="button"
+                            className="tracker-minus-btn"
+                            title="Remove 1 session"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              decrement(index);
+                            }}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              border: '1px solid var(--border)',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: 'var(--text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                          >
+                            <Minus size={13} />
+                          </button>
+                        )}
+
+                        <div className="tracker-card-dots">
+                          {Array.from({ length: dailyTarget }).map((_, i) => (
+                            <div key={i} className="dot" />
+                          ))}
+                          {practice.count > dailyTarget && (
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: 'var(--emerald-400)',
+                              marginLeft: 2,
+                            }}>
+                              +{practice.count - dailyTarget}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Kapalabhati picker — shown only for Shakti when done */}
+                    {practice.name === SHAKTI && practice.count > 0 && (
+                      <KapalabhatiPicker
+                        value={kapalabhatiCount}
+                        onChange={setKapalabhatiCount}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
 
             {error && (

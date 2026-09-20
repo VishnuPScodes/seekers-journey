@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain } from 'lucide-react';
+import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain, Compass } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -27,6 +27,7 @@ export default function Navbar() {
   const navItems = [
     { path: '/', label: 'Home', icon: <Home size={18} strokeWidth={1.5} />, id: 'nav-home' },
     { path: '/tracker', label: 'Sadhana Tracker', icon: <BookOpen size={18} strokeWidth={1.5} />, id: 'nav-tracker' },
+    { path: '/personal-journey', label: 'My Journey', icon: <Compass size={18} strokeWidth={1.5} />, id: 'nav-personal-journey' },
     { path: '/journey', label: 'Kailash Journey', icon: <Mountain size={18} strokeWidth={1.5} />, id: 'nav-journey' },
     // { path: '/life-tracker', label: 'Life Journal', icon: '🌱', id: 'nav-life-tracker' },
     // { path: '/life-metrics', label: 'Life Metrics', icon: '📊', id: 'nav-life-metrics' },
@@ -48,7 +49,7 @@ export default function Navbar() {
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <span className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sun size={20} /> Sadhana Tracker
+            <Sun size={20} /> Seekers Journey
           </span>
         </div>
 
@@ -84,8 +85,8 @@ export default function Navbar() {
           <div className="nav-drawer-brand">
             <span className="brand-icon-sm" style={{ display: 'flex' }}><Sun size={20} /></span>
             <div className="brand-text-sm">
-              <strong>Sadhana Tracker</strong>
-              <span>Daily Practice Journal</span>
+              <strong>Seekers Journey</strong>
+              <span>Your Sacred Path with Isha</span>
             </div>
           </div>
           <button className="btn-close-drawer" onClick={() => setMenuOpen(false)} aria-label="Close Menu">

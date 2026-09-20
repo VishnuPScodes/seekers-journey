@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons.svg'],
       manifest: {
-        name: 'Sadhana Tracker — Daily Practice Journal',
-        short_name: 'Sadhana Tracker',
-        description: 'Track your daily Isha Yoga sadhana practices — Shambhavi Mahamudra, Surya Kriya, and more.',
+        name: 'Seekers Journey',
+        short_name: 'Seekers Journey',
+        description: 'Your personal journey with Isha — track your sadhana, celebrate sacred milestones, and remember your story.',
         theme_color: '#f4efd8',
         background_color: '#f4efd8',
         display: 'standalone',

@@ -6,8 +6,9 @@ import Navbar from '../components/Navbar';
 import { Hand, Star, Trophy, Wind, Sunrise, LineChart } from 'lucide-react';
 import { PRACTICE_ICONS } from '../utils/practiceIcons';
 
-const SCORE_ONCE = 10;
-const SCORE_TWICE = 25;
+// Scoring constants live in server/config/pointRules.js — the frontend reads
+// per-practice score directly from p.score returned in the SadhanaLog.
+// KAPALABHATI_SCORES kept here only for the bonus display breakdown in the UI.
 const KAPALABHATI_SCORES = { 20: 5, 50: 10, 100: 20, 150: 30, 200: 45 };
 
 const SADHGURU_QUOTES = [
@@ -169,7 +170,7 @@ export default function Congrats() {
                     )}
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 10 }}>
-                    +{p.count === 1 ? SCORE_ONCE : SCORE_TWICE} pts
+                    +{p.score ?? (p.count === 1 ? 10 : 25)} pts
                   </span>
                   <span className={`summary-item-count count-${p.count}`}>
                     {p.count === 1 ? '1× done' : '2× done'}

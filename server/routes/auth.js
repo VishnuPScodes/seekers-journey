@@ -30,6 +30,7 @@ router.post('/register', async (req, res) => {
         name: user.name,
         email: user.email,
         selectedPractices: user.selectedPractices,
+        practiceConfig: user.practiceConfig || [],
         practicesSelected: user.practicesSelected,
       },
     });
@@ -67,6 +68,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         selectedPractices: user.selectedPractices,
+        practiceConfig: user.practiceConfig || [],
         practicesSelected: user.practicesSelected,
       },
     });

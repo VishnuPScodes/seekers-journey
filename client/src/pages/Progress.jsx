@@ -16,26 +16,13 @@ import { Bar, Line } from 'react-chartjs-2';
 import Navbar from '../components/Navbar';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { PRACTICE_ICON_EMOJI as PRACTICE_ICONS } from '../utils/practiceIcons';
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement,
   PointElement, LineElement,
   Title, Tooltip, Legend, Filler
 );
-
-const PRACTICE_ICONS = {
-  'Shoonya Meditation':   '🌌',
-  'Shambhavi Mahamudra':  '👁️',
-  'Shakti Chalana Kriya': '⚡',
-  'Surya Kriya':          '☀️',
-  'Yogasanas':            '🧘',
-  'Angamardana':          '💪',
-  'Sukha Kriya':          '🌿',
-  'Samyama Sadhana':      '🪷',
-  'Breath Watching':      '🌬️',
-  'Surya Shakti':         '🌟',
-  'Bhastrika Kriya':      '💨',
-};
 
 function formatDate(dateStr, days) {
   const d = new Date(dateStr + 'T00:00:00');
