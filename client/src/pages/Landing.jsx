@@ -190,27 +190,45 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* ── Sadhana Bubbles ─────────────────────────────────────────── */}
+          {/* ── Sadhana Floating Pebbles River Stream ───────────────────── */}
           {selectedPractices.length > 0 ? (
-            <div className="sadhana-bubbles-section animate-in" style={{ animationDelay: '0.1s' }}>
-              <div className="sadhana-bubbles-label">
-                <Zap size={12} style={{ color: '#fbbf24' }} />
-                Daily Practice Bubbles • Tap to record
+            <div className="pebbles-stream-wrapper animate-in" style={{ animationDelay: '0.1s' }}>
+              <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 14 }}>
+                <Zap size={12} style={{ color: '#c46b3e' }} />
+                Floating Sadhana Pebbles • Scroll & Tap to record
               </div>
-              <div className="sadhana-bubbles-grid">
-                {selectedPractices.map(name => {
-                  const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
-                  const dailyTarget = targetConfig?.dailyTarget || 2;
-                  return (
-                    <SadhanaBubble
-                      key={name}
-                      name={name}
-                      totalTaps={todayCounts[name] || 0}
-                      dailyTarget={dailyTarget}
-                      onTap={handleBubbleTap}
-                    />
-                  );
-                })}
+
+              {/* Full-width horizontally scrollable river stream */}
+              <div className="pebbles-stream-scroll">
+                <div className="pebbles-stream-track">
+                  {selectedPractices.map((name, index) => {
+                    const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
+                    const dailyTarget = targetConfig?.dailyTarget || 2;
+
+                    // Organic random offsets for natural pebble sorting distribution
+                    const offsetY = [-24, 18, -14, 26, -28, 16, -18, 22][index % 8];
+                    const rotate = [-5, 6, -3, 7, -6, 4, -4, 5][index % 8];
+                    const animDelay = [0, -1.3, -0.6, -1.8, -0.9, -2.4, -1.5, -0.3][index % 8];
+
+                    return (
+                      <div
+                        key={name}
+                        className="pebble-river-item"
+                        style={{
+                          transform: `translateY(${offsetY}px) rotate(${rotate}deg)`,
+                          animationDelay: `${animDelay}s`,
+                        }}
+                      >
+                        <SadhanaBubble
+                          name={name}
+                          totalTaps={todayCounts[name] || 0}
+                          dailyTarget={dailyTarget}
+                          onTap={handleBubbleTap}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ) : (
