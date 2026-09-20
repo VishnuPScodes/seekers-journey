@@ -1,401 +1,79 @@
-import React, { useRef, useState, useMemo, Suspense, useCallback } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LOCATIONS, getLevelProgress, getPointsToNextLevel } from '../utils/locations';
 import { ChevronLeft, Star, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// ─── 108 anchor points — laid flat on the XZ plane ───────────────────────────
-// Path goes from South India (z=+60, bottom of top-down view) to Kailash (z=-65, top)
-// X: west(-) to east(+). Scale kept tight so everything fits on screen.
+// ── 108 Anchor points  [longitude-like x, latitude-like z]
+// z=+60 → South India (bottom),  z=−71 → Kailash/Tibet (top)
 const ANCHORS = [
-  // Tamil Nadu 1-10
   [0,60],[-4,57],[2,55],[5,53],[3,51],[11,49],[17,47],[26,45],[20,43],[8,41],
-  // Kerala & Karnataka 11-20
   [-8,39],[-14,37],[-13,35],[-19,32],[-23,30],[-20,27],[-17,24],[-15,21],[-26,24],[-10,19],
-  // Andhra & Telangana 21-30
   [10,19],[17,22],[24,25],[20,18],[14,16],[22,13],[17,10],[12,13],[19,17],[28,27],
-  // Maharashtra 31-40
   [5,8],[1,11],[2,6],[-1,4],[-8,2],[-6,0],[1,2],[-3,6],[-28,15],[-11,0],
-  // MP & Rajasthan 41-50
   [-1,-4],[-4,-6],[5,-7],[11,-9],[17,-11],[2,-10],[-12,-5],[-15,-2],[-20,-7],[-18,-10],
-  // Gujarat 51-60
   [-36,2],[-34,13],[-32,8],[-27,-6],[-29,2],[-26,-1],[-34,10],[-25,-4],[-32,4],[-38,6],
-  // Uttar Pradesh 61-70
   [2,-13],[4,-15],[14,-17],[20,-19],[22,-21],[17,-20],[11,-17],[6,-20],[9,-25],[-1,-27],
-  // Uttarakhand 71-80
   [-3,-30],[-5,-33],[-6,-35],[-8,-38],[-11,-40],[-6,-42],[-4,-45],[0,-47],[5,-48],[8,-51],
-  // High Himalayas 81-90
   [5,-53],[8,-55],[10,-57],[12,-58],[14,-60],[20,-56],[26,-54],[30,-52],[36,-50],[42,-48],
-  // Ladakh 91-100
   [47,-50],[43,-52],[41,-54],[39,-48],[37,-46],[45,-56],[41,-58],[32,-60],[18,-62],[9,-64],
-  // Kailash Approach 101-108
   [5,-66],[2,-68],[0,-67],[0,-69],[0,-70],[-1,-69],[0,-71],[0,-65],
 ];
 
-// Convert to THREE.Vector3 — completely flat at y=0
-const PATH_PTS = ANCHORS.map(([x, z]) => new THREE.Vector3(x, 0, z));
-
-// ─── Region color config ──────────────────────────────────────────────────────
+// ── Region color config  (vivid, distinct — no blue background clash)
 const REGIONS = [
-  { range:[1,10],   color:'#fb923c' }, // Tamil Nadu — orange
-  { range:[11,20],  color:'#34d399' }, // Kerala/Karnataka — emerald
-  { range:[21,30],  color:'#fbbf24' }, // Andhra — yellow
-  { range:[31,40],  color:'#f87171' }, // Maharashtra — red
-  { range:[41,50],  color:'#fb7185' }, // MP/Rajasthan — rose
-  { range:[51,60],  color:'#fdba74' }, // Gujarat — amber
-  { range:[61,70],  color:'#60a5fa' }, // Uttar Pradesh — blue
-  { range:[71,80],  color:'#67e8f9' }, // Uttarakhand — cyan
-  { range:[81,90],  color:'#c084fc' }, // Himalayas — violet
-  { range:[91,100], color:'#7dd3fc' }, // Ladakh — sky
-  { range:[101,108],color:'#fde68a' }, // Kailash — gold
+  { range:[1,10],   color:'#ff6b35', label:'Tamil Nadu' },
+  { range:[11,20],  color:'#06d6a0', label:'Kerala / Karnataka' },
+  { range:[21,30],  color:'#ffd166', label:'Andhra / Telangana' },
+  { range:[31,40],  color:'#ef233c', label:'Maharashtra' },
+  { range:[41,50],  color:'#c77dff', label:'MP / Rajasthan' },
+  { range:[51,60],  color:'#ff9f1c', label:'Gujarat' },
+  { range:[61,70],  color:'#4cc9f0', label:'Uttar Pradesh' },
+  { range:[71,80],  color:'#80ed99', label:'Uttarakhand' },
+  { range:[81,90],  color:'#9b5de5', label:'Himalayas' },
+  { range:[91,100], color:'#38bdf8', label:'Ladakh' },
+  { range:[101,108],color:'#fbbf24', label:'Kailash' },
 ];
 function getColor(level) {
   return (REGIONS.find(r => level >= r.range[0] && level <= r.range[1]) || REGIONS[0]).color;
 }
 
-// ─── PATH TUBE — thick, always visible (meshBasicMaterial = no lighting needed)
-function PathTube({ userLevel }) {
-  const fullCurve = useMemo(
-    () => new THREE.CatmullRomCurve3(PATH_PTS, false, 'catmullrom', 0.5), []
-  );
+// ── SVG coordinate system
+const VW = 500, VH = 700, PAD = 42;
+const xMin = -38, xMax = 47, zMin = -71, zMax = 60;
 
-  // Dim full-path tube
-  const dimGeo = useMemo(
-    () => new THREE.TubeGeometry(fullCurve, 600, 0.8, 8, false), [fullCurve]
-  );
-
-  // Bright visited tube
-  const visitedPts = useMemo(() => PATH_PTS.slice(0, Math.max(2, userLevel)), [userLevel]);
-  const visitedCurve = useMemo(
-    () => new THREE.CatmullRomCurve3(visitedPts, false, 'catmullrom', 0.5),
-    [visitedPts]
-  );
-  const visitedGeo = useMemo(
-    () => new THREE.TubeGeometry(visitedCurve, Math.max(4, userLevel * 5), 1.4, 8, false),
-    [visitedCurve, userLevel]
-  );
-
-  return (
-    <>
-      {/* Full path — visible slate */}
-      <mesh geometry={dimGeo}>
-        <meshBasicMaterial color="#475569" transparent opacity={0.9} />
-      </mesh>
-      {/* Visited path — bright lavender */}
-      <mesh geometry={visitedGeo} position={[0, 0.05, 0]}>
-        <meshBasicMaterial color="#a78bfa" />
-      </mesh>
-    </>
-  );
+function toSVG([x, z]) {
+  const sx = ((x - xMin) / (xMax - xMin)) * (VW - PAD * 2) + PAD;
+  // z=+60 (south) → large y (bottom),  z=-71 (north/Kailash) → small y (top)
+  const sy = ((z - zMin) / (zMax - zMin)) * (VH - PAD * 2) + PAD;
+  return [+sx.toFixed(2), +sy.toFixed(2)];
 }
 
-// ─── LOCATION DOT ─────────────────────────────────────────────────────────────
-function Dot({ loc, userLevel, isSelected, onHover, onClick }) {
-  const discRef   = useRef();
-  const ringRef   = useRef();
-  const [hovered, setHovered] = useState(false);
+const SVG_PTS = ANCHORS.map(toSVG);
 
-  const isVisited   = loc.level <= userLevel;
-  const isMilestone = loc.level % 10 === 0;
-  const isKailash   = loc.level === 108;
-  const isCurrent   = loc.level === userLevel;
-
-  const col = isKailash ? '#fde68a' : isVisited ? getColor(loc.level) : '#334155';
-  const baseR = isKailash ? 5.5 : isMilestone ? 4.0 : 2.8;
-  const r = (hovered || isSelected) ? baseR * 1.45 : baseR;
-
-  // Pulse animation for current + Kailash
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    if ((isCurrent || isKailash) && discRef.current) {
-      const s = 1 + 0.22 * Math.sin(t * 3.0);
-      discRef.current.scale.setScalar(s);
-    }
-    if (isKailash && ringRef.current) {
-      ringRef.current.rotation.z = t * 0.7;
-    }
-  });
-
-  const pt = PATH_PTS[loc.level - 1];
-
-  return (
-    <group position={[pt.x, 0.1, pt.z]}>
-      {/* Soft halo behind dot */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[r * 1.8, 24]} />
-        <meshBasicMaterial
-          color={col}
-          transparent
-          opacity={isVisited ? (isKailash ? 0.22 : 0.14) : 0.06}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Milestone outer ring */}
-      {(isMilestone || isKailash) && (
-        <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[r * 1.1, r * 1.45, 28]} />
-          <meshBasicMaterial
-            color={col}
-            transparent
-            opacity={isVisited ? 0.85 : 0.25}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-      )}
-
-      {/* Main dot */}
-      <mesh
-        ref={discRef}
-        rotation={[-Math.PI / 2, 0, 0]}
-        onPointerOver={e => { e.stopPropagation(); setHovered(true); onHover(loc); document.body.style.cursor = 'pointer'; }}
-        onPointerOut={e => { e.stopPropagation(); setHovered(false); onHover(null); document.body.style.cursor = 'auto'; }}
-        onClick={e => { e.stopPropagation(); onClick(loc); }}
-      >
-        <circleGeometry args={[r, 24]} />
-        <meshBasicMaterial color={col} side={THREE.DoubleSide} transparent opacity={isVisited ? 1 : 0.45} />
-      </mesh>
-
-      {/* Hover / selected tooltip */}
-      {(hovered || isSelected) && (
-        <Html center position={[0, 0.2, -(r + 2)]} distanceFactor={55} style={{ pointerEvents: 'none' }}>
-          <div style={{
-            background: 'rgba(3,7,18,0.95)',
-            border: `2px solid ${col}`,
-            borderRadius: 10, padding: '5px 13px',
-            textAlign: 'center',
-            whiteSpace: 'nowrap',
-            boxShadow: `0 0 18px ${col}66`,
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: col, letterSpacing: 0.5 }}>
-              {isKailash ? '🏔 ' : ''}{loc.name}
-            </div>
-            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>
-              {loc.region} · Pt {loc.level}
-            </div>
-          </div>
-        </Html>
-      )}
-    </group>
-  );
+// ── Build smooth quadratic-bezier SVG path string
+function makePath(pts) {
+  if (!pts || pts.length < 2) return '';
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = +((pts[i][0] + pts[i + 1][0]) / 2).toFixed(2);
+    const my = +((pts[i][1] + pts[i + 1][1]) / 2).toFixed(2);
+    d += ` Q${pts[i][0]},${pts[i][1]} ${mx},${my}`;
+  }
+  const L = pts[pts.length - 1];
+  d += ` L${L[0]},${L[1]}`;
+  return d;
 }
 
-// ─── PILGRIM MARKER — large, unmissable pulsing beacon ───────────────────────
-function Pilgrim({ userLevel }) {
-  const outerRef = useRef();
-  const innerRef = useRef();
+// ── Pre-compute region centroid positions for labels
+const REGION_LABELS = REGIONS.map(r => {
+  const pts = ANCHORS.slice(r.range[0] - 1, r.range[1]).map(toSVG);
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  return { ...r, cx: +cx.toFixed(1), cy: +cy.toFixed(1) };
+});
 
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    if (outerRef.current) {
-      const s = 1 + 0.28 * Math.sin(t * 2.5);
-      outerRef.current.scale.setScalar(s);
-      outerRef.current.material.opacity = 0.3 + 0.2 * Math.sin(t * 2.5);
-    }
-    if (innerRef.current) {
-      innerRef.current.rotation.z = t * 1.2;
-    }
-  });
-
-  const pt = PATH_PTS[Math.max(0, userLevel - 1)];
-
-  return (
-    <group position={[pt.x, 0.2, pt.z]}>
-      {/* Outer pulsing aura */}
-      <mesh ref={outerRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[9, 32]} />
-        <meshBasicMaterial color="#818cf8" transparent opacity={0.28} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Spinning dashed ring */}
-      <mesh ref={innerRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[5.5, 7.0, 40]} />
-        <meshBasicMaterial color="#a5b4fc" transparent opacity={0.9} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Bright solid inner ring */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[3.2, 4.8, 32]} />
-        <meshBasicMaterial color="#e0e7ff" side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Core white dot */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[2.5, 28]} />
-        <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* "You are here" label */}
-      <Html center position={[0, 0.3, -10]} distanceFactor={65} style={{ pointerEvents: 'none' }}>
-        <div style={{
-          background: 'rgba(3,7,18,0.95)',
-          border: '2px solid #a5b4fc',
-          borderRadius: 8, padding: '4px 12px',
-          fontSize: 11, fontWeight: 800, color: '#e0e7ff',
-          whiteSpace: 'nowrap',
-          boxShadow: '0 0 18px #818cf899',
-          letterSpacing: 0.5,
-        }}>
-          ✦ You are here
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-// ─── KAILASH BEACON — golden, distinct, at the top ───────────────────────────
-function KailashBeacon() {
-  const ring1 = useRef();
-  const ring2 = useRef();
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    if (ring1.current) ring1.current.rotation.z =  t * 0.6;
-    if (ring2.current) ring2.current.rotation.z = -t * 0.4;
-  });
-
-  const pt = PATH_PTS[107];
-
-  return (
-    <group position={[pt.x, 0.25, pt.z]}>
-      {/* Wide glow halo */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[16, 32]} />
-        <meshBasicMaterial color="#fbbf24" transparent opacity={0.1} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Outer spinning ring */}
-      <mesh ref={ring1} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[8.5, 10.5, 40]} />
-        <meshBasicMaterial color="#fde68a" transparent opacity={0.75} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Inner spinning ring (opposite) */}
-      <mesh ref={ring2} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[5.5, 7.5, 32]} />
-        <meshBasicMaterial color="#fbbf24" side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Core gold */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[4.5, 28]} />
-        <meshBasicMaterial color="#fffbeb" side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Kailash label */}
-      <Html center position={[0, 0.3, -13]} distanceFactor={65} style={{ pointerEvents: 'none' }}>
-        <div style={{
-          background: 'rgba(3,7,18,0.95)',
-          border: '2px solid #fbbf24',
-          borderRadius: 8, padding: '4px 14px',
-          fontSize: 12, fontWeight: 900, color: '#fde68a',
-          whiteSpace: 'nowrap',
-          boxShadow: '0 0 22px #fbbf2466',
-          letterSpacing: 1,
-        }}>
-          🏔 Kailash
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-// ─── REGION LABELS — HTML overlays at key positions ──────────────────────────
-const LABEL_POS = [
-  { text: 'TAMIL NADU',      x:14,  z:55,  col:'#fb923c' },
-  { text: 'KERALA',          x:-23, z:30,  col:'#34d399' },
-  { text: 'ANDHRA',          x:25,  z:20,  col:'#fbbf24' },
-  { text: 'MAHARASHTRA',     x:-12, z:5,   col:'#f87171' },
-  { text: 'RAJASTHAN',       x:-20, z:-4,  col:'#fb7185' },
-  { text: 'GUJARAT',         x:-40, z:8,   col:'#fdba74' },
-  { text: 'UTTAR PRADESH',   x:14,  z:-18, col:'#60a5fa' },
-  { text: 'UTTARAKHAND',     x:-15, z:-38, col:'#67e8f9' },
-  { text: 'HIMALAYAS',       x:14,  z:-55, col:'#c084fc' },
-  { text: 'LADAKH',          x:44,  z:-52, col:'#7dd3fc' },
-  { text: 'TIBET',           x:5,   z:-67, col:'#fde68a' },
-];
-
-function RegionLabels() {
-  return (
-    <>
-      {LABEL_POS.map((r, i) => (
-        <Html key={i} position={[r.x, 0.1, r.z]} center distanceFactor={90} style={{ pointerEvents: 'none' }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: r.col, opacity: 0.45, letterSpacing: 1.5, whiteSpace: 'nowrap' }}>
-            {r.text}
-          </div>
-        </Html>
-      ))}
-    </>
-  );
-}
-
-// ─── GROUND ───────────────────────────────────────────────────────────────────
-function Ground() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]}>
-      <planeGeometry args={[300, 300]} />
-      <meshBasicMaterial color="#0a1628" />
-    </mesh>
-  );
-}
-
-// ─── CAMERA INIT ──────────────────────────────────────────────────────────────
-function CameraInit() {
-  const { camera } = useThree();
-  React.useEffect(() => {
-    camera.position.set(0, 145, 0);
-    camera.up.set(0, 0, -1);
-    camera.lookAt(0, 0, 0);
-    camera.updateProjectionMatrix();
-  }, [camera]);
-  return null;
-}
-
-// ─── SCENE ────────────────────────────────────────────────────────────────────
-function Scene({ userLevel, selectedLevel, onHover, onClick }) {
-  return (
-    <>
-      <Ground />
-      <PathTube userLevel={userLevel} />
-
-      {/* All 107 dots (Kailash rendered separately) */}
-      {LOCATIONS.filter(l => l.level < 108).map(loc => (
-        <Dot
-          key={loc.level}
-          loc={loc}
-          userLevel={userLevel}
-          isSelected={loc.level === selectedLevel}
-          onHover={onHover}
-          onClick={onClick}
-        />
-      ))}
-
-      <KailashBeacon />
-      <Pilgrim userLevel={userLevel} />
-      <RegionLabels />
-
-      <CameraInit />
-      <OrbitControls
-        enablePan
-        enableZoom
-        enableRotate
-        minDistance={12}
-        maxDistance={300}
-        maxPolarAngle={Math.PI * 0.22}
-        minPolarAngle={0}
-        enableDamping
-        dampingFactor={0.06}
-        screenSpacePanning
-      />
-    </>
-  );
-}
-
-// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+// ── Main component
 export default function KailashJourney() {
   const { user }   = useAuth();
   const navigate   = useNavigate();
@@ -406,45 +84,114 @@ export default function KailashJourney() {
   const pointsToNext = getPointsToNextLevel(totalScore);
 
   const [selectedLevel, setSelectedLevel] = useState(userLevel);
-  const selectedLoc = useMemo(() => LOCATIONS.find(l => l.level === selectedLevel) || LOCATIONS[0], [selectedLevel]);
-  const nextLoc     = useMemo(() => LOCATIONS.find(l => l.level === Math.min(userLevel + 1, 108)) || LOCATIONS[107], [userLevel]);
-  const selCol      = getColor(selectedLevel);
+  const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, loc: null });
+  const [pan,  setPan]  = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
 
-  const handleHover = useCallback(loc => {}, []);
-  const handleClick = useCallback(loc => setSelectedLevel(loc.level), []);
+  const dragging   = useRef(false);
+  const dragOrigin = useRef({ x: 0, y: 0, px: 0, py: 0 });
+  const containerRef = useRef(null);
+
+  const selectedLoc = LOCATIONS.find(l => l.level === selectedLevel) || LOCATIONS[0];
+  const nextLoc     = LOCATIONS.find(l => l.level === Math.min(userLevel + 1, 108)) || LOCATIONS[107];
+  const selColor    = getColor(selectedLevel);
+
+  // Path strings
+  const fullPathD    = useMemo(() => makePath(SVG_PTS), []);
+  const visitedPathD = useMemo(
+    () => makePath(SVG_PTS.slice(0, Math.max(2, userLevel))),
+    [userLevel],
+  );
+
+  // Pilgrim + Kailash screen positions
+  const pilgrimPt = SVG_PTS[Math.max(0, userLevel - 1)];
+  const kailashPt = SVG_PTS[107];
+
+  // ── Scroll zoom
+  const onWheel = useCallback((e) => {
+    e.preventDefault();
+    setZoom(z => Math.min(Math.max(z * (e.deltaY > 0 ? 0.88 : 1.13), 0.4), 6));
+  }, []);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [onWheel]);
+
+  // ── Pan
+  const onMouseDown = useCallback((e) => {
+    dragging.current = true;
+    dragOrigin.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+  }, [pan]);
+  const onMouseMove = useCallback((e) => {
+    if (!dragging.current) return;
+    setPan({
+      x: dragOrigin.current.px + (e.clientX - dragOrigin.current.x),
+      y: dragOrigin.current.py + (e.clientY - dragOrigin.current.y),
+    });
+  }, []);
+  const onMouseUp = useCallback(() => { dragging.current = false; }, []);
+
+  // Touch pan
+  const touchOrigin = useRef(null);
+  const onTouchStart = useCallback((e) => {
+    const t = e.touches[0];
+    touchOrigin.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y };
+  }, [pan]);
+  const onTouchMove = useCallback((e) => {
+    if (!touchOrigin.current) return;
+    const t = e.touches[0];
+    setPan({
+      x: touchOrigin.current.px + (t.clientX - touchOrigin.current.x),
+      y: touchOrigin.current.py + (t.clientY - touchOrigin.current.y),
+    });
+  }, []);
+
+  // ── Dot hover/click
+  const onDotEnter = useCallback((loc, e) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    setTooltip({ visible: true, x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0), loc });
+  }, []);
+  const onDotLeave = useCallback(() => setTooltip(t => ({ ...t, visible: false })), []);
+  const onDotClick = useCallback((loc) => setSelectedLevel(loc.level), []);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#0a1628', position: 'relative', overflow: 'hidden' }}>
+    <div style={{
+      width: '100vw', height: '100vh',
+      background: '#0f0e17',  // ← dark warm-neutral, NOT blue
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+    }}>
 
-      {/* 3D Canvas */}
-      <Canvas
-        camera={{ position: [0, 145, 0], fov: 52, near: 0.1, far: 600, up: [0, 0, -1] }}
-        gl={{ antialias: true }}
-        style={{ position: 'absolute', inset: 0 }}
-      >
-        <Suspense fallback={null}>
-          <Scene
-            userLevel={userLevel}
-            selectedLevel={selectedLevel}
-            onHover={handleHover}
-            onClick={handleClick}
-          />
-        </Suspense>
-      </Canvas>
+      {/* ── Pulse animation style ── */}
+      <style>{`
+        @keyframes kpulse {
+          0%,100% { r: 13; opacity: 0.55; }
+          50%      { r: 24; opacity: 0; }
+        }
+        @keyframes kring {
+          from { transform-origin: center; transform: rotate(0deg); }
+          to   { transform-origin: center; transform: rotate(360deg); }
+        }
+        .kpulse { animation: kpulse 2.4s ease-in-out infinite; }
+      `}</style>
 
-      {/* ── Top Bar ── */}
+      {/* ── TOP BAR ─────────────────────────────────────────────────────── */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-        background: 'linear-gradient(to bottom, rgba(10,22,40,0.97) 0%, transparent 100%)',
-        padding: '12px 14px 30px',
+        background: '#0f0e17',
+        borderBottom: '1px solid #1e1b2e',
+        padding: '10px 14px',
         display: 'flex', alignItems: 'center', gap: 10,
+        flexShrink: 0, zIndex: 20,
       }}>
         <button
           onClick={() => navigate('/')}
           id="journey-back-btn"
           style={{
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(165,180,252,0.4)',
-            color: '#a5b4fc', borderRadius: 10, padding: '7px 12px',
+            background: '#1e1b2e', border: '1px solid #2d2a44',
+            color: '#a5b4fc', borderRadius: 8, padding: '6px 12px',
             display: 'flex', alignItems: 'center', gap: 5,
             cursor: 'pointer', fontSize: 12, fontWeight: 700,
           }}
@@ -453,100 +200,364 @@ export default function KailashJourney() {
         </button>
 
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 2, color: '#a5b4fc', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 2, color: '#e0d7ff', textTransform: 'uppercase' }}>
             🏔 Kailash Journey
           </div>
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>
-            Scroll to zoom · Drag to pan · Hover dots to explore
+          <div style={{ fontSize: 10, color: '#4a4560', marginTop: 1 }}>
+            Level {userLevel} / 108 · Scroll to zoom · Drag to pan · Hover to explore
           </div>
         </div>
 
         <div style={{
-          background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.35)',
-          borderRadius: 10, padding: '5px 11px', display: 'flex', alignItems: 'center', gap: 5,
+          background: '#1e1b2e', border: '1px solid #fbbf2444',
+          borderRadius: 8, padding: '5px 11px',
+          display: 'flex', alignItems: 'center', gap: 5,
         }}>
           <Star size={12} style={{ color: '#fbbf24' }} />
           <span style={{ fontSize: 14, fontWeight: 900, color: '#fbbf24' }}>{totalScore}</span>
         </div>
       </div>
 
-      {/* ── Region legend ── */}
-      <div style={{
-        position: 'absolute', top: 64, right: 12, zIndex: 10,
-        background: 'rgba(10,22,40,0.92)', border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 12, padding: '10px 12px', backdropFilter: 'blur(10px)',
-      }}>
-        <div style={{ fontSize: 9, color: '#334155', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 7, fontWeight: 700 }}>Path</div>
-        {REGIONS.map(r => (
-          <div key={r.range[0]} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: r.color, flexShrink: 0, boxShadow: `0 0 6px ${r.color}88` }} />
-            <span style={{ fontSize: 9.5, color: userLevel >= r.range[0] ? '#c7d2fe' : '#334155', fontWeight: userLevel >= r.range[0] ? 700 : 400 }}>
-              {LOCATIONS.find(l => l.level === r.range[0])?.region || ''}
-            </span>
+      {/* ── MAP + LEGEND ROW ────────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* MAP */}
+        <div
+          ref={containerRef}
+          style={{
+            flex: 1, overflow: 'hidden', position: 'relative',
+            cursor: dragging.current ? 'grabbing' : 'grab',
+          }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={() => { touchOrigin.current = null; }}
+        >
+          {/* Pannable/zoomable layer */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+            }}>
+              <svg
+                viewBox={`0 0 ${VW} ${VH}`}
+                width={VW}
+                height={VH}
+                style={{ display: 'block', userSelect: 'none' }}
+              >
+                <defs>
+                  {/* Glow filter for visited path */}
+                  <filter id="pathglow">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  {/* Glow filter for dots */}
+                  <filter id="dotglow">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+
+                {/* ── Background ── */}
+                <rect width={VW} height={VH} fill="#0f0e17" />
+
+                {/* ── Subtle dot grid ── */}
+                {Array.from({ length: 20 }).map((_, row) =>
+                  Array.from({ length: 14 }).map((__, col) => (
+                    <circle key={`${row}-${col}`}
+                      cx={col * 36 + 20} cy={row * 36 + 20}
+                      r={1} fill="#1c1a2e" />
+                  ))
+                )}
+
+                {/* ── Region label watermarks ── */}
+                {REGION_LABELS.map(r => (
+                  <text key={r.label}
+                    x={r.cx} y={r.cy}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize={10} fontWeight="700"
+                    fill={r.color}
+                    opacity={0.18}
+                    style={{ letterSpacing: 1.5, textTransform: 'uppercase', pointerEvents: 'none' }}
+                  >
+                    {r.label.toUpperCase()}
+                  </text>
+                ))}
+
+                {/* ── Full path (dim dark) ── */}
+                <path
+                  d={fullPathD}
+                  fill="none"
+                  stroke="#2a2640"
+                  strokeWidth={5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* ── Visited path — warm AMBER, clearly different from background ── */}
+                {userLevel > 1 && (
+                  <path
+                    d={visitedPathD}
+                    fill="none"
+                    stroke="#f59e0b"
+                    strokeWidth={5.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    filter="url(#pathglow)"
+                  />
+                )}
+
+                {/* ── Dots — 107 locations (Kailash separate) ── */}
+                {LOCATIONS.filter(l => l.level < 108).map((loc, i) => {
+                  const pt = SVG_PTS[i];
+                  if (!pt) return null;
+
+                  const isVisited   = loc.level <= userLevel;
+                  const isMilestone = loc.level % 10 === 0;
+                  const isSelected  = loc.level === selectedLevel;
+                  const col = isVisited ? getColor(loc.level) : '#2a2640';
+                  const r   = isMilestone ? 9 : 6;
+                  const opacity = isVisited ? 1 : 0.35;
+
+                  return (
+                    <g key={loc.level}>
+                      {/* Milestone outer ring */}
+                      {isMilestone && isVisited && (
+                        <circle cx={pt[0]} cy={pt[1]} r={15}
+                          fill="none" stroke={col} strokeWidth={1.5}
+                          opacity={0.5}
+                        />
+                      )}
+
+                      {/* Selection ring */}
+                      {isSelected && (
+                        <circle cx={pt[0]} cy={pt[1]} r={r + 7}
+                          fill="none" stroke="#ffffff" strokeWidth={1.5}
+                          opacity={0.7}
+                        />
+                      )}
+
+                      {/* Main dot */}
+                      <circle
+                        cx={pt[0]} cy={pt[1]} r={r}
+                        fill={col}
+                        opacity={opacity}
+                        filter={isVisited ? 'url(#dotglow)' : undefined}
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={e => onDotEnter(loc, e)}
+                        onMouseLeave={onDotLeave}
+                        onClick={() => onDotClick(loc)}
+                      />
+                    </g>
+                  );
+                })}
+
+                {/* ── Kailash beacon (level 108) ── */}
+                <g>
+                  {/* Wide halo */}
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={32}
+                    fill="#fbbf2412" />
+                  {/* Mid ring */}
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={22}
+                    fill="none" stroke="#fbbf24" strokeWidth={2} opacity={0.6} />
+                  {/* Inner ring */}
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={15}
+                    fill="none" stroke="#fde68a" strokeWidth={2} opacity={0.85} />
+                  {/* Core */}
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={9}
+                    fill="#fbbf24"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={e => onDotEnter(LOCATIONS[107], e)}
+                    onMouseLeave={onDotLeave}
+                    onClick={() => onDotClick(LOCATIONS[107])}
+                  />
+                  {/* Label */}
+                  <text x={kailashPt[0]} y={kailashPt[1] - 28}
+                    textAnchor="middle"
+                    fontSize={11} fontWeight="900"
+                    fill="#fbbf24"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    🏔 KAILASH
+                  </text>
+                </g>
+
+                {/* ── Pilgrim marker (current level) ── */}
+                <g>
+                  {/* Pulsing outer ring (SVG SMIL animation) */}
+                  <circle
+                    cx={pilgrimPt[0]} cy={pilgrimPt[1]}
+                    r={13} fill="none"
+                    stroke="#ffffff" strokeWidth={1.5}
+                    opacity={0.5}
+                    className="kpulse"
+                  />
+                  {/* Static ring */}
+                  <circle cx={pilgrimPt[0]} cy={pilgrimPt[1]} r={12}
+                    fill="none" stroke="#ffffff" strokeWidth={2} opacity={0.6}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  {/* Bright core */}
+                  <circle cx={pilgrimPt[0]} cy={pilgrimPt[1]} r={7}
+                    fill="#ffffff"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  {/* "YOU" label */}
+                  <text x={pilgrimPt[0]} y={pilgrimPt[1] - 18}
+                    textAnchor="middle"
+                    fontSize={9} fontWeight="900"
+                    fill="#ffffff"
+                    style={{ pointerEvents: 'none', letterSpacing: 1 }}
+                  >
+                    ✦ YOU
+                  </text>
+                </g>
+
+              </svg>
+            </div>
           </div>
-        ))}
+
+          {/* ── Tooltip ── */}
+          {tooltip.visible && tooltip.loc && (
+            <div style={{
+              position: 'absolute',
+              left: Math.min(tooltip.x + 14, (containerRef.current?.offsetWidth || 400) - 180),
+              top:  tooltip.y - 56,
+              background: '#0f0e17',
+              border: `2px solid ${getColor(tooltip.loc.level)}`,
+              borderRadius: 10, padding: '7px 13px',
+              pointerEvents: 'none', zIndex: 50,
+              boxShadow: `0 4px 24px ${getColor(tooltip.loc.level)}44`,
+              minWidth: 160,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: getColor(tooltip.loc.level), letterSpacing: 0.5 }}>
+                {tooltip.loc.level === 108 ? '🏔 ' : ''}{tooltip.loc.name}
+              </div>
+              <div style={{ fontSize: 9, color: '#6b7280', marginTop: 2 }}>
+                {tooltip.loc.region} · Point {tooltip.loc.level}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── LEGEND PANEL ─────────────────────────────────────────────── */}
+        <div style={{
+          width: 148, background: '#0d0c1a',
+          borderLeft: '1px solid #1e1b2e',
+          padding: '14px 12px', flexShrink: 0,
+          overflowY: 'auto',
+        }}>
+          <div style={{ fontSize: 9, color: '#4a4560', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>
+            Regions
+          </div>
+          {REGIONS.map(r => {
+            const reached = userLevel >= r.range[0];
+            return (
+              <div key={r.label} style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                marginBottom: 8, opacity: reached ? 1 : 0.35,
+              }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: r.color, flexShrink: 0,
+                  boxShadow: reached ? `0 0 8px ${r.color}88` : 'none',
+                }} />
+                <span style={{ fontSize: 10, color: reached ? '#e2e0f0' : '#4a4560', fontWeight: reached ? 700 : 400, lineHeight: 1.3 }}>
+                  {r.label}
+                </span>
+              </div>
+            );
+          })}
+
+          <div style={{ borderTop: '1px solid #1e1b2e', marginTop: 10, paddingTop: 10 }}>
+            <div style={{ fontSize: 9, color: '#4a4560', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, marginBottom: 8 }}>
+              Path
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <div style={{ width: 24, height: 3, background: '#f59e0b', borderRadius: 2 }} />
+              <span style={{ fontSize: 10, color: '#e2e0f0', fontWeight: 600 }}>Visited</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 24, height: 3, background: '#2a2640', borderRadius: 2 }} />
+              <span style={{ fontSize: 10, color: '#4a4560' }}>Upcoming</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Bottom HUD ── */}
+      {/* ── BOTTOM HUD ──────────────────────────────────────────────────── */}
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
-        background: 'linear-gradient(to top, rgba(10,22,40,0.98) 0%, rgba(10,22,40,0.7) 70%, transparent 100%)',
-        padding: '14px 14px 18px',
+        background: '#0d0c1a',
+        borderTop: '1px solid #1e1b2e',
+        padding: '12px 14px',
+        flexShrink: 0, zIndex: 20,
       }}>
-        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ maxWidth: 580, margin: '0 auto' }}>
 
           {/* Selected location card */}
           <div style={{
-            background: 'rgba(15,28,52,0.9)',
-            border: `2px solid ${selCol}44`,
-            borderRadius: 14, padding: '11px 14px', marginBottom: 10,
+            background: '#0f0e17',
+            border: `2px solid ${selColor}33`,
+            borderRadius: 12, padding: '10px 13px', marginBottom: 10,
             display: 'flex', gap: 11, alignItems: 'center',
           }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-              background: `${selCol}18`, border: `2px solid ${selCol}55`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+              width: 38, height: 38, borderRadius: 9, flexShrink: 0,
+              background: `${selColor}18`,
+              border: `2px solid ${selColor}44`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             }}>
               {selectedLevel === 108 ? '🏔' : selectedLevel === userLevel ? '🧘' : selectedLevel < userLevel ? '✅' : '🔒'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: selectedLevel <= userLevel ? selCol : '#475569' }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: selectedLevel <= userLevel ? selColor : '#4a4560' }}>
                   {selectedLoc.name}
                 </span>
-                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 20, fontWeight: 700, background: `${selCol}22`, color: selCol }}>
+                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 20, fontWeight: 700, background: `${selColor}20`, color: selColor }}>
                   Pt {selectedLevel}
                 </span>
-                {selectedLevel === userLevel && <span style={{ fontSize: 9, color: '#a5b4fc', fontWeight: 800 }}>← You</span>}
+                {selectedLevel === userLevel && <span style={{ fontSize: 9, color: '#e0d7ff', fontWeight: 800 }}>← You are here</span>}
               </div>
-              <div style={{ fontSize: 10, color: '#475569', marginBottom: 3 }}>
-                <MapPin size={8} style={{ display: 'inline', marginRight: 3 }} />{selectedLoc.region}
+              <div style={{ fontSize: 10, color: '#4a4560', marginBottom: 2 }}>
+                <MapPin size={8} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                {selectedLoc.region}
               </div>
-              <div style={{ fontSize: 10, color: '#334155', lineHeight: 1.5 }}>{selectedLoc.desc}</div>
+              <div style={{ fontSize: 10, color: '#2d2a44', lineHeight: 1.5 }}>{selectedLoc.desc}</div>
             </div>
           </div>
 
-          {/* Progress */}
+          {/* Level + progress */}
           <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
             <div style={{
-              background: 'rgba(15,28,52,0.8)', border: '2px solid rgba(165,180,252,0.25)',
-              borderRadius: 10, padding: '7px 13px', textAlign: 'center', flexShrink: 0,
+              background: '#0f0e17', border: '2px solid #1e1b2e',
+              borderRadius: 9, padding: '7px 13px', textAlign: 'center', flexShrink: 0,
             }}>
               <div style={{ fontSize: 22, fontWeight: 900, color: '#a5b4fc', lineHeight: 1 }}>{userLevel}</div>
-              <div style={{ fontSize: 8, color: '#334155', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 1 }}>Level</div>
+              <div style={{ fontSize: 8, color: '#4a4560', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 1 }}>Level</div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 10, color: '#475569' }}>
-                <span>To next point</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 10 }}>
+                <span style={{ color: '#4a4560' }}>Progress to next</span>
                 <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{levelPct}%</span>
               </div>
-              <div style={{ background: 'rgba(15,28,52,0.8)', borderRadius: 100, height: 6, overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 100, background: 'linear-gradient(90deg,#6366f1,#a5b4fc)', width:`${levelPct}%`, transition:'width 0.5s ease' }} />
+              <div style={{ background: '#1e1b2e', borderRadius: 100, height: 6, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: 100,
+                  background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                  width: `${levelPct}%`, transition: 'width 0.5s ease',
+                }} />
               </div>
-              <div style={{ fontSize: 10, color: '#475569', marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: '#4a4560', marginTop: 4 }}>
                 {userLevel < 108
-                  ? <>{pointsToNext} pts → <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{nextLoc.name}</span></>
-                  : <span style={{ color: '#fbbf24', fontWeight: 700 }}>🏔 Kailash reached!</span>
+                  ? <>{pointsToNext} pts → <span style={{ color: '#f59e0b', fontWeight: 700 }}>{nextLoc.name}</span></>
+                  : <span style={{ color: '#fbbf24', fontWeight: 700 }}>🏔 Kailash reached! Journey complete.</span>
                 }
               </div>
             </div>
