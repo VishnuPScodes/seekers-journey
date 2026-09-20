@@ -85,11 +85,11 @@ export default function KailashJourney() {
 
   const [selectedLevel, setSelectedLevel] = useState(userLevel);
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, loc: null });
-  const [pan,  setPan]  = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const [transform, setTransform] = useState({ zoom: 1, x: 0, y: 0 });
 
   const dragging   = useRef(false);
   const dragOrigin = useRef({ x: 0, y: 0, px: 0, py: 0 });
+  const touchState = useRef(null);
   const containerRef = useRef(null);
 
   const selectedLoc = LOCATIONS.find(l => l.level === selectedLevel) || LOCATIONS[0];
@@ -107,11 +107,52 @@ export default function KailashJourney() {
   const pilgrimPt = SVG_PTS[Math.max(0, userLevel - 1)];
   const kailashPt = SVG_PTS[107];
 
-  // ── Scroll zoom
+  // ── Pan bounds calculation
+  const clampPan = useCallback((x, y, currentZoom) => {
+    const maxX = (VW * currentZoom) * 0.45;
+    const maxY = (VH * currentZoom) * 0.45;
+    return {
+      x: Math.min(Math.max(x, -maxX), maxX),
+      y: Math.min(Math.max(y, -maxY), maxY),
+    };
+  }, []);
+
+  // ── Zoom logic (focused around focusX, focusY relative to center)
+  const handleZoom = useCallback((zoomFactor, focusX = 0, focusY = 0) => {
+    setTransform((prev) => {
+      const newZoom = Math.min(Math.max(prev.zoom * zoomFactor, 0.5), 6);
+      if (newZoom === prev.zoom) return prev;
+
+      const actualFactor = newZoom / prev.zoom;
+      const rawX = focusX - (focusX - prev.x) * actualFactor;
+      const rawY = focusY - (focusY - prev.y) * actualFactor;
+
+      const clamped = clampPan(rawX, rawY, newZoom);
+      if (newZoom <= 1) {
+        // Return smoothly to origin as zoom reaches 1 or below
+        const ratio = Math.max(0, (newZoom - 0.5) / 0.5);
+        return { zoom: newZoom, x: clamped.x * ratio, y: clamped.y * ratio };
+      }
+      return { zoom: newZoom, x: clamped.x, y: clamped.y };
+    });
+  }, [clampPan]);
+
+  // ── Scroll wheel zoom
   const onWheel = useCallback((e) => {
     e.preventDefault();
-    setZoom(z => Math.min(Math.max(z * (e.deltaY > 0 ? 0.88 : 1.13), 0.4), 6));
-  }, []);
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = e.clientX - rect.left - rect.width / 2;
+    const mouseY = e.clientY - rect.top - rect.height / 2;
+
+    const delta = -e.deltaY;
+    let factor = 1 + delta * 0.003;
+    factor = Math.min(Math.max(factor, 0.7), 1.4);
+
+    handleZoom(factor, mouseX, mouseY);
+  }, [handleZoom]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -119,34 +160,71 @@ export default function KailashJourney() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [onWheel]);
 
-  // ── Pan
+  // ── Mouse Pan
   const onMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
     dragging.current = true;
-    dragOrigin.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
-  }, [pan]);
+    dragOrigin.current = { x: e.clientX, y: e.clientY, px: transform.x, py: transform.y };
+  }, [transform.x, transform.y]);
+
   const onMouseMove = useCallback((e) => {
     if (!dragging.current) return;
-    setPan({
-      x: dragOrigin.current.px + (e.clientX - dragOrigin.current.x),
-      y: dragOrigin.current.py + (e.clientY - dragOrigin.current.y),
+    const dx = e.clientX - dragOrigin.current.x;
+    const dy = e.clientY - dragOrigin.current.y;
+    const targetX = dragOrigin.current.px + dx;
+    const targetY = dragOrigin.current.py + dy;
+
+    setTransform((prev) => {
+      const clamped = clampPan(targetX, targetY, prev.zoom);
+      return { ...prev, x: clamped.x, y: clamped.y };
     });
-  }, []);
+  }, [clampPan]);
+
   const onMouseUp = useCallback(() => { dragging.current = false; }, []);
 
-  // Touch pan
-  const touchOrigin = useRef(null);
+  // ── Touch Pan & Pinch Zoom
   const onTouchStart = useCallback((e) => {
-    const t = e.touches[0];
-    touchOrigin.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y };
-  }, [pan]);
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      touchState.current = { type: 'pan', x: t.clientX, y: t.clientY, px: transform.x, py: transform.y };
+    } else if (e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      touchState.current = { type: 'pinch', dist };
+    }
+  }, [transform.x, transform.y]);
+
   const onTouchMove = useCallback((e) => {
-    if (!touchOrigin.current) return;
-    const t = e.touches[0];
-    setPan({
-      x: touchOrigin.current.px + (t.clientX - touchOrigin.current.x),
-      y: touchOrigin.current.py + (t.clientY - touchOrigin.current.y),
-    });
-  }, []);
+    if (!touchState.current) return;
+
+    if (touchState.current.type === 'pan' && e.touches.length === 1) {
+      const t = e.touches[0];
+      const dx = t.clientX - touchState.current.x;
+      const dy = t.clientY - touchState.current.y;
+      const targetX = touchState.current.px + dx;
+      const targetY = touchState.current.py + dy;
+
+      setTransform((prev) => {
+        const clamped = clampPan(targetX, targetY, prev.zoom);
+        return { ...prev, x: clamped.x, y: clamped.y };
+      });
+    } else if (touchState.current.type === 'pinch' && e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const factor = dist / touchState.current.dist;
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      const midX = (t1.clientX + t2.clientX) / 2 - (rect ? rect.left + rect.width / 2 : 0);
+      const midY = (t1.clientY + t2.clientY) / 2 - (rect ? rect.top + rect.height / 2 : 0);
+
+      handleZoom(factor, midX, midY);
+      touchState.current.dist = dist;
+    }
+  }, [clampPan, handleZoom]);
+
+  const onTouchEnd = useCallback(() => { touchState.current = null; }, []);
 
   // ── Dot hover/click
   const onDotEnter = useCallback((loc, e) => {
@@ -204,7 +282,7 @@ export default function KailashJourney() {
             🏔 Kailash Journey
           </div>
           <div style={{ fontSize: 10, color: '#4a4560', marginTop: 1 }}>
-            Level {userLevel} / 108 · Scroll to zoom · Drag to pan · Hover to explore
+            Level {userLevel} / 108 · Zoom: {Math.round(transform.zoom * 100)}% · Drag to pan
           </div>
         </div>
 
@@ -234,7 +312,7 @@ export default function KailashJourney() {
           onMouseLeave={onMouseUp}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
-          onTouchEnd={() => { touchOrigin.current = null; }}
+          onTouchEnd={onTouchEnd}
         >
           {/* Pannable/zoomable layer */}
           <div style={{
@@ -242,7 +320,7 @@ export default function KailashJourney() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
-              transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
+              transform: `translate(${transform.x}px,${transform.y}px) scale(${transform.zoom})`,
               transformOrigin: 'center center',
             }}>
               <svg
@@ -421,6 +499,53 @@ export default function KailashJourney() {
 
               </svg>
             </div>
+          </div>
+
+          {/* ── Floating Zoom & Recenter Controls ── */}
+          <div style={{
+            position: 'absolute', right: 14, bottom: 14,
+            display: 'flex', flexDirection: 'column', gap: 6,
+            zIndex: 40,
+          }}>
+            <button
+              onClick={() => handleZoom(1.3, 0, 0)}
+              title="Zoom In"
+              style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#1e1b2e', border: '1px solid #3b3654',
+                color: '#e2e0f0', fontSize: 18, fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              }}
+            >
+              +
+            </button>
+            <button
+              onClick={() => handleZoom(0.77, 0, 0)}
+              title="Zoom Out"
+              style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#1e1b2e', border: '1px solid #3b3654',
+                color: '#e2e0f0', fontSize: 18, fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              }}
+            >
+              −
+            </button>
+            <button
+              onClick={() => setTransform({ zoom: 1, x: 0, y: 0 })}
+              title="Reset / Recenter View"
+              style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#1e1b2e', border: '1px solid #3b3654',
+                color: '#fbbf24', fontSize: 13, fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              }}
+            >
+              🎯
+            </button>
           </div>
 
           {/* ── Tooltip ── */}
