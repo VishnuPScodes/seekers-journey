@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import SelectPractices from './pages/SelectPractices';
