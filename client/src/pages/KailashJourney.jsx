@@ -707,24 +707,42 @@ export default function KailashJourney() {
             </div>
           )}
 
-          {/* ── Tooltip ── */}
+          {/* ── Rich Destination Tooltip (Short Description & Kilometers Traveled) ── */}
           {tooltip.visible && tooltip.loc && (
             <div style={{
               position: 'absolute',
-              left: Math.min(tooltip.x + 14, (containerRef.current?.offsetWidth || 400) - 180),
-              top:  tooltip.y - 56,
+              left: Math.min(Math.max(12, tooltip.x + 14), (containerRef.current?.offsetWidth || 400) - 250),
+              top: Math.max(12, tooltip.y - 110),
               background: '#f4efd8',
               border: `2px solid ${getColor(tooltip.loc.level)}`,
-              borderRadius: 10, padding: '7px 13px',
-              pointerEvents: 'none', zIndex: 50,
-              boxShadow: `0 4px 18px rgba(62, 56, 45, 0.18)`,
-              minWidth: 160,
+              borderRadius: 12, padding: '10px 14px',
+              pointerEvents: 'none', zIndex: 100,
+              boxShadow: `0 8px 24px rgba(62, 56, 45, 0.28)`,
+              maxWidth: 240,
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: getColor(tooltip.loc.level), letterSpacing: 0.5 }}>
-                {tooltip.loc.level === 108 ? '🏔 ' : ''}{tooltip.loc.name}
+              {/* Location Title */}
+              <div style={{ fontSize: 13, fontWeight: 900, color: getColor(tooltip.loc.level), letterSpacing: 0.3, marginBottom: 2 }}>
+                {tooltip.loc.level === 108 ? '🏔 ' : '📍 '}{tooltip.loc.name}
               </div>
-              <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 2, fontWeight: 500 }}>
-                {tooltip.loc.region} · Point {tooltip.loc.level}
+
+              {/* Region & Level Badge */}
+              <div style={{ fontSize: 10, color: '#6b5e48', fontWeight: 600, marginBottom: 6 }}>
+                {tooltip.loc.region} · Level {tooltip.loc.level} of 108
+              </div>
+
+              {/* Kilometers Traveled Badge */}
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 10, fontWeight: 800, color: '#d9572b',
+                background: 'rgba(217, 87, 43, 0.12)', border: '1px solid rgba(217, 87, 43, 0.3)',
+                padding: '2px 8px', borderRadius: 6, marginBottom: 6,
+              }}>
+                🧭 {Math.round((tooltip.loc.level - 1) * 30.8).toLocaleString()} km traveled
+              </div>
+
+              {/* Short Description */}
+              <div style={{ fontSize: 11, color: '#1e1b15', lineHeight: 1.4, fontWeight: 500 }}>
+                {tooltip.loc.desc}
               </div>
             </div>
           )}
