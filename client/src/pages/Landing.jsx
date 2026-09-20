@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SadhanaBubble from '../components/SadhanaBubble';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, CircleDashed, Flame, CheckCircle, Circle, Mountain, Zap, Star } from 'lucide-react';
+import { Calendar, Mountain, Zap, Star } from 'lucide-react';
 import api from '../api';
 import { getLocation, getLevelProgress, getPointsToNextLevel, POINTS_PER_LEVEL } from '../utils/locations';
 
@@ -11,10 +11,6 @@ export default function Landing() {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
-  const [pradakshinaCount, setPradakshinaCount] = useState(0);
-  const [guruPujaAttended, setGuruPujaAttended] = useState(false);
-  const [focusPercentage, setFocusPercentage] = useState(0);
-  const [awarenessPercentage, setAwarenessPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Score & Level state (initialized from user context)
@@ -24,12 +20,6 @@ export default function Landing() {
 
   // Bubble tap counts (session only, resets on page reload)
   const [sessionTaps, setSessionTaps] = useState({});
-
-  // Long press state for Pradakshina
-  const [isPressingPradakshina, setIsPressingPradakshina] = useState(false);
-  const [pressProgress, setPressProgress] = useState(0);
-  const hasTriggeredRef = useRef(false);
-  const animFrameRef = useRef(null);
 
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -53,13 +43,7 @@ export default function Landing() {
   useEffect(() => {
     const fetchToday = async () => {
       try {
-        const { data } = await api.get('/sadhana/today');
-        if (data.pradakshinaCount !== undefined) setPradakshinaCount(data.pradakshinaCount);
-        if (data.log) {
-          setGuruPujaAttended(!!data.log.guruPujaAttended);
-          if (data.log.focusPercentage !== undefined) setFocusPercentage(data.log.focusPercentage);
-          if (data.log.awarenessPercentage !== undefined) setAwarenessPercentage(data.log.awarenessPercentage);
-        }
+        await api.get('/sadhana/today');
       } catch (err) {
         console.error('Error loading landing data:', err);
       } finally {
@@ -101,71 +85,7 @@ export default function Landing() {
     }
   }, [totalScore, currentLevel, updateUser]);
 
-  // ── Pradakshina long press
-  const triggerPradakshinaIncrement = async () => {
-    setPradakshinaCount(prev => prev + 1);
-    try {
-      const { data } = await api.post('/sadhana/pradakshina', { incrementBy: 1 });
-      if (data.pradakshinaCount !== undefined) setPradakshinaCount(data.pradakshinaCount);
-    } catch (err) {
-      console.error('Failed to update pradakshina count:', err);
-    }
-  };
 
-  const handlePointerDown = (e) => {
-    e.preventDefault();
-    setIsPressingPradakshina(true);
-    hasTriggeredRef.current = false;
-    const startTime = Date.now();
-    const duration = 650;
-    const updateProgress = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      setPressProgress(progress);
-      if (progress < 1) {
-        animFrameRef.current = requestAnimationFrame(updateProgress);
-      } else {
-        if (!hasTriggeredRef.current) {
-          hasTriggeredRef.current = true;
-          triggerPradakshinaIncrement();
-        }
-        setIsPressingPradakshina(false);
-        setPressProgress(0);
-      }
-    };
-    animFrameRef.current = requestAnimationFrame(updateProgress);
-  };
-
-  const handlePointerUp = (e) => {
-    if (e) e.preventDefault();
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    setIsPressingPradakshina(false);
-    setPressProgress(0);
-  };
-
-  const handleGuruPujaClick = async () => {
-    if (guruPujaAttended) return;
-    setGuruPujaAttended(true);
-    try {
-      const { data } = await api.post('/sadhana/guru-puja');
-      if (data.guruPujaAttended !== undefined) setGuruPujaAttended(data.guruPujaAttended);
-    } catch (err) {
-      console.error('Failed to record Guru Puja:', err);
-      setGuruPujaAttended(false);
-    }
-  };
-
-  const saveReflection = async (type, value) => {
-    try {
-      const payload = type === 'focus' ? { focusPercentage: value } : { awarenessPercentage: value };
-      await api.post('/sadhana/reflection', payload);
-    } catch (err) {
-      console.error('Failed to save reflection:', err);
-    }
-  };
-
-  const circumference = 201;
-  const dashoffset = circumference - pressProgress * circumference;
 
   const selectedPractices = user?.selectedPractices || [];
 
@@ -302,113 +222,7 @@ export default function Landing() {
             </div>
           )}
 
-          {/* ── Daily Rituals ────────────────────────────────────────────── */}
-          <div className="animate-in" style={{ animationDelay: '0.15s' }}>
-            <div className="sadhana-bubbles-label" style={{ marginTop: 4, marginBottom: 12 }}>
-              <CircleDashed size={12} style={{ color: 'var(--text-muted)' }} />
-              Daily Rituals
-            </div>
 
-            <div className="landing-grid" style={{ marginBottom: 12 }}>
-              {/* Pradakshina */}
-              <div className="round-action-card">
-                <div className="round-btn-container">
-                  <svg className="periphery-svg" viewBox="0 0 74 74">
-                    <circle className="periphery-bg-circle" cx="37" cy="37" r="32" />
-                    <circle
-                      className="periphery-anim-circle"
-                      cx="37" cy="37" r="32"
-                      style={{ strokeDashoffset: isPressingPradakshina ? dashoffset : circumference }}
-                    />
-                  </svg>
-                  <button
-                    className={`round-btn ${isPressingPradakshina ? 'is-pressing' : ''}`}
-                    onPointerDown={handlePointerDown}
-                    onPointerUp={handlePointerUp}
-                    onPointerLeave={handlePointerUp}
-                    onPointerCancel={handlePointerUp}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    type="button"
-                    aria-label="Pradakshina Counter"
-                  >
-                    <span className="round-btn-icon" style={{ display: 'flex' }}><CircleDashed size={24} /></span>
-                    <span className="round-btn-title">Hold</span>
-                    {pradakshinaCount > 0 && (
-                      <span className="round-btn-count-badge">{pradakshinaCount}</span>
-                    )}
-                  </button>
-                </div>
-                <h2 className="round-card-title">Pradakshina</h2>
-                <p style={{ fontSize: 10, color: '#7a6012', fontWeight: 500 }}>Hold to record (+1)</p>
-              </div>
-
-              {/* Guru Puja */}
-              <div className="round-action-card">
-                <div className="round-btn-container">
-                  <button
-                    className={`round-btn ${guruPujaAttended ? 'attended' : ''}`}
-                    onClick={handleGuruPujaClick}
-                    disabled={guruPujaAttended}
-                    type="button"
-                    aria-label="Guru Puja Attended"
-                  >
-                    <span className="round-btn-icon" style={{ display: 'flex' }}><Flame size={24} /></span>
-                    <span className="round-btn-title">Guru Puja</span>
-                  </button>
-                </div>
-                <h2 className="round-card-title">Guru Puja</h2>
-                <div className={`attended-status-badge ${guruPujaAttended ? 'active' : 'inactive'}`}>
-                  {guruPujaAttended ? '✓ Attended' : 'Tap once'}
-                </div>
-              </div>
-            </div>
-
-            {/* Reflection toggles */}
-            <div className="reflection-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 className="reflection-title" style={{ margin: 0, paddingRight: 12 }}>Was I able to do all the sadhana with focus today?</h3>
-              <button
-                className="tick-btn"
-                onClick={() => {
-                  const newVal = focusPercentage === 100 ? 0 : 100;
-                  setFocusPercentage(newVal);
-                  saveReflection('focus', newVal);
-                }}
-                aria-label="Toggle Focus"
-              >
-                {focusPercentage === 100
-                  ? <CheckCircle size={28} fill="#7a6012" color="#f4efd8" />
-                  : <Circle size={28} color="#d4c9a3" strokeWidth={1.5} />
-                }
-              </button>
-            </div>
-
-            <div className="reflection-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 className="reflection-title" style={{ margin: 0, paddingRight: 12 }}>Did I eat with awareness?</h3>
-              <button
-                className="tick-btn"
-                onClick={() => {
-                  const newVal = awarenessPercentage === 100 ? 0 : 100;
-                  setAwarenessPercentage(newVal);
-                  saveReflection('awareness', newVal);
-                }}
-                aria-label="Toggle Awareness"
-              >
-                {awarenessPercentage === 100
-                  ? <CheckCircle size={28} fill="#7a6012" color="#f4efd8" />
-                  : <Circle size={28} color="#d4c9a3" strokeWidth={1.5} />
-                }
-              </button>
-            </div>
-
-            {/* Tracker shortcut */}
-            <Link to="/tracker" className="tracker-shortcut-card" id="landing-tracker-shortcut" style={{ marginTop: 8 }}>
-              <div className="tracker-shortcut-info">
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>📖 Today's Full Sadhana Log</h3>
-                <p>Submit your complete session for the day</p>
-              </div>
-              <div className="tracker-shortcut-arrow">→</div>
-            </Link>
-          </div>
         </div>
       </div>
     </>
