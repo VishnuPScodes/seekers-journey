@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api';
-import { AlertCircle, Hand } from 'lucide-react';
+import { AlertCircle, Hand, Sun } from 'lucide-react';
 import { PRACTICE_ICONS } from '../utils/practiceIcons';
 
 const ALL_PRACTICES = [

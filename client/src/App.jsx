@@ -10,7 +10,6 @@ import SelectPractices from './pages/SelectPractices';
 import Tracker from './pages/Tracker';
 import Congrats from './pages/Congrats';
 import Progress from './pages/Progress';
-import Landing from './pages/Landing';
 import PersonalJourney from './pages/PersonalJourney';
 
 // Lazy-load the heavy Three.js pages
