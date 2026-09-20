@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain, Compass } from 'lucide-react';
+import TornPaperEdge from './TornPaperEdge';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -74,6 +75,7 @@ export default function Navbar() {
           </button>
         </div>
       </nav>
+      <TornPaperEdge fill="var(--bg-primary, #f4efd8)" bannerColor="#d9572b" height={22} />
 
       {/* Mobile / Slide-Out Navigation Drawer */}
       {menuOpen && (

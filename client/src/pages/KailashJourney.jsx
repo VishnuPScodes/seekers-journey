@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { LOCATIONS, getLevelProgress, getPointsToNextLevel } from '../utils/locations';
 import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import TornPaperEdge from '../components/TornPaperEdge';
 
 // ── Region color config (vivid manuscript palette)
 const REGIONS = [
@@ -26,7 +27,8 @@ function getColor(level) {
 // ── Canvas Dimensions
 const VW = 900;
 const VH = 1200;
-const DEFAULT_ZOOM = 3.3; // 330% Zoomed view
+const DEFAULT_ZOOM = 3.3; // 330% Zoom on load centered on seeker location
+
 
 // Deterministic organic pseudo-random generator for hand-drawn wobble
 function pseudoRandom(seed) {
@@ -38,7 +40,7 @@ function pseudoRandom(seed) {
 function generateNaturalOrganicTrailPoints() {
   const pts = [];
   const total = 108;
-  const startX = 85;  // Far left screen edge
+  const startX = 100; // Bottom-Left start
   const startY = 1110;
   const endX = 450;   // Top center summit
   const endY = 80;
@@ -58,9 +60,9 @@ function generateNaturalOrganicTrailPoints() {
     // Vertical ascent from bottom to top
     const baseY = startY - t * (startY - endY);
 
-    // Dynamic horizontal sway across full canvas width
-    const mainSway = Math.sin(t * Math.PI * 3.6) * 310;
-    const secondarySway = Math.cos(t * Math.PI * 1.8) * 110;
+    // Natural horizontal sway
+    const mainSway = Math.sin(t * Math.PI * 3.4) * 260;
+    const secondarySway = Math.cos(t * Math.PI * 1.6) * 90;
     const trendX = startX + t * (endX - startX);
 
     const baseX = trendX + mainSway + secondarySway;
@@ -69,7 +71,7 @@ function generateNaturalOrganicTrailPoints() {
     const wobbleX = (pseudoRandom(i * 5 + 1) - 0.5) * 18;
     const wobbleY = (pseudoRandom(i * 5 + 2) - 0.5) * 12;
 
-    const finalX = Math.round(Math.max(65, Math.min(835, baseX + wobbleX)));
+    const finalX = Math.round(Math.max(75, Math.min(825, baseX + wobbleX)));
     const finalY = Math.round(baseY + wobbleY);
 
     pts.push([finalX, finalY]);
@@ -131,15 +133,16 @@ export default function KailashJourney() {
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, loc: null });
   const [showLegend, setShowLegend] = useState(false);
 
-  // ── Camera view state: focus center (x, y) & zoom level
+  // ── Camera view state: default to 3.3 (330% Zoom) centered directly on seeker location
   const [view, setView] = useState({
     zoom: DEFAULT_ZOOM,
     centerX: pilgrimPt[0],
     centerY: pilgrimPt[1],
   });
 
+
   const dragging     = useRef(false);
-  const dragOrigin   = useRef({ x: 0, y: 0, cx: pilgrimPt[0], cy: pilgrimPt[1] });
+  const dragOrigin   = useRef({ x: 0, y: 0, cx: VW / 2, cy: VH / 2 });
   const touchState   = useRef(null);
   const containerRef = useRef(null);
 
@@ -175,19 +178,13 @@ export default function KailashJourney() {
   }, [view]);
 
   // ── Focus camera on specific point
-  const focusOnPoint = useCallback((pt, zoom = DEFAULT_ZOOM) => {
+  const focusOnPoint = useCallback((pt, zoom = 2.5) => {
     setView({
       zoom: Math.min(Math.max(zoom, 1), 6),
       centerX: pt[0],
       centerY: pt[1],
     });
   }, []);
-
-  // ── Auto-focus on Seeker Location on mount or level change
-  useEffect(() => {
-    const currentPt = SVG_PTS[Math.max(0, userLevel - 1)];
-    focusOnPoint(currentPt, DEFAULT_ZOOM);
-  }, [userLevel, focusOnPoint]);
 
   // ── Zoom logic
   const handleZoom = useCallback((zoomFactor) => {
@@ -323,20 +320,21 @@ export default function KailashJourney() {
         .kpulse { animation: kpulse 2.4s ease-in-out infinite; }
       `}</style>
 
-      {/* ── TOP BAR ─────────────────────────────────────────────────────── */}
+      {/* ── TOP BAR (Saffron-Terracotta Manuscript Banner) ───────────────── */}
       <div style={{
-        background: '#ebdcb2',
-        borderBottom: '1px solid rgba(62, 56, 45, 0.15)',
-        padding: '10px 14px',
+        background: 'linear-gradient(180deg, #c45525 0%, #d9572b 100%)',
+        color: '#fffcf7',
+        padding: '12px 14px 8px 14px',
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0, zIndex: 20,
+        boxShadow: '0 4px 15px rgba(196, 85, 37, 0.25)',
       }}>
         <button
           onClick={() => navigate('/')}
           id="journey-back-btn"
           style={{
-            background: '#f4efd8', border: '1px solid rgba(62, 56, 45, 0.2)',
-            color: '#3e382d', borderRadius: 8, padding: '6px 12px',
+            background: 'rgba(255, 252, 247, 0.18)', border: '1px solid rgba(255, 252, 247, 0.35)',
+            color: '#ffffff', borderRadius: 8, padding: '6px 12px',
             display: 'flex', alignItems: 'center', gap: 5,
             cursor: 'pointer', fontSize: 12, fontWeight: 700,
           }}
@@ -345,10 +343,10 @@ export default function KailashJourney() {
         </button>
 
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 2, color: '#3e382d', textTransform: 'uppercase', fontFamily: '"Cormorant Garamond", serif' }}>
+          <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: 2, color: '#ffffff', textTransform: 'uppercase', fontFamily: '"Cormorant Garamond", serif', textShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
             🏔 Kailash Pilgrim Trail
           </div>
-          <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 1, fontWeight: 600 }}>
+          <div style={{ fontSize: 10, color: '#fceee6', marginTop: 1, fontWeight: 600 }}>
             Level {userLevel} / 108 · Zoom: {Math.round(view.zoom * 100)}% · Drag to pan
           </div>
         </div>
@@ -356,9 +354,9 @@ export default function KailashJourney() {
         <button
           onClick={() => setShowLegend(v => !v)}
           style={{
-            background: showLegend ? '#c46b3e' : '#f4efd8',
-            color: showLegend ? '#ffffff' : '#3e382d',
-            border: '1px solid rgba(62, 56, 45, 0.2)',
+            background: showLegend ? '#ffffff' : 'rgba(255, 252, 247, 0.18)',
+            color: showLegend ? '#c45525' : '#ffffff',
+            border: '1px solid rgba(255, 252, 247, 0.35)',
             borderRadius: 8, padding: '6px 10px',
             display: 'flex', alignItems: 'center', gap: 4,
             cursor: 'pointer', fontSize: 11, fontWeight: 700,
@@ -368,16 +366,19 @@ export default function KailashJourney() {
         </button>
 
         <div style={{
-          background: '#f4efd8', border: '1px solid #c46b3e66',
+          background: 'rgba(255, 252, 247, 0.2)', border: '1px solid rgba(255, 252, 247, 0.4)',
           borderRadius: 8, padding: '5px 11px',
           display: 'flex', alignItems: 'center', gap: 5,
         }}>
-          <Star size={12} style={{ color: '#c46b3e' }} />
-          <span style={{ fontSize: 14, fontWeight: 900, color: '#c46b3e' }}>{totalScore}</span>
+          <Star size={12} style={{ color: '#ffea79' }} />
+          <span style={{ fontSize: 14, fontWeight: 900, color: '#ffffff' }}>{totalScore}</span>
         </div>
       </div>
 
-      {/* ── MAP CANVAS (100% Guaranteed Visible ViewBox Framing) ────────── */}
+      {/* Organic Torn Paper Edge Transition */}
+      <TornPaperEdge fill="#f4efd8" bannerColor="#d9572b" height={26} />
+
+      {/* ── MAP CANVAS (100% Full Trail Overview on Load) ───────── */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
 
         <div
@@ -638,8 +639,8 @@ export default function KailashJourney() {
               −
             </button>
             <button
-              onClick={() => focusOnPoint(pilgrimPt, DEFAULT_ZOOM)}
-              title="Focus on My Location (330% Zoom)"
+              onClick={() => focusOnPoint(pilgrimPt, 2.5)}
+              title="Focus on My Location (250% Zoom)"
               style={{
                 width: 36, height: 36, borderRadius: 9,
                 background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
@@ -651,7 +652,7 @@ export default function KailashJourney() {
               <LocateFixed size={18} />
             </button>
             <button
-              onClick={() => setView({ zoom: 1, centerX: VW / 2, centerY: VH / 2 })}
+              onClick={() => setView({ zoom: 1.0, centerX: VW / 2, centerY: VH / 2 })}
               title="Full Map Overview (100%)"
               style={{
                 width: 36, height: 36, borderRadius: 9,

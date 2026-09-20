@@ -5,43 +5,52 @@
   --bg-primary: #f4efd8; /* parchment beige */
   --bg-secondary: #ebdcb2;
   --bg-card: transparent;
-  --bg-card-hover: rgba(62, 56, 45, 0.04);
-  --border: rgba(62, 56, 45, 0.15); /* hairline */
+  --bg-card-hover: rgba(217, 87, 43, 0.06);
+  --border: rgba(217, 87, 43, 0.22); /* hairline saffron terracotta */
   --border-glow: transparent;
 
-  --text-primary: #3e382d; /* dark brown/charcoal */
-  --text-secondary: #5a5243;
-  --text-muted: #857b68;
+  --terracotta-banner: #d9572b;
+  --saffron-header-bg: linear-gradient(180deg, #e65c00 0%, #d9572b 100%);
+  --saffron-orange: #d9572b;
+  --saffron-orange-light: #f97316;
+  --saffron-orange-dark: #b4421b;
+  --parchment-body: #f4efd8;
+  --parchment-card: #e9e1c4;
 
-  --gold-accent: #c46b3e; /* terracotta */
-  --gold-main: #c46b3e;
-  --gold-100: #e8dccb;
-  --gold-400: #c46b3e;
-  --gold-500: #a75830;
-  --gold-600: #854524;
+  --text-primary: #1e1b15; /* deep rich bold charcoal brown */
+  --text-secondary: #332b21; /* crisp dark manuscript brown */
+  --text-muted: #54493b; /* clear legible dark taupe */
 
-  /* Aliasing legacy purple tokens to earthy palette for full app harmony */
-  --purple-100: #e8dccb;
-  --purple-400: #c46b3e;
-  --purple-500: #a75830;
-  --purple-600: #854524;
-  --purple-700: #68351b;
+  --gold-accent: #d9572b; /* saffron terracotta orange */
+  --gold-main: #e65c00;
+  --gold-100: #fceee6;
+  --gold-400: #d9572b;
+  --gold-500: #c45525;
+  --gold-600: #a7401a;
 
-  --brown-title: #3e382d;
-  --brown-dark: #3e382d;
+  /* Aliasing legacy tokens directly to Saffron Orange & Terracotta palette */
+  --purple-100: #fceee6;
+  --purple-300: #f97316;
+  --purple-400: #d9572b;
+  --purple-500: #c45525;
+  --purple-600: #a7401a;
+  --purple-700: #853012;
 
-  --amber-400: #c46b3e;
-  --amber-500: #a75830;
+  --brown-title: #1e1b15;
+  --brown-dark: #1e1b15;
+
+  --amber-400: #d9572b;
+  --amber-500: #c45525;
   --amber-glow: transparent;
 
-  --emerald-400: #5d7550; /* olive */
-  --emerald-500: #4a5e40;
+  --emerald-400: #d9572b;
+  --emerald-500: #c45525;
   --emerald-glow: transparent;
 
   --gradient-main: var(--bg-primary);
   --gradient-card: transparent;
-  --gradient-button: var(--gold-accent);
-  --gradient-button-hover: var(--gold-500);
+  --gradient-button: linear-gradient(180deg, #e65c00 0%, #d9572b 100%);
+  --gradient-button-hover: linear-gradient(180deg, #c45525 0%, #a7401a 100%);
 
   --shadow-glow: none;
   --shadow-card: none;
@@ -96,12 +105,12 @@ body::after {
 
 .container {
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
 }
 
 .container-lg {
   width: 100%;
-  max-width: 540px;
+  max-width: 840px; /* Wider layout to utilize full available screen space */
 }
 
 /* Palm-Leaf Manuscript Panel */
@@ -126,8 +135,8 @@ body::after {
 .brand-icon {
   width: 44px;
   height: 44px;
-  background: rgba(235, 204, 52, 0.1);
-  border: 1px solid rgba(235, 204, 52, 0.3);
+  background: rgba(217, 87, 43, 0.12);
+  border: 1px solid rgba(217, 87, 43, 0.35);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -147,31 +156,33 @@ body::after {
 
 .brand-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: #7a6012;
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e1b15;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
 
 .brand-subtitle {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
+  font-weight: 600;
   letter-spacing: 0.5px;
 }
 
 /* ─── Typography ────────────────────────────────────────────────────────── */
 h1.page-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(22px, 5vw, 26px);
-  font-weight: 700;
-  color: #7a6012;
+  font-size: clamp(24px, 5vw, 30px);
+  font-weight: 800;
+  color: #1e1b15;
   margin-bottom: 4px;
 }
 
 .page-desc {
   font-size: 13px;
   color: var(--text-secondary);
+  font-weight: 600;
   line-height: 1.6;
   margin-bottom: 20px;
 }

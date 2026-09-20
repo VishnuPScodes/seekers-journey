@@ -55,13 +55,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Suspense fallback={
-              <div className="page" style={{ background: '#0a0618' }}>
-                <div style={{ textAlign: 'center', color: '#a78bfa' }}>
-                  <div className="spinner" style={{ width: 40, height: 40, margin: '0 auto 16px', borderColor: '#7c3aed transparent #7c3aed transparent' }} />
-                  <p style={{ fontFamily: 'Cinzel, serif', fontSize: 16 }}>Loading Kailash Journey...</p>
+              <div className="page" style={{ background: '#f4efd8' }}>
+                <div style={{ textAlign: 'center', color: '#3e382d' }}>
+                  <div className="spinner" style={{ width: 40, height: 40, margin: '0 auto 16px', borderColor: '#d9572b transparent #d9572b transparent' }} />
+                  <p style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 18, color: '#d9572b', fontWeight: 700 }}>Loading Kailash Journey...</p>
                 </div>
               </div>
             }>
+
               <KailashJourney />
             </Suspense>
           </ProtectedRoute>

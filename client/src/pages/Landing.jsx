@@ -5,7 +5,9 @@ import SadhanaBubble from '../components/SadhanaBubble';
 import { useAuth } from '../context/AuthContext';
 import { Calendar, Mountain, Zap, Star } from 'lucide-react';
 import api from '../api';
-import { getLocation, getLevelProgress, getPointsToNextLevel, POINTS_PER_LEVEL } from '../utils/locations';
+import TornPaperEdge from '../components/TornPaperEdge';
+import { getLocation, getLevelProgress, getPointsToNextLevel } from '../utils/locations';
+
 
 // ── Organic pebble scatter helper (random base Y-offset, rotation, gap, and delay)
 function getPebbleScatterStyle(index) {
@@ -168,8 +170,9 @@ export default function Landing() {
         </div>
       )}
 
-      <div className="page river-page">
-        <div className="container-lg animate-in" style={{ maxWidth: 600, padding: '0 4px', position: 'relative', zIndex: 2 }}>
+      <div className="page river-page" style={{ paddingTop: 16 }}>
+        <div className="container-lg animate-in" style={{ maxWidth: 840, padding: '0 8px', position: 'relative', zIndex: 2 }}>
+
 
           {/* ── Header ─────────────────────────────────────────────────── */}
           <div className="landing-hero" style={{ marginBottom: 12, textAlign: 'center' }}>
@@ -205,7 +208,7 @@ export default function Landing() {
             {/* Right: Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <Mountain size={14} style={{ color: 'var(--purple-400)', flexShrink: 0 }} />
+                <Mountain size={14} style={{ color: '#d9572b', flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentLocation.name}
                 </span>
@@ -217,7 +220,7 @@ export default function Landing() {
               {/* Progress bar to next level */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div className="progress-bar" style={{ flex: 1, height: 4 }}>
-                  <div className="progress-fill" style={{ width: `${levelProgress * 100}%`, background: 'var(--gradient-button)' }} />
+                  <div className="progress-fill" style={{ width: `${levelProgress * 100}%`, background: 'linear-gradient(90deg, #e65c00, #d9572b)' }} />
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                   {pointsToNext} pts to next
@@ -228,16 +231,17 @@ export default function Landing() {
             {/* Score */}
             <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginBottom: 2 }}>
-                <Star size={12} style={{ color: '#fbbf24' }} />
-                <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'Cinzel, serif', color: '#fbbf24' }}>
+                <Star size={12} style={{ color: '#d9572b' }} />
+                <span style={{ fontSize: 20, fontWeight: 800, fontFamily: '"Cormorant Garamond", serif', color: '#d9572b' }}>
                   {totalScore}
                 </span>
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>total pts</div>
-              <div style={{ fontSize: 10, color: 'var(--purple-400)', marginTop: 4, fontWeight: 600 }}>
+              <div style={{ fontSize: 10, color: '#d9572b', marginTop: 4, fontWeight: 700 }}>
                 🏔 View Journey →
               </div>
             </div>
+
           </div>
 
           {/* ── Sadhana Floating Pebbles River Stream ───────────────────── */}
