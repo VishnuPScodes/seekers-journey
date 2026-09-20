@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { PRACTICE_ICONS } from '../utils/practiceIcons';
 import { Hand, Check } from 'lucide-react';
 
@@ -7,12 +7,17 @@ export default function SadhanaBubble({
   totalTaps = 0,
   dailyTarget = 2,
   onTap,
+  onDrag,
+  onDragEnd,
   disabled = false,
 }) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [localTaps, setLocalTaps] = useState(totalTaps);
   const [scoreFloat, setScoreFloat] = useState(null);
   const [floatKey, setFloatKey] = useState(0);
+
+  const dragStart = useRef(null);
+  const hasDragged = useRef(false);
 
   useEffect(() => {
     setLocalTaps(totalTaps);
@@ -21,7 +26,7 @@ export default function SadhanaBubble({
   const isDone = localTaps >= dailyTarget;
 
   const handleTap = useCallback((e) => {
-    if (disabled || isAnimating) return;
+    if (disabled || isAnimating || hasDragged.current) return;
 
     // Ripple effect
     const card = e.currentTarget;
@@ -41,7 +46,6 @@ export default function SadhanaBubble({
     setLocalTaps(nextTaps);
     setFloatKey(k => k + 1);
 
-    // If beyond target, still recorded but doesn't add score
     if (localTaps >= dailyTarget) {
       setScoreFloat('✓ recorded');
     } else if (localTaps === 0) {
@@ -58,6 +62,73 @@ export default function SadhanaBubble({
     onTap && onTap(name);
   }, [disabled, isAnimating, localTaps, dailyTarget, name, onTap]);
 
+  // Mouse Drag Handlers
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0 || disabled) return;
+    hasDragged.current = false;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+
+    const handleMouseMove = (moveEvent) => {
+      if (!dragStart.current) return;
+      const dx = moveEvent.clientX - dragStart.current.x;
+      const dy = moveEvent.clientY - dragStart.current.y;
+      if (Math.hypot(dx, dy) > 5) {
+        hasDragged.current = true;
+        onDrag && onDrag(name, dx, dy);
+      }
+    };
+
+    const handleMouseUp = (upEvent) => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+
+      if (dragStart.current && hasDragged.current) {
+        const dx = upEvent.clientX - dragStart.current.x;
+        const dy = upEvent.clientY - dragStart.current.y;
+        onDragEnd && onDragEnd(name, dx, dy);
+      }
+      dragStart.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [disabled, name, onDrag, onDragEnd]);
+
+  // Touch Drag Handlers
+  const handleTouchStart = useCallback((e) => {
+    if (disabled || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    hasDragged.current = false;
+    dragStart.current = { x: t.clientX, y: t.clientY };
+
+    const handleTouchMove = (moveEvent) => {
+      if (!dragStart.current || moveEvent.touches.length !== 1) return;
+      const mt = moveEvent.touches[0];
+      const dx = mt.clientX - dragStart.current.x;
+      const dy = mt.clientY - dragStart.current.y;
+      if (Math.hypot(dx, dy) > 5) {
+        hasDragged.current = true;
+        onDrag && onDrag(name, dx, dy);
+      }
+    };
+
+    const handleTouchEnd = (endEvent) => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+
+      if (dragStart.current && hasDragged.current && endEvent.changedTouches.length > 0) {
+        const et = endEvent.changedTouches[0];
+        const dx = et.clientX - dragStart.current.x;
+        const dy = et.clientY - dragStart.current.y;
+        onDragEnd && onDragEnd(name, dx, dy);
+      }
+      dragStart.current = null;
+    };
+
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  }, [disabled, name, onDrag, onDragEnd]);
+
   const taps = localTaps;
   const glowIntensity = Math.min(taps * 0.2, 1);
 
@@ -65,6 +136,8 @@ export default function SadhanaBubble({
     <div
       className={`sadhana-bubble ${isAnimating ? 'bubble-tap' : ''} ${taps > 0 ? 'bubble-active' : ''} ${isDone ? 'bubble-done' : ''}`}
       onClick={handleTap}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       role="button"
       tabIndex={0}
       aria-label={`${name}: ${taps} of ${dailyTarget} completed`}

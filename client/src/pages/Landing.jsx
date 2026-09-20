@@ -7,7 +7,7 @@ import { Calendar, Mountain, Zap, Star } from 'lucide-react';
 import api from '../api';
 import { getLocation, getLevelProgress, getPointsToNextLevel, POINTS_PER_LEVEL } from '../utils/locations';
 
-// ── Organic pebble scatter helper (random Y-offset, rotation, gap, and delay)
+// ── Organic pebble scatter helper (random base Y-offset, rotation, gap, and delay)
 function getPebbleScatterStyle(index) {
   const yOffsets = [-20, 22, -14, 26, -24, 16, -18, 20];
   const offsetY = yOffsets[index % yOffsets.length];
@@ -18,11 +18,7 @@ function getPebbleScatterStyle(index) {
   const animDelays = [0, -1.3, -0.6, -1.8, -0.9, -2.4, -1.5, -0.3];
   const animDelay = animDelays[index % animDelays.length];
 
-  return {
-    transform: `translateY(${offsetY}px) rotate(${rotate}deg)`,
-    marginRight: `${marginRight}px`,
-    animationDelay: `${animDelay}s`,
-  };
+  return { offsetY, marginRight, rotate, animDelay };
 }
 
 export default function Landing() {
@@ -36,8 +32,10 @@ export default function Landing() {
   const [currentLevel, setCurrentLevel] = useState(user?.currentLevel || 1);
   const [leveledUpMsg, setLeveledUpMsg] = useState(null);
 
-  // Today's practice counts (synchronized with today's SadhanaLog)
+  // Today's practice counts & Pebble Positions
   const [todayCounts, setTodayCounts] = useState({});
+  const [pebblePositions, setPebblePositions] = useState(user?.pebblePositions || {});
+  const [activeDragPos, setActiveDragPos] = useState({});
 
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -55,7 +53,10 @@ export default function Landing() {
     if (user?.currentLevel !== undefined) {
       setCurrentLevel(user.currentLevel);
     }
-  }, [user?.totalCumulativeScore, user?.currentLevel]);
+    if (user?.pebblePositions) {
+      setPebblePositions(user.pebblePositions);
+    }
+  }, [user?.totalCumulativeScore, user?.currentLevel, user?.pebblePositions]);
 
   // ── Fetch today's status & pre-fill practice counts from SadhanaLog
   useEffect(() => {
@@ -102,6 +103,37 @@ export default function Landing() {
       console.error('Failed to record tap:', err);
     }
   }, [updateUser]);
+
+  // ── Pebble Drag & Position Handlers
+  const handlePebbleDrag = useCallback((name, dx, dy) => {
+    setActiveDragPos(prev => ({
+      ...prev,
+      [name]: { dx, dy },
+    }));
+  }, []);
+
+  const handlePebbleDragEnd = useCallback(async (name, dx, dy) => {
+    const currentPos = pebblePositions[name] || { x: 0, y: 0 };
+    const newPos = {
+      x: Math.round(currentPos.x + dx),
+      y: Math.round(currentPos.y + dy),
+    };
+
+    const updated = { ...pebblePositions, [name]: newPos };
+    setPebblePositions(updated);
+    setActiveDragPos(prev => {
+      const copy = { ...prev };
+      delete copy[name];
+      return copy;
+    });
+
+    try {
+      await api.post('/user/pebble-positions', { pebblePositions: updated });
+      updateUser({ pebblePositions: updated });
+    } catch (err) {
+      console.error('Failed to save pebble positions:', err);
+    }
+  }, [pebblePositions, updateUser]);
 
   const selectedPractices = user?.selectedPractices || [];
 
@@ -213,7 +245,7 @@ export default function Landing() {
             <div className="pebbles-stream-wrapper animate-in" style={{ animationDelay: '0.1s' }}>
               <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 12, textAlign: 'center' }}>
                 <Zap size={12} style={{ color: '#c46b3e' }} />
-                Floating Sadhana Pebbles • Tap to record
+                Floating Sadhana Pebbles • Drag to move & Tap to record
               </div>
 
               {/* Space-adaptive river stream canvas */}
@@ -222,19 +254,33 @@ export default function Landing() {
                   {selectedPractices.map((name, index) => {
                     const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
                     const dailyTarget = targetConfig?.dailyTarget || 2;
-                    const style = getPebbleScatterStyle(index);
+                    const baseStyle = getPebbleScatterStyle(index);
+
+                    const pos = pebblePositions[name] || { x: 0, y: 0 };
+                    const drag = activeDragPos[name] || { dx: 0, dy: 0 };
+                    const totalX = pos.x + drag.dx;
+                    const totalY = pos.y + drag.dy;
+
+                    const itemStyle = {
+                      transform: `translate(${totalX}px, ${totalY + baseStyle.offsetY}px) rotate(${baseStyle.rotate}deg)`,
+                      marginRight: `${baseStyle.marginRight}px`,
+                      animationDelay: `${baseStyle.animDelay}s`,
+                      zIndex: activeDragPos[name] ? 100 : 1,
+                    };
 
                     return (
                       <div
                         key={name}
                         className="pebble-river-item"
-                        style={style}
+                        style={itemStyle}
                       >
                         <SadhanaBubble
                           name={name}
                           totalTaps={todayCounts[name] || 0}
                           dailyTarget={dailyTarget}
                           onTap={handleBubbleTap}
+                          onDrag={handlePebbleDrag}
+                          onDragEnd={handlePebbleDragEnd}
                         />
                       </div>
                     );

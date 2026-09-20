@@ -60,6 +60,14 @@ const userSchema = new mongoose.Schema({
     min: 1,
     max: 108,
   },
+  pebblePositions: {
+    type: Map,
+    of: {
+      x: { type: Number, default: 0 },
+      y: { type: Number, default: 0 }
+    },
+    default: {},
+  },
 }, { timestamps: true });
 
 // Hash password before save

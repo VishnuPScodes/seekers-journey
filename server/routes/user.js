@@ -14,7 +14,7 @@ const getDefaultTarget = (name) =>
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select(
-      'name email selectedPractices practiceConfig customPractices practicesSelected pradakshinaCount totalCumulativeScore currentLevel'
+      'name email selectedPractices practiceConfig customPractices practicesSelected pradakshinaCount totalCumulativeScore currentLevel pebblePositions'
     );
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -40,6 +40,7 @@ router.get('/me', auth, async (req, res) => {
       pradakshinaCount: user.pradakshinaCount || 0,
       totalCumulativeScore: user.totalCumulativeScore || 0,
       currentLevel: user.currentLevel || 1,
+      pebblePositions: user.pebblePositions ? Object.fromEntries(user.pebblePositions) : {},
     });
   } catch (err) {
     console.error('Fetch me error:', err);
@@ -270,6 +271,41 @@ router.post('/tap-sadhana', auth, async (req, res) => {
   } catch (err) {
     console.error('Tap sadhana error:', err);
     res.status(500).json({ message: 'Server error recording practice tap' });
+  }
+});
+
+// POST /api/user/pebble-positions — update user custom pebble coordinates
+router.post('/pebble-positions', auth, async (req, res) => {
+  try {
+    const { pebblePositions } = req.body;
+    if (!pebblePositions || typeof pebblePositions !== 'object') {
+      return res.status(400).json({ message: 'pebblePositions object is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.pebblePositions) {
+      user.pebblePositions = new Map();
+    }
+
+    Object.entries(pebblePositions).forEach(([name, pos]) => {
+      if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+        user.pebblePositions.set(name, { x: pos.x, y: pos.y });
+      }
+    });
+
+    await user.save();
+
+    res.json({
+      message: 'Pebble positions saved successfully',
+      pebblePositions: Object.fromEntries(user.pebblePositions),
+    });
+  } catch (err) {
+    console.error('Save pebble positions error:', err);
+    res.status(500).json({ message: 'Server error saving pebble positions' });
   }
 });
 
