@@ -276,6 +276,7 @@ export default function Landing() {
                       >
                         <SadhanaBubble
                           name={name}
+                          rotate={baseStyle.rotate}
                           totalTaps={todayCounts[name] || 0}
                           dailyTarget={dailyTarget}
                           onTap={handleBubbleTap}

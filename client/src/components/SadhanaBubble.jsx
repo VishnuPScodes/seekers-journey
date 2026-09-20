@@ -4,6 +4,7 @@ import { Hand, Check } from 'lucide-react';
 
 export default function SadhanaBubble({
   name,
+  rotate = 0,
   totalTaps = 0,
   dailyTarget = 2,
   onTap,
@@ -157,13 +158,34 @@ export default function SadhanaBubble({
       {/* Glow ring */}
       <div className="bubble-glow-ring" />
 
-      {/* Icon */}
-      <div className="bubble-icon">
-        {PRACTICE_ICONS[name] || <Hand size={28} strokeWidth={1.5} />}
-      </div>
+      {/* ── Inner content container counter-rotated so text stays 100% straight & upright ── */}
+      <div
+        className="bubble-inner-content"
+        style={{
+          transform: rotate ? `rotate(${-rotate}deg)` : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          pointerEvents: 'none',
+        }}
+      >
+        {/* Icon */}
+        <div className="bubble-icon">
+          {PRACTICE_ICONS[name] || <Hand size={28} strokeWidth={1.5} />}
+        </div>
 
-      {/* Name */}
-      <div className="bubble-name">{name}</div>
+        {/* Practice Name — Always 100% Straight */}
+        <div className="bubble-name">{name}</div>
+
+        {/* If done, show subtle prompt that seeker can record another session */}
+        {isDone && (
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, opacity: 0.8 }}>
+            + record more
+          </div>
+        )}
+      </div>
 
       {/* Target & Tap count badge */}
       <div className={`bubble-count-badge ${isDone ? 'badge-done' : ''}`}>
@@ -175,13 +197,6 @@ export default function SadhanaBubble({
           <span>{taps}/{dailyTarget}</span>
         )}
       </div>
-
-      {/* If done, show subtle prompt that seeker can record another session */}
-      {isDone && (
-        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, opacity: 0.8 }}>
-          + record more
-        </div>
-      )}
 
       {/* Water ripple layers for the "floating stone" look */}
       <div className="bubble-water-surface" />
