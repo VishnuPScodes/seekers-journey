@@ -7,20 +7,25 @@ import { Calendar, Mountain, Zap, Star } from 'lucide-react';
 import api from '../api';
 import TornPaperEdge from '../components/TornPaperEdge';
 import { getLocation, getLevelProgress, getPointsToNextLevel } from '../utils/locations';
+import { KundaliniSerpentSpiralMotif, YogicArtisticBanner, SacredBackgroundMotifsLayer, SacredIconsGridSection } from '../components/SadhanaMotifs';
 
 
-// ── Organic pebble scatter helper (random base Y-offset, rotation, gap, and delay)
+// ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
 function getPebbleScatterStyle(index) {
-  const yOffsets = [-20, 22, -14, 26, -24, 16, -18, 20];
+  // Unequal bubble sizes: large hero bubbles, medium bubbles, and compact ambient bubbles
+  const sizes = [165, 135, 175, 125, 150, 120, 155, 130];
+  const size = sizes[index % sizes.length];
+
+  const yOffsets = [-16, 22, -22, 28, -26, 16, -18, 24];
   const offsetY = yOffsets[index % yOffsets.length];
-  const xGaps = [14, 28, 6, 22, 10, 32, 8, 18];
+
+  const xGaps = [22, 34, 14, 28, 18, 36, 16, 26];
   const marginRight = xGaps[index % xGaps.length];
-  const rotations = [-5, 6, -3, 7, -6, 4, -4, 5];
-  const rotate = rotations[index % rotations.length];
+
   const animDelays = [0, -1.3, -0.6, -1.8, -0.9, -2.4, -1.5, -0.3];
   const animDelay = animDelays[index % animDelays.length];
 
-  return { offsetY, marginRight, rotate, animDelay };
+  return { size, offsetY, marginRight, animDelay };
 }
 
 export default function Landing() {
@@ -154,6 +159,9 @@ export default function Landing() {
     <>
       <Navbar />
 
+      {/* Full-Screen Ambient Floating Sacred Icons Layer */}
+      <SacredBackgroundMotifsLayer color="#d9572b" />
+
       {/* River Background Canvas */}
       <div className="river-bg">
         <div className="river-layer river-layer-1" />
@@ -174,8 +182,15 @@ export default function Landing() {
         <div className="container-lg animate-in" style={{ maxWidth: 840, padding: '0 8px', position: 'relative', zIndex: 2 }}>
 
 
-          {/* ── Header ─────────────────────────────────────────────────── */}
-          <div className="landing-hero" style={{ marginBottom: 12, textAlign: 'center' }}>
+          {/* ── Header with Floating Kundalini Spiral Motif ───────────────── */}
+          <div className="landing-hero" style={{ marginBottom: 12, textAlign: 'center', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: -10, left: 16, opacity: 0.22, pointerEvents: 'none' }}>
+              <KundaliniSerpentSpiralMotif size={56} color="#d9572b" strokeWidth={1.8} />
+            </div>
+            <div style={{ position: 'absolute', top: -10, right: 16, opacity: 0.22, transform: 'scaleX(-1)', pointerEvents: 'none' }}>
+              <KundaliniSerpentSpiralMotif size={56} color="#d9572b" strokeWidth={1.8} />
+            </div>
+
             <div className="date-badge" style={{ fontSize: 11, padding: '3px 10px', marginBottom: 8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <Calendar size={12} /> {today}
             </div>
@@ -244,53 +259,45 @@ export default function Landing() {
 
           </div>
 
-          {/* ── Sadhana Floating Pebbles River Stream ───────────────────── */}
+          {/* ── Sacred Yogic Artistic Banner (Pillars of Sadhana: Agni, Samata, Prana) ── */}
+          <YogicArtisticBanner color="#d9572b" />
+
+          {/* ── Sacred Sadhana Shrine Cards ────────────────────────────── */}
           {selectedPractices.length > 0 ? (
-            <div className="pebbles-stream-wrapper animate-in" style={{ animationDelay: '0.1s' }}>
-              <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 12, textAlign: 'center' }}>
-                <Zap size={12} style={{ color: '#c46b3e' }} />
-                Floating Sadhana Pebbles • Drag to move & Tap to record
+            <div className="shrine-cards-wrapper animate-in" style={{ animationDelay: '0.1s', margin: '20px 0 28px' }}>
+              <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 14, textAlign: 'center' }}>
+                <Zap size={12} style={{ color: '#d9572b' }} />
+                Sacred Sadhana Shrine Tiles • Tap to record daily practice
               </div>
 
-              {/* Space-adaptive river stream canvas */}
-              <div className="pebbles-stream-scroll">
-                <div className="pebbles-stream-track">
-                  {selectedPractices.map((name, index) => {
-                    const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
-                    const dailyTarget = targetConfig?.dailyTarget || 2;
-                    const baseStyle = getPebbleScatterStyle(index);
+              {/* Grid Container for Shrine Cards */}
+              <div
+                className="shrine-cards-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))',
+                  gap: '16px',
+                  position: 'relative',
+                  zIndex: 2,
+                }}
+              >
+                {selectedPractices.map((name, index) => {
+                  const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
+                  const dailyTarget = targetConfig?.dailyTarget || 2;
 
-                    const pos = pebblePositions[name] || { x: 0, y: 0 };
-                    const drag = activeDragPos[name] || { dx: 0, dy: 0 };
-                    const totalX = pos.x + drag.dx;
-                    const totalY = pos.y + drag.dy;
-
-                    const itemStyle = {
-                      transform: `translate(${totalX}px, ${totalY + baseStyle.offsetY}px) rotate(${baseStyle.rotate}deg)`,
-                      marginRight: `${baseStyle.marginRight}px`,
-                      animationDelay: `${baseStyle.animDelay}s`,
-                      zIndex: activeDragPos[name] ? 100 : 1,
-                    };
-
-                    return (
-                      <div
-                        key={name}
-                        className="pebble-river-item"
-                        style={itemStyle}
-                      >
-                        <SadhanaBubble
-                          name={name}
-                          rotate={baseStyle.rotate}
-                          totalTaps={todayCounts[name] || 0}
-                          dailyTarget={dailyTarget}
-                          onTap={handleBubbleTap}
-                          onDrag={handlePebbleDrag}
-                          onDragEnd={handlePebbleDragEnd}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                  return (
+                    <div key={name} className="shrine-card-item">
+                      <SadhanaBubble
+                        name={name}
+                        totalTaps={todayCounts[name] || 0}
+                        dailyTarget={dailyTarget}
+                        onTap={handleBubbleTap}
+                        onDrag={handlePebbleDrag}
+                        onDragEnd={handlePebbleDragEnd}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -304,6 +311,9 @@ export default function Landing() {
               </Link>
             </div>
           )}
+
+          {/* ── Sacred Hand-Drawn Icons & Emblems Showcase Section ────────────── */}
+          <SacredIconsGridSection color="#d9572b" />
 
         </div>
       </div>

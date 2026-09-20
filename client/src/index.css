@@ -639,6 +639,7 @@ h1.page-title {
 }
 
 /* ─── Nav Bar (Low-Profile Grounded Manuscript Header) ──────────────────── */
+/* ─── Nav Bar (Vivid Saffron / Orange Painted Header) ──────────────────── */
 .navbar {
   position: fixed;
   top: 0;
@@ -646,12 +647,14 @@ h1.page-title {
   right: 0;
   z-index: 100;
   padding: 0 16px;
-  height: 48px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+  height: 50px;
+  background: linear-gradient(180deg, #e65c00 0%, #d9572b 100%);
+  border-bottom: none;
+  box-shadow: 0 4px 15px rgba(217, 87, 43, 0.25);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: #ffffff;
 }
 
 .navbar-left {
@@ -662,12 +665,12 @@ h1.page-title {
 
 /* Top Left Menu Toggle Icon */
 .navbar-menu-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: transparent;
-  border: 1px solid rgba(235, 204, 52, 0.15);
-  color: var(--text-primary);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
   font-size: 15px;
   display: flex;
   align-items: center;
@@ -678,17 +681,19 @@ h1.page-title {
 }
 
 .navbar-menu-btn:hover, .navbar-menu-btn.active {
-  background: rgba(235, 204, 52, 0.08);
-  border-color: #7a6012;
-  color: #7a6012;
+  background: rgba(255, 255, 255, 0.32);
+  border-color: #ffffff;
+  color: #ffffff;
 }
 
 .navbar-brand {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: #7a6012;
+  font-size: 21px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .navbar-user {
@@ -696,29 +701,30 @@ h1.page-title {
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #ffffff;
 }
 
 .navbar-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--gold-accent);
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 600;
-  color: #0f0d0a;
+  font-weight: 900;
+  color: #d9572b;
 }
 
 .btn-logout {
-  background: transparent;
-  border: 1px solid rgba(235, 204, 52, 0.15);
-  color: var(--text-muted);
-  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  padding: 5px 12px;
   border-radius: 6px;
   font-size: 12px;
+  font-weight: 700;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: var(--transition);
@@ -726,9 +732,9 @@ h1.page-title {
 }
 
 .btn-logout:hover {
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
-  background: rgba(239, 68, 68, 0.05);
+  border-color: #ffffff;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ─── Mobile Slide-Out Drawer ────────────────────────────────────────────── */
@@ -1084,28 +1090,29 @@ h1.page-title {
 }
 
 .nav-link {
-  padding: 4px 0;
-  border-radius: 0;
+  padding: 5px 12px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   transition: var(--transition);
   white-space: nowrap;
-  border-bottom: 2px solid transparent;
+  border-bottom: none;
 }
 
 .nav-link:hover {
-  color: var(--text-primary);
-  background: transparent;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .nav-link-active {
-  background: transparent;
-  color: var(--text-primary) !important;
-  font-weight: 700;
-  border-bottom: 2px solid var(--gold-accent);
-  box-shadow: none;
+  background: #ffffff !important;
+  color: #d9572b !important;
+  font-weight: 800;
+  border-radius: 6px;
+  border-bottom: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Score Badge (Congrats) ─────────────────────────────────────────────── */
@@ -2374,165 +2381,230 @@ h1.page-title {
 
 .pebble-river-item {
   flex-shrink: 0;
-  width: 120px;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
 }
 
-.pebble-river-item .sadhana-bubble {
-  width: 120px;
-  min-height: 104px;
-  padding: 16px 10px 14px;
+/* ─── Sacred Sadhana Shrine Cards — Yoga & Spiritual Aesthetic ────────── */
+.shrine-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin: 16px 0 28px;
 }
 
-/* ─── Individual Sadhana Pebble (Floating River Stone) ─────────────────────── */
-.sadhana-bubble {
+.shrine-card-item {
+  width: 100%;
   position: relative;
+}
+
+.shrine-card {
+  position: relative;
+  width: 100%;
+  min-height: 140px;
+  background: linear-gradient(145deg, rgba(255, 253, 248, 0.96) 0%, rgba(250, 238, 214, 0.92) 50%, rgba(240, 220, 185, 0.88) 100%);
+  border: 1.5px solid rgba(217, 87, 43, 0.42);
+  border-radius: 20px 20px 14px 14px;
+  padding: 16px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 8px 24px -4px rgba(180, 70, 30, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-align: center;
+}
+
+.shrine-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(217, 87, 43, 0.6), transparent);
+}
+
+.shrine-card:hover {
+  transform: translateY(-4px);
+  border-color: #d9572b;
+  box-shadow:
+    0 14px 32px -4px rgba(217, 87, 43, 0.22),
+    0 4px 10px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 243, 225, 0.95) 50%, rgba(245, 228, 196, 0.92) 100%);
+}
+
+.shrine-card.shrine-tap {
+  transform: scale(0.96) translateY(2px) !important;
+}
+
+.shrine-card.shrine-active {
+  border-color: #d9572b;
+}
+
+/* Completed Shrine Card State (Emerald Jade Sanctum) */
+.shrine-card.shrine-done {
+  border-color: rgba(43, 138, 75, 0.6);
+  background: linear-gradient(145deg, rgba(240, 253, 244, 0.97) 0%, rgba(220, 245, 228, 0.93) 50%, rgba(200, 235, 212, 0.89) 100%);
+  box-shadow:
+    0 8px 24px -4px rgba(43, 138, 75, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.shrine-card.shrine-done::before {
+  background: linear-gradient(90deg, transparent, rgba(43, 138, 75, 0.7), transparent);
+}
+
+.shrine-card.shrine-done .shrine-emblem-ring {
+  background: rgba(43, 138, 75, 0.12);
+  border-color: rgba(43, 138, 75, 0.45);
+  color: #1b5e32;
+}
+
+.shrine-card.shrine-done .shrine-title {
+  color: #154c27;
+}
+
+.shrine-card.shrine-done .shrine-subtitle {
+  color: #2b8a4b;
+}
+
+/* Arch Header Notch */
+.shrine-card-arch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(217, 87, 43, 0.1);
+  border: 1px solid rgba(217, 87, 43, 0.25);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 0 10px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shrine-arch-lotus {
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+/* Count Badge Pill */
+.shrine-count-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(217, 87, 43, 0.12);
+  border: 1px solid rgba(217, 87, 43, 0.35);
+  color: #d9572b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  z-index: 5;
+  transition: all 0.2s ease;
+}
+
+.shrine-count-badge.badge-done {
+  background: #2b8a4b;
+  border-color: #2b8a4b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(43, 138, 75, 0.3);
+}
+
+/* Card Content Container */
+.shrine-card-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 10px 14px;
-  background: linear-gradient(135deg, #f5ebd0 0%, #e5d6b4 100%);
-  border: 1px solid rgba(122, 96, 18, 0.3);
-  border-radius: 52% 48% 61% 39% / 47% 58% 42% 53%;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  overflow: hidden;
-  min-height: 96px;
-  text-align: center;
-  box-shadow: 
-    0 6px 14px -3px rgba(62, 56, 45, 0.22),
-    inset 0 2px 4px rgba(255, 255, 255, 0.85),
-    inset 0 -2px 5px rgba(62, 56, 45, 0.08);
-  animation: pebble-float 3.4s ease-in-out infinite alternate;
+  margin-top: 8px;
+  width: 100%;
 }
 
-/* Unique organic pebble shapes for natural river variety */
-.sadhana-bubble:nth-child(2n) {
-  border-radius: 44% 56% 38% 62% / 59% 41% 59% 41%;
-  animation-duration: 4.1s;
-  animation-delay: -0.7s;
-}
-
-.sadhana-bubble:nth-child(3n) {
-  border-radius: 60% 40% 55% 45% / 40% 60% 40% 60%;
-  animation-duration: 3.8s;
-  animation-delay: -1.4s;
-}
-
-.sadhana-bubble:nth-child(4n) {
-  border-radius: 48% 52% 42% 58% / 55% 45% 55% 45%;
-  animation-duration: 4.5s;
-  animation-delay: -2.1s;
-}
-
-@keyframes pebble-float {
-  0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-7px) rotate(1.8deg); }
-  100% { transform: translateY(0px) rotate(-1deg); }
-}
-
-.sadhana-bubble:hover {
-  border-color: #c46b3e;
-  background: linear-gradient(135deg, #faf3e1 0%, #ebd7ab 100%);
-  transform: translateY(-9px) scale(1.05) rotate(1deg);
-  box-shadow: 
-    0 12px 22px -4px rgba(62, 56, 45, 0.28),
-    0 0 14px rgba(196, 107, 62, 0.25),
-    inset 0 2px 4px rgba(255, 255, 255, 0.9);
-  animation-play-state: paused;
-}
-
-.sadhana-bubble.bubble-active {
-  border-color: #c46b3e;
-  background: linear-gradient(135deg, #fceec5 0%, #e4c480 100%);
-  box-shadow: 
-    0 8px 18px -3px rgba(196, 107, 62, 0.3),
-    inset 0 2px 5px rgba(255, 255, 255, 0.9),
-    inset 0 -2px 6px rgba(167, 88, 48, 0.15);
-}
-
-.sadhana-bubble.bubble-tap {
-  transform: scale(0.91) translateY(2px) !important;
-  animation-play-state: paused;
-}
-
-.bubble-glow-ring {
-  position: absolute;
-  inset: -3px;
-  border-radius: inherit;
-  background: transparent;
-  border: 2px solid transparent;
-  opacity: var(--glow-opacity, 0);
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  box-shadow: 0 0 18px rgba(196, 107, 62, calc(var(--glow-opacity, 0) * 0.5));
-}
-
-.sadhana-bubble.bubble-active .bubble-glow-ring {
-  border-color: rgba(122, 96, 18, calc(var(--glow-opacity, 0) * 0.6));
-}
-
-.bubble-icon {
-  font-size: 24px;
+/* Sacred Medallion Ring */
+.shrine-emblem-ring {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(217, 87, 43, 0.08);
+  border: 1.5px dashed rgba(217, 87, 43, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
-  color: var(--text-primary);
-  transition: transform 0.15s ease;
+  margin-bottom: 8px;
+  color: #d9572b;
+  transition: all 0.3s ease;
 }
 
-.sadhana-bubble:hover .bubble-icon,
-.sadhana-bubble.bubble-active .bubble-icon {
-  transform: scale(1.1);
+.shrine-card:hover .shrine-emblem-ring {
+  transform: scale(1.08);
+  border-style: solid;
+  border-color: #d9572b;
+  background: rgba(217, 87, 43, 0.14);
 }
 
-.bubble-name {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  line-height: 1.2;
-  text-align: center;
+.shrine-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.sadhana-bubble.bubble-active .bubble-name {
-  color: #7a6012;
-}
-
-.bubble-count-badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: var(--gold-accent);
-  color: #0f0d0a;
-  font-size: 9px;
+/* Practice Title & Subtitle */
+.shrine-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
   font-weight: 700;
-  padding: 2px 5px;
-  border-radius: 8px;
-  min-width: 20px;
+  color: #1e1b15;
+  line-height: 1.25;
+  margin-bottom: 2px;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shrine-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #853012;
+  opacity: 0.85;
   text-align: center;
 }
 
-.bubble-count-badge.badge-done {
-  background: var(--emerald-400);
-  color: #06281e;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+/* Dynamic Bottom Saffron Progress Fill Track */
+.shrine-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(217, 87, 43, 0.12);
+  overflow: hidden;
 }
 
-.sadhana-bubble.bubble-done {
-  border-color: rgba(52, 211, 153, 0.45);
-  background: rgba(52, 211, 153, 0.06);
+.shrine-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316 0%, #d9572b 100%);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.4s ease;
 }
 
-.sadhana-bubble.bubble-done .bubble-name {
-  color: var(--emerald-400);
-}
-
-.sadhana-bubble.bubble-done .bubble-icon {
-  color: var(--emerald-400);
+.shrine-card.shrine-done .shrine-progress-fill {
+  background: linear-gradient(90deg, #34d399 0%, #2b8a4b 100%);
 }
 
 .tracker-minus-btn:hover {
@@ -2564,7 +2636,7 @@ h1.page-title {
 .bubble-ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(122, 96, 18, 0.2);
+  background: rgba(217, 87, 43, 0.2);
   animation: bubble-ripple-out 0.7s ease-out forwards;
   pointer-events: none;
   z-index: 5;
@@ -2575,14 +2647,11 @@ h1.page-title {
   to { transform: scale(4); opacity: 0; }
 }
 
-.bubble-water-surface {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(180deg, transparent 0%, rgba(122, 96, 18, 0.06) 100%);
-  border-radius: 0 0 16px 16px;
+@media (max-width: 480px) {
+  .shrine-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
 }
 
 /* ─── Level-Up Toast ───────────────────────────────────────────────────────── */
@@ -2635,3 +2704,27 @@ h1.page-title {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   }
 }
+
+/* ─── Sacred Yogic Motifs & Artistic Banner ───────────────────────────────── */
+.yogic-pillar-card:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 10px 22px -4px rgba(217, 87, 43, 0.22) !important;
+  border-color: rgba(217, 87, 43, 0.5) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.yogic-pillar-card:hover svg {
+  transform: scale(1.08);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.kundalini-spiral-motif {
+  animation: serpent-float 6s ease-in-out infinite alternate;
+}
+
+@keyframes serpent-float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(-2deg); }
+}
+

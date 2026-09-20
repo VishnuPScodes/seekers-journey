@@ -1,19 +1,20 @@
 import React from 'react';
 import { Moon, Eye, Zap, Sun, User, Dumbbell, Leaf, Flower, Wind, Sparkles } from 'lucide-react';
+import { KundaliniSerpentSpiralMotif, AgniYogiMotif, BalanceYogiMotif, ExpansionSunYogiMotif } from '../components/SadhanaMotifs';
 
 // JSX icon components — used in Tracker, SelectPractices, Congrats, SadhanaBubble
 export const PRACTICE_ICONS = {
-  'Shoonya Meditation':   <Moon size={20} strokeWidth={1.5} />,
-  'Shambhavi Mahamudra':  <Eye size={20} strokeWidth={1.5} />,
-  'Shakti Chalana Kriya': <Zap size={20} strokeWidth={1.5} />,
-  'Surya Kriya':          <Sun size={20} strokeWidth={1.5} />,
-  'Yogasanas':            <User size={20} strokeWidth={1.5} />,
-  'Angamardana':          <Dumbbell size={20} strokeWidth={1.5} />,
-  'Sukha Kriya':          <Leaf size={20} strokeWidth={1.5} />,
-  'Samyama Sadhana':      <Flower size={20} strokeWidth={1.5} />,
-  'Breath Watching':      <Wind size={20} strokeWidth={1.5} />,
-  'Surya Shakti':         <Sparkles size={20} strokeWidth={1.5} />,
-  'Bhastrika Kriya':      <Wind size={20} strokeWidth={1.5} />,
+  'Shoonya Meditation':   <Moon size={22} strokeWidth={1.8} />,
+  'Shambhavi Mahamudra':  <Eye size={22} strokeWidth={1.8} />,
+  'Shakti Chalana Kriya': <KundaliniSerpentSpiralMotif size={24} color="#1e1b15" strokeWidth={2} />,
+  'Surya Kriya':          <Sun size={22} strokeWidth={1.8} />,
+  'Yogasanas':            <AgniYogiMotif size={24} color="#1e1b15" strokeWidth={2} />,
+  'Angamardana':          <Dumbbell size={22} strokeWidth={1.8} />,
+  'Sukha Kriya':          <Leaf size={22} strokeWidth={1.8} />,
+  'Samyama Sadhana':      <ExpansionSunYogiMotif size={24} color="#1e1b15" strokeWidth={2} />,
+  'Breath Watching':      <Wind size={22} strokeWidth={1.8} />,
+  'Surya Shakti':         <Sparkles size={22} strokeWidth={1.8} />,
+  'Bhastrika Kriya':      <Wind size={22} strokeWidth={1.8} />,
 };
 
 // Emoji strings — used in Progress charts and any context where JSX cannot be used

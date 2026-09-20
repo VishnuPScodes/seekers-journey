@@ -5,6 +5,7 @@ import { Hand, Check } from 'lucide-react';
 export default function SadhanaBubble({
   name,
   rotate = 0,
+  size = 150,
   totalTaps = 0,
   dailyTarget = 2,
   onTap,
@@ -34,10 +35,10 @@ export default function SadhanaBubble({
     const rect = card.getBoundingClientRect();
     const ripple = document.createElement('span');
     ripple.className = 'bubble-ripple';
-    const size = 80;
-    ripple.style.width = ripple.style.height = `${size}px`;
-    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
-    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+    const rippleSize = 100;
+    ripple.style.width = ripple.style.height = `${rippleSize}px`;
+    ripple.style.left = `${e.clientX - rect.left - rippleSize / 2}px`;
+    ripple.style.top = `${e.clientY - rect.top - rippleSize / 2}px`;
     card.appendChild(ripple);
     setTimeout(() => ripple.remove(), 700);
 
@@ -131,11 +132,11 @@ export default function SadhanaBubble({
   }, [disabled, name, onDrag, onDragEnd]);
 
   const taps = localTaps;
-  const glowIntensity = Math.min(taps * 0.2, 1);
+  const glowIntensity = Math.min(taps * 0.25, 1);
 
   return (
     <div
-      className={`sadhana-bubble ${isAnimating ? 'bubble-tap' : ''} ${taps > 0 ? 'bubble-active' : ''} ${isDone ? 'bubble-done' : ''}`}
+      className={`shrine-card ${isAnimating ? 'shrine-tap' : ''} ${taps > 0 ? 'shrine-active' : ''} ${isDone ? 'shrine-done' : ''}`}
       onClick={handleTap}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
@@ -148,58 +149,54 @@ export default function SadhanaBubble({
         '--tap-count': taps,
       }}
     >
-      {/* Score float-up animation */}
+      {/* Score float-up feedback */}
       {scoreFloat && (
         <span key={floatKey} className="bubble-score-float">
           {scoreFloat}
         </span>
       )}
 
-      {/* Glow ring */}
-      <div className="bubble-glow-ring" />
-
-      {/* ── Inner content container counter-rotated so text stays 100% straight & upright ── */}
-      <div
-        className="bubble-inner-content"
-        style={{
-          transform: rotate ? `rotate(${-rotate}deg)` : 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          pointerEvents: 'none',
-        }}
-      >
-        {/* Icon */}
-        <div className="bubble-icon">
-          {PRACTICE_ICONS[name] || <Hand size={28} strokeWidth={1.5} />}
-        </div>
-
-        {/* Practice Name — Always 100% Straight */}
-        <div className="bubble-name">{name}</div>
-
-        {/* If done, show subtle prompt that seeker can record another session */}
-        {isDone && (
-          <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, opacity: 0.8 }}>
-            + record more
-          </div>
-        )}
+      {/* Top Ornate Arch Line Accent with Lotus Petal Center */}
+      <div className="shrine-card-arch">
+        <span className="shrine-arch-lotus">🪷</span>
       </div>
 
-      {/* Target & Tap count badge */}
-      <div className={`bubble-count-badge ${isDone ? 'badge-done' : ''}`}>
+      {/* Target & Tap Count Badge Pill */}
+      <div className={`shrine-count-badge ${isDone ? 'badge-done' : ''}`}>
         {isDone ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <Check size={12} strokeWidth={3} /> {taps}/{dailyTarget}
+            <Check size={11} strokeWidth={3} /> {taps}/{dailyTarget}
           </span>
         ) : (
           <span>{taps}/{dailyTarget}</span>
         )}
       </div>
 
-      {/* Water ripple layers for the "floating stone" look */}
-      <div className="bubble-water-surface" />
+      {/* Main Card Content */}
+      <div className="shrine-card-content">
+        {/* Sacred Medallion Ring & Icon */}
+        <div className="shrine-emblem-ring">
+          <div className="shrine-icon">
+            {PRACTICE_ICONS[name] || <Hand size={24} strokeWidth={1.8} />}
+          </div>
+        </div>
+
+        {/* Practice Name */}
+        <div className="shrine-title">{name}</div>
+
+        {/* Practice Subtitle / Target Hint */}
+        <div className="shrine-subtitle">
+          {isDone ? '✨ Completed Today' : `${taps}/${dailyTarget} Sessions`}
+        </div>
+      </div>
+
+      {/* Dynamic Saffron Progress Fill Track along the bottom border */}
+      <div className="shrine-progress-track">
+        <div
+          className="shrine-progress-fill"
+          style={{ width: `${Math.min(taps / dailyTarget, 1) * 100}%` }}
+        />
+      </div>
     </div>
   );
 }

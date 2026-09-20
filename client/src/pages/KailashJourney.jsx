@@ -4,6 +4,7 @@ import { LOCATIONS, getLevelProgress, getPointsToNextLevel } from '../utils/loca
 import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TornPaperEdge from '../components/TornPaperEdge';
+import { KundaliniSerpentSpiralMotif, AgniYogiMotif, BalanceYogiMotif, ExpansionSunYogiMotif } from '../components/SadhanaMotifs';
 
 // ── Region color config (vivid manuscript palette)
 const REGIONS = [
@@ -26,8 +27,8 @@ function getColor(level) {
 
 // ── Canvas Dimensions
 const VW = 900;
-const VH = 1200;
-const DEFAULT_ZOOM = 3.3; // 330% Zoom on load centered on seeker location
+const VH = 3200; // Expanded height for generous physical spacing between all 108 destinations
+const DEFAULT_ZOOM = 6.0; // 600% Zoom on load centered on seeker location
 
 
 // Deterministic organic pseudo-random generator for hand-drawn wobble
@@ -36,43 +37,40 @@ function pseudoRandom(seed) {
   return x - Math.floor(x);
 }
 
-// ── Natural Organic Mountain Trail Generator (Level 1 Bottom-Left → Level 108 Top Peak)
+// ── Round Organic Hand-Drawn S-Curve Mountain Trail Generator
 function generateNaturalOrganicTrailPoints() {
   const pts = [];
   const total = 108;
-  const startX = 100; // Bottom-Left start
-  const startY = 1110;
-  const endX = 450;   // Top center summit
-  const endY = 80;
+  const startY = 3100;
+  const endY = 100;
 
   for (let i = 0; i < total; i++) {
     if (i === 0) {
-      pts.push([startX, startY]);
+      pts.push([140, startY]);
       continue;
     }
     if (i === total - 1) {
-      pts.push([endX, endY]);
+      pts.push([450, endY]);
       continue;
     }
 
     const t = i / (total - 1); // 0 to 1 progress
 
-    // Vertical ascent from bottom to top
+    // Linear vertical ascent from bottom (3100) to top summit (100)
     const baseY = startY - t * (startY - endY);
 
-    // Natural horizontal sway
-    const mainSway = Math.sin(t * Math.PI * 3.4) * 260;
-    const secondarySway = Math.cos(t * Math.PI * 1.6) * 90;
-    const trendX = startX + t * (endX - startX);
+    // Round, sweeping S-curve loops (3.5 wide, soft, round S-curves across 108 levels)
+    const roundS = Math.sin(t * Math.PI * 7) * 280;
 
-    const baseX = trendX + mainSway + secondarySway;
+    // Organic hand-drawn path sway & gentle mountain drift
+    const drift = Math.cos(t * Math.PI * 2.2) * 60;
+    const handWobbleX = (pseudoRandom(i * 7 + 1) - 0.5) * 14;
+    const handWobbleY = (pseudoRandom(i * 7 + 2) - 0.5) * 8;
 
-    // Organic natural wobble
-    const wobbleX = (pseudoRandom(i * 5 + 1) - 0.5) * 18;
-    const wobbleY = (pseudoRandom(i * 5 + 2) - 0.5) * 12;
+    const baseX = 450 + roundS + drift + handWobbleX;
 
-    const finalX = Math.round(Math.max(75, Math.min(825, baseX + wobbleX)));
-    const finalY = Math.round(baseY + wobbleY);
+    const finalX = Math.round(Math.max(100, Math.min(800, baseX)));
+    const finalY = Math.round(baseY + handWobbleY);
 
     pts.push([finalX, finalY]);
   }
@@ -81,9 +79,11 @@ function generateNaturalOrganicTrailPoints() {
 
 const SVG_PTS = generateNaturalOrganicTrailPoints();
 
-// ── Organic hand-drawn SVG path generator
+// ── Organic Hand-Drawn Curved SVG Path Generator (Smooth Round S-Spline)
 function makeHandDrawnPath(pts) {
   if (!pts || pts.length < 2) return '';
+  if (pts.length === 2) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`;
+
   let d = `M${pts[0][0]},${pts[0][1]}`;
 
   for (let i = 0; i < pts.length - 1; i++) {
@@ -97,9 +97,10 @@ function makeHandDrawnPath(pts) {
     const dy = p1[1] - p0[1];
     const dist = Math.hypot(dx, dy);
 
-    const curveOffset = (pseudoRandom(i * 7 + 5) - 0.5) * Math.min(dist * 0.3, 22);
-    const perpX = dist > 0 ? (-dy / dist) * curveOffset : 0;
-    const perpY = dist > 0 ? (dx / dist) * curveOffset : 0;
+    // Hand-drawn organic control point offset for natural ink stroke curvature
+    const wobble = (pseudoRandom(i * 11 + 3) - 0.5) * Math.min(dist * 0.25, 14);
+    const perpX = dist > 0 ? (-dy / dist) * wobble : 0;
+    const perpY = dist > 0 ? (dx / dist) * wobble : 0;
 
     const ctrlX = +(mx + perpX).toFixed(1);
     const ctrlY = +(my + perpY).toFixed(1);
@@ -178,9 +179,9 @@ export default function KailashJourney() {
   }, [view]);
 
   // ── Focus camera on specific point
-  const focusOnPoint = useCallback((pt, zoom = 2.5) => {
+  const focusOnPoint = useCallback((pt, zoom = 6.0) => {
     setView({
-      zoom: Math.min(Math.max(zoom, 1), 6),
+      zoom: Math.min(Math.max(zoom, 1), 12),
       centerX: pt[0],
       centerY: pt[1],
     });
@@ -189,7 +190,7 @@ export default function KailashJourney() {
   // ── Zoom logic
   const handleZoom = useCallback((zoomFactor) => {
     setView((prev) => {
-      const newZoom = Math.min(Math.max(prev.zoom * zoomFactor, 1), 6);
+      const newZoom = Math.min(Math.max(prev.zoom * zoomFactor, 1), 12);
       return { ...prev, zoom: newZoom };
     });
   }, []);
@@ -427,6 +428,22 @@ export default function KailashJourney() {
                 {r.label.toUpperCase()}
               </text>
             ))}
+            {/* ── Sacred Hand-Drawn Yogic Logos & Motifs Along the Trail ── */}
+            <g transform="translate(620, 2920)" opacity={0.22} style={{ pointerEvents: 'none' }}>
+              <KundaliniSerpentSpiralMotif size={180} color="#d9572b" strokeWidth={1.8} />
+            </g>
+            <g transform="translate(80, 2250)" opacity={0.20} style={{ pointerEvents: 'none' }}>
+              <AgniYogiMotif size={160} color="#d97706" strokeWidth={1.8} />
+            </g>
+            <g transform="translate(640, 1550)" opacity={0.22} style={{ pointerEvents: 'none' }}>
+              <BalanceYogiMotif size={165} color="#d96b00" strokeWidth={1.8} />
+            </g>
+            <g transform="translate(60, 850)" opacity={0.22} style={{ pointerEvents: 'none' }}>
+              <ExpansionSunYogiMotif size={175} color="#2b8a4b" strokeWidth={1.8} />
+            </g>
+            <g transform="translate(620, 180)" opacity={0.25} style={{ pointerEvents: 'none' }}>
+              <KundaliniSerpentSpiralMotif size={190} color="#b45309" strokeWidth={1.8} />
+            </g>
 
             {/* ── Full Mountain Trail (Unvisited - Soft manuscript guide) ── */}
             <path
@@ -639,8 +656,8 @@ export default function KailashJourney() {
               −
             </button>
             <button
-              onClick={() => focusOnPoint(pilgrimPt, 2.5)}
-              title="Focus on My Location (250% Zoom)"
+              onClick={() => focusOnPoint(pilgrimPt, 6.0)}
+              title="Focus on My Location (600% Zoom)"
               style={{
                 width: 36, height: 36, borderRadius: 9,
                 background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
@@ -730,14 +747,17 @@ export default function KailashJourney() {
                 {tooltip.loc.region} · Level {tooltip.loc.level} of 108
               </div>
 
-              {/* Kilometers Traveled Badge */}
+              {/* Remaining Distance to Kailash Badge */}
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 fontSize: 10, fontWeight: 800, color: '#d9572b',
                 background: 'rgba(217, 87, 43, 0.12)', border: '1px solid rgba(217, 87, 43, 0.3)',
                 padding: '2px 8px', borderRadius: 6, marginBottom: 6,
               }}>
-                🧭 {Math.round((tooltip.loc.level - 1) * 30.8).toLocaleString()} km traveled
+                🧭 {tooltip.loc.level === 108
+                  ? 'Summit Reached!'
+                  : `${Math.max(0, 3300 - Math.round((tooltip.loc.level - 1) * 30.8)).toLocaleString()} km more to Kailash`
+                }
               </div>
 
               {/* Short Description */}
@@ -815,7 +835,7 @@ export default function KailashJourney() {
               </div>
               <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 3 }}>
                 {userLevel < 108
-                  ? <>{pointsToNext} pts → <span style={{ color: '#c46b3e', fontWeight: 700 }}>{nextLoc.name}</span></>
+                  ? <><span style={{ color: '#d9572b', fontWeight: 800 }}>{Math.max(0, 3300 - Math.round((userLevel - 1) * 30.8)).toLocaleString()} km more to Kailash</span> · {pointsToNext} pts to <span style={{ color: '#c46b3e', fontWeight: 700 }}>{nextLoc.name}</span></>
                   : <span style={{ color: '#b45309', fontWeight: 700 }}>🏔 Kailash reached! Journey complete.</span>
                 }
               </div>

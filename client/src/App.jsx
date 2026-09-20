@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import { SacredBackgroundMotifsLayer } from './components/SadhanaMotifs';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -30,7 +31,9 @@ function RootRedirect() {
 
 function AppRoutes() {
   return (
-    <Routes>
+    <>
+      <SacredBackgroundMotifsLayer color="#d9572b" />
+      <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -112,6 +115,7 @@ function AppRoutes() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  </>
   );
 }
 
