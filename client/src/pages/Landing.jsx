@@ -7,6 +7,24 @@ import { Calendar, Mountain, Zap, Star } from 'lucide-react';
 import api from '../api';
 import { getLocation, getLevelProgress, getPointsToNextLevel, POINTS_PER_LEVEL } from '../utils/locations';
 
+// ── Organic pebble scatter helper (random Y-offset, rotation, gap, and delay)
+function getPebbleScatterStyle(index) {
+  const yOffsets = [-20, 22, -14, 26, -24, 16, -18, 20];
+  const offsetY = yOffsets[index % yOffsets.length];
+  const xGaps = [14, 28, 6, 22, 10, 32, 8, 18];
+  const marginRight = xGaps[index % xGaps.length];
+  const rotations = [-5, 6, -3, 7, -6, 4, -4, 5];
+  const rotate = rotations[index % rotations.length];
+  const animDelays = [0, -1.3, -0.6, -1.8, -0.9, -2.4, -1.5, -0.3];
+  const animDelay = animDelays[index % animDelays.length];
+
+  return {
+    transform: `translateY(${offsetY}px) rotate(${rotate}deg)`,
+    marginRight: `${marginRight}px`,
+    animationDelay: `${animDelay}s`,
+  };
+}
+
 export default function Landing() {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
@@ -119,7 +137,7 @@ export default function Landing() {
       )}
 
       <div className="page river-page">
-        <div className="container-lg animate-in" style={{ maxWidth: 500, padding: '0 4px', position: 'relative', zIndex: 2 }}>
+        <div className="container-lg animate-in" style={{ maxWidth: 600, padding: '0 4px', position: 'relative', zIndex: 2 }}>
 
           {/* ── Header ─────────────────────────────────────────────────── */}
           <div className="landing-hero" style={{ marginBottom: 12, textAlign: 'center' }}>
@@ -193,31 +211,24 @@ export default function Landing() {
           {/* ── Sadhana Floating Pebbles River Stream ───────────────────── */}
           {selectedPractices.length > 0 ? (
             <div className="pebbles-stream-wrapper animate-in" style={{ animationDelay: '0.1s' }}>
-              <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 14 }}>
+              <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 12, textAlign: 'center' }}>
                 <Zap size={12} style={{ color: '#c46b3e' }} />
-                Floating Sadhana Pebbles • Scroll & Tap to record
+                Floating Sadhana Pebbles • Tap to record
               </div>
 
-              {/* Full-width horizontally scrollable river stream */}
+              {/* Space-adaptive river stream canvas */}
               <div className="pebbles-stream-scroll">
                 <div className="pebbles-stream-track">
                   {selectedPractices.map((name, index) => {
                     const targetConfig = (user?.practiceConfig || []).find(c => c.name === name);
                     const dailyTarget = targetConfig?.dailyTarget || 2;
-
-                    // Organic random offsets for natural pebble sorting distribution
-                    const offsetY = [-24, 18, -14, 26, -28, 16, -18, 22][index % 8];
-                    const rotate = [-5, 6, -3, 7, -6, 4, -4, 5][index % 8];
-                    const animDelay = [0, -1.3, -0.6, -1.8, -0.9, -2.4, -1.5, -0.3][index % 8];
+                    const style = getPebbleScatterStyle(index);
 
                     return (
                       <div
                         key={name}
                         className="pebble-river-item"
-                        style={{
-                          transform: `translateY(${offsetY}px) rotate(${rotate}deg)`,
-                          animationDelay: `${animDelay}s`,
-                        }}
+                        style={style}
                       >
                         <SadhanaBubble
                           name={name}
@@ -242,7 +253,6 @@ export default function Landing() {
               </Link>
             </div>
           )}
-
 
         </div>
       </div>

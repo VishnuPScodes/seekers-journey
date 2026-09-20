@@ -2324,8 +2324,8 @@ h1.page-title {
 
 /* ─── River Pebbles Stream Layout ───────────────────────────────────────── */
 .pebbles-stream-wrapper {
-  margin-top: 20px;
-  margin-bottom: 28px;
+  margin-top: 14px;
+  margin-bottom: 24px;
   width: 100vw;
   position: relative;
   left: 50%;
@@ -2339,7 +2339,7 @@ h1.page-title {
   width: 100%;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 34px 24px 44px;
+  padding: 16px 12px 24px;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -2351,12 +2351,14 @@ h1.page-title {
 
 .pebbles-stream-track {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 26px;
-  width: max-content;
-  padding: 0 24px;
-  min-width: 100%;
-  justify-content: flex-start;
+  justify-content: center;
+  gap: 16px 0;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
 }
 
 .pebble-river-item {
@@ -2368,7 +2370,7 @@ h1.page-title {
 
 .pebble-river-item .sadhana-bubble {
   width: 120px;
-  min-height: 106px;
+  min-height: 104px;
   padding: 16px 10px 14px;
 }
 
