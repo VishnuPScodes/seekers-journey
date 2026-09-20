@@ -56,12 +56,13 @@ export default function Login() {
               <label className="form-label" htmlFor="login-email">Email</label>
               <input
                 id="login-email"
-                type="text"
+                type="email"
                 name="email"
                 className="form-input"
                 placeholder="you@example.com"
                 value={form.email}
                 onChange={handleChange}
+                required
                 autoComplete="email"
               />
             </div>
