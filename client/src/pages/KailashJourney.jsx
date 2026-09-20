@@ -20,19 +20,19 @@ const ANCHORS = [
   [5,-66],[2,-68],[0,-67],[0,-69],[0,-70],[-1,-69],[0,-71],[0,-65],
 ];
 
-// ── Region color config  (vivid, distinct — no blue background clash)
+// ── Region color config (vivid, high-contrast manuscript palette)
 const REGIONS = [
-  { range:[1,10],   color:'#ff6b35', label:'Tamil Nadu' },
-  { range:[11,20],  color:'#06d6a0', label:'Kerala / Karnataka' },
-  { range:[21,30],  color:'#ffd166', label:'Andhra / Telangana' },
-  { range:[31,40],  color:'#ef233c', label:'Maharashtra' },
-  { range:[41,50],  color:'#c77dff', label:'MP / Rajasthan' },
-  { range:[51,60],  color:'#ff9f1c', label:'Gujarat' },
-  { range:[61,70],  color:'#4cc9f0', label:'Uttar Pradesh' },
-  { range:[71,80],  color:'#80ed99', label:'Uttarakhand' },
-  { range:[81,90],  color:'#9b5de5', label:'Himalayas' },
-  { range:[91,100], color:'#38bdf8', label:'Ladakh' },
-  { range:[101,108],color:'#fbbf24', label:'Kailash' },
+  { range:[1,10],   color:'#d9572b', label:'Tamil Nadu' },
+  { range:[11,20],  color:'#1b8a6b', label:'Kerala / Karnataka' },
+  { range:[21,30],  color:'#d97706', label:'Andhra / Telangana' },
+  { range:[31,40],  color:'#c92a42', label:'Maharashtra' },
+  { range:[41,50],  color:'#8b44b8', label:'MP / Rajasthan' },
+  { range:[51,60],  color:'#d96b00', label:'Gujarat' },
+  { range:[61,70],  color:'#1d78b4', label:'Uttar Pradesh' },
+  { range:[71,80],  color:'#2b8a4b', label:'Uttarakhand' },
+  { range:[81,90],  color:'#7b2cb0', label:'Himalayas' },
+  { range:[91,100], color:'#0284c7', label:'Ladakh' },
+  { range:[101,108],color:'#b45309', label:'Kailash' },
 ];
 function getColor(level) {
   return (REGIONS.find(r => level >= r.range[0] && level <= r.range[1]) || REGIONS[0]).color;
@@ -85,11 +85,11 @@ export default function KailashJourney() {
 
   const [selectedLevel, setSelectedLevel] = useState(userLevel);
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, loc: null });
-  const [pan,  setPan]  = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const [transform, setTransform] = useState({ zoom: 1, x: 0, y: 0 });
 
   const dragging   = useRef(false);
   const dragOrigin = useRef({ x: 0, y: 0, px: 0, py: 0 });
+  const touchState = useRef(null);
   const containerRef = useRef(null);
 
   const selectedLoc = LOCATIONS.find(l => l.level === selectedLevel) || LOCATIONS[0];
@@ -107,11 +107,52 @@ export default function KailashJourney() {
   const pilgrimPt = SVG_PTS[Math.max(0, userLevel - 1)];
   const kailashPt = SVG_PTS[107];
 
-  // ── Scroll zoom
+  // ── Pan bounds calculation
+  const clampPan = useCallback((x, y, currentZoom) => {
+    const maxX = (VW * currentZoom) * 0.45;
+    const maxY = (VH * currentZoom) * 0.45;
+    return {
+      x: Math.min(Math.max(x, -maxX), maxX),
+      y: Math.min(Math.max(y, -maxY), maxY),
+    };
+  }, []);
+
+  // ── Zoom logic (focused around focusX, focusY relative to center)
+  const handleZoom = useCallback((zoomFactor, focusX = 0, focusY = 0) => {
+    setTransform((prev) => {
+      const newZoom = Math.min(Math.max(prev.zoom * zoomFactor, 0.5), 6);
+      if (newZoom === prev.zoom) return prev;
+
+      const actualFactor = newZoom / prev.zoom;
+      const rawX = focusX - (focusX - prev.x) * actualFactor;
+      const rawY = focusY - (focusY - prev.y) * actualFactor;
+
+      const clamped = clampPan(rawX, rawY, newZoom);
+      if (newZoom <= 1) {
+        // Return smoothly to origin as zoom reaches 1 or below
+        const ratio = Math.max(0, (newZoom - 0.5) / 0.5);
+        return { zoom: newZoom, x: clamped.x * ratio, y: clamped.y * ratio };
+      }
+      return { zoom: newZoom, x: clamped.x, y: clamped.y };
+    });
+  }, [clampPan]);
+
+  // ── Scroll wheel zoom
   const onWheel = useCallback((e) => {
     e.preventDefault();
-    setZoom(z => Math.min(Math.max(z * (e.deltaY > 0 ? 0.88 : 1.13), 0.4), 6));
-  }, []);
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = e.clientX - rect.left - rect.width / 2;
+    const mouseY = e.clientY - rect.top - rect.height / 2;
+
+    const delta = -e.deltaY;
+    let factor = 1 + delta * 0.003;
+    factor = Math.min(Math.max(factor, 0.7), 1.4);
+
+    handleZoom(factor, mouseX, mouseY);
+  }, [handleZoom]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -119,34 +160,71 @@ export default function KailashJourney() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [onWheel]);
 
-  // ── Pan
+  // ── Mouse Pan
   const onMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
     dragging.current = true;
-    dragOrigin.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
-  }, [pan]);
+    dragOrigin.current = { x: e.clientX, y: e.clientY, px: transform.x, py: transform.y };
+  }, [transform.x, transform.y]);
+
   const onMouseMove = useCallback((e) => {
     if (!dragging.current) return;
-    setPan({
-      x: dragOrigin.current.px + (e.clientX - dragOrigin.current.x),
-      y: dragOrigin.current.py + (e.clientY - dragOrigin.current.y),
+    const dx = e.clientX - dragOrigin.current.x;
+    const dy = e.clientY - dragOrigin.current.y;
+    const targetX = dragOrigin.current.px + dx;
+    const targetY = dragOrigin.current.py + dy;
+
+    setTransform((prev) => {
+      const clamped = clampPan(targetX, targetY, prev.zoom);
+      return { ...prev, x: clamped.x, y: clamped.y };
     });
-  }, []);
+  }, [clampPan]);
+
   const onMouseUp = useCallback(() => { dragging.current = false; }, []);
 
-  // Touch pan
-  const touchOrigin = useRef(null);
+  // ── Touch Pan & Pinch Zoom
   const onTouchStart = useCallback((e) => {
-    const t = e.touches[0];
-    touchOrigin.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y };
-  }, [pan]);
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      touchState.current = { type: 'pan', x: t.clientX, y: t.clientY, px: transform.x, py: transform.y };
+    } else if (e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      touchState.current = { type: 'pinch', dist };
+    }
+  }, [transform.x, transform.y]);
+
   const onTouchMove = useCallback((e) => {
-    if (!touchOrigin.current) return;
-    const t = e.touches[0];
-    setPan({
-      x: touchOrigin.current.px + (t.clientX - touchOrigin.current.x),
-      y: touchOrigin.current.py + (t.clientY - touchOrigin.current.y),
-    });
-  }, []);
+    if (!touchState.current) return;
+
+    if (touchState.current.type === 'pan' && e.touches.length === 1) {
+      const t = e.touches[0];
+      const dx = t.clientX - touchState.current.x;
+      const dy = t.clientY - touchState.current.y;
+      const targetX = touchState.current.px + dx;
+      const targetY = touchState.current.py + dy;
+
+      setTransform((prev) => {
+        const clamped = clampPan(targetX, targetY, prev.zoom);
+        return { ...prev, x: clamped.x, y: clamped.y };
+      });
+    } else if (touchState.current.type === 'pinch' && e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const factor = dist / touchState.current.dist;
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      const midX = (t1.clientX + t2.clientX) / 2 - (rect ? rect.left + rect.width / 2 : 0);
+      const midY = (t1.clientY + t2.clientY) / 2 - (rect ? rect.top + rect.height / 2 : 0);
+
+      handleZoom(factor, midX, midY);
+      touchState.current.dist = dist;
+    }
+  }, [clampPan, handleZoom]);
+
+  const onTouchEnd = useCallback(() => { touchState.current = null; }, []);
 
   // ── Dot hover/click
   const onDotEnter = useCallback((loc, e) => {
@@ -159,10 +237,11 @@ export default function KailashJourney() {
   return (
     <div style={{
       width: '100vw', height: '100vh',
-      background: '#0f0e17',  // ← dark warm-neutral, NOT blue
+      background: 'var(--bg-primary, #f4efd8)',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
       fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+      color: '#3e382d',
     }}>
 
       {/* ── Pulse animation style ── */}
@@ -171,17 +250,13 @@ export default function KailashJourney() {
           0%,100% { r: 13; opacity: 0.55; }
           50%      { r: 24; opacity: 0; }
         }
-        @keyframes kring {
-          from { transform-origin: center; transform: rotate(0deg); }
-          to   { transform-origin: center; transform: rotate(360deg); }
-        }
         .kpulse { animation: kpulse 2.4s ease-in-out infinite; }
       `}</style>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────── */}
       <div style={{
-        background: '#0f0e17',
-        borderBottom: '1px solid #1e1b2e',
+        background: '#ebdcb2',
+        borderBottom: '1px solid rgba(62, 56, 45, 0.15)',
         padding: '10px 14px',
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0, zIndex: 20,
@@ -190,8 +265,8 @@ export default function KailashJourney() {
           onClick={() => navigate('/')}
           id="journey-back-btn"
           style={{
-            background: '#1e1b2e', border: '1px solid #2d2a44',
-            color: '#a5b4fc', borderRadius: 8, padding: '6px 12px',
+            background: '#f4efd8', border: '1px solid rgba(62, 56, 45, 0.2)',
+            color: '#3e382d', borderRadius: 8, padding: '6px 12px',
             display: 'flex', alignItems: 'center', gap: 5,
             cursor: 'pointer', fontSize: 12, fontWeight: 700,
           }}
@@ -200,21 +275,21 @@ export default function KailashJourney() {
         </button>
 
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 2, color: '#e0d7ff', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 2, color: '#3e382d', textTransform: 'uppercase', fontFamily: '"Cormorant Garamond", serif' }}>
             🏔 Kailash Journey
           </div>
-          <div style={{ fontSize: 10, color: '#4a4560', marginTop: 1 }}>
-            Level {userLevel} / 108 · Scroll to zoom · Drag to pan · Hover to explore
+          <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 1, fontWeight: 600 }}>
+            Level {userLevel} / 108 · Zoom: {Math.round(transform.zoom * 100)}% · Drag to pan
           </div>
         </div>
 
         <div style={{
-          background: '#1e1b2e', border: '1px solid #fbbf2444',
+          background: '#f4efd8', border: '1px solid #c46b3e66',
           borderRadius: 8, padding: '5px 11px',
           display: 'flex', alignItems: 'center', gap: 5,
         }}>
-          <Star size={12} style={{ color: '#fbbf24' }} />
-          <span style={{ fontSize: 14, fontWeight: 900, color: '#fbbf24' }}>{totalScore}</span>
+          <Star size={12} style={{ color: '#c46b3e' }} />
+          <span style={{ fontSize: 14, fontWeight: 900, color: '#c46b3e' }}>{totalScore}</span>
         </div>
       </div>
 
@@ -227,6 +302,7 @@ export default function KailashJourney() {
           style={{
             flex: 1, overflow: 'hidden', position: 'relative',
             cursor: dragging.current ? 'grabbing' : 'grab',
+            background: '#f4efd8',
           }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
@@ -234,7 +310,7 @@ export default function KailashJourney() {
           onMouseLeave={onMouseUp}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
-          onTouchEnd={() => { touchOrigin.current = null; }}
+          onTouchEnd={onTouchEnd}
         >
           {/* Pannable/zoomable layer */}
           <div style={{
@@ -242,7 +318,7 @@ export default function KailashJourney() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
-              transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
+              transform: `translate(${transform.x}px,${transform.y}px) scale(${transform.zoom})`,
               transformOrigin: 'center center',
             }}>
               <svg
@@ -251,28 +327,15 @@ export default function KailashJourney() {
                 height={VH}
                 style={{ display: 'block', userSelect: 'none' }}
               >
-                <defs>
-                  {/* Glow filter for visited path */}
-                  <filter id="pathglow">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                  {/* Glow filter for dots */}
-                  <filter id="dotglow">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-
                 {/* ── Background ── */}
-                <rect width={VW} height={VH} fill="#0f0e17" />
+                <rect width={VW} height={VH} fill="#f4efd8" />
 
                 {/* ── Subtle dot grid ── */}
                 {Array.from({ length: 20 }).map((_, row) =>
                   Array.from({ length: 14 }).map((__, col) => (
                     <circle key={`${row}-${col}`}
                       cx={col * 36 + 20} cy={row * 36 + 20}
-                      r={1} fill="#1c1a2e" />
+                      r={1.2} fill="#e2d8bd" />
                   ))
                 )}
 
@@ -281,39 +344,38 @@ export default function KailashJourney() {
                   <text key={r.label}
                     x={r.cx} y={r.cy}
                     textAnchor="middle" dominantBaseline="middle"
-                    fontSize={10} fontWeight="700"
+                    fontSize={10} fontWeight="800"
                     fill={r.color}
-                    opacity={0.18}
+                    opacity={0.25}
                     style={{ letterSpacing: 1.5, textTransform: 'uppercase', pointerEvents: 'none' }}
                   >
                     {r.label.toUpperCase()}
                   </text>
                 ))}
 
-                {/* ── Full path (dim dark) ── */}
+                {/* ── Full path (unvisited, soft tan line) ── */}
                 <path
                   d={fullPathD}
                   fill="none"
-                  stroke="#2a2640"
+                  stroke="#d8cca8"
                   strokeWidth={5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
 
-                {/* ── Visited path — warm AMBER, clearly different from background ── */}
+                {/* ── Visited path — vivid TERRACOTTA / GOLD accent ── */}
                 {userLevel > 1 && (
                   <path
                     d={visitedPathD}
                     fill="none"
-                    stroke="#f59e0b"
+                    stroke="#c46b3e"
                     strokeWidth={5.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    filter="url(#pathglow)"
                   />
                 )}
 
-                {/* ── Dots — 107 locations (Kailash separate) ── */}
+                {/* ── Dots — 107 locations ── */}
                 {LOCATIONS.filter(l => l.level < 108).map((loc, i) => {
                   const pt = SVG_PTS[i];
                   if (!pt) return null;
@@ -321,25 +383,25 @@ export default function KailashJourney() {
                   const isVisited   = loc.level <= userLevel;
                   const isMilestone = loc.level % 10 === 0;
                   const isSelected  = loc.level === selectedLevel;
-                  const col = isVisited ? getColor(loc.level) : '#2a2640';
+                  const col = isVisited ? getColor(loc.level) : '#cbbd9b';
                   const r   = isMilestone ? 9 : 6;
-                  const opacity = isVisited ? 1 : 0.35;
+                  const opacity = isVisited ? 1 : 0.75;
 
                   return (
                     <g key={loc.level}>
                       {/* Milestone outer ring */}
                       {isMilestone && isVisited && (
-                        <circle cx={pt[0]} cy={pt[1]} r={15}
+                        <circle cx={pt[0]} cy={pt[1]} r={14}
                           fill="none" stroke={col} strokeWidth={1.5}
-                          opacity={0.5}
+                          opacity={0.6}
                         />
                       )}
 
                       {/* Selection ring */}
                       {isSelected && (
-                        <circle cx={pt[0]} cy={pt[1]} r={r + 7}
-                          fill="none" stroke="#ffffff" strokeWidth={1.5}
-                          opacity={0.7}
+                        <circle cx={pt[0]} cy={pt[1]} r={r + 6}
+                          fill="none" stroke="#3e382d" strokeWidth={2}
+                          opacity={0.9}
                         />
                       )}
 
@@ -347,8 +409,9 @@ export default function KailashJourney() {
                       <circle
                         cx={pt[0]} cy={pt[1]} r={r}
                         fill={col}
+                        stroke={isVisited ? '#ffffff' : 'none'}
+                        strokeWidth={isVisited ? 1.2 : 0}
                         opacity={opacity}
-                        filter={isVisited ? 'url(#dotglow)' : undefined}
                         style={{ cursor: 'pointer' }}
                         onMouseEnter={e => onDotEnter(loc, e)}
                         onMouseLeave={onDotLeave}
@@ -361,28 +424,28 @@ export default function KailashJourney() {
                 {/* ── Kailash beacon (level 108) ── */}
                 <g>
                   {/* Wide halo */}
-                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={32}
-                    fill="#fbbf2412" />
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={30}
+                    fill="#c46b3e15" />
                   {/* Mid ring */}
-                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={22}
-                    fill="none" stroke="#fbbf24" strokeWidth={2} opacity={0.6} />
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={20}
+                    fill="none" stroke="#b45309" strokeWidth={2} opacity={0.6} />
                   {/* Inner ring */}
-                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={15}
-                    fill="none" stroke="#fde68a" strokeWidth={2} opacity={0.85} />
+                  <circle cx={kailashPt[0]} cy={kailashPt[1]} r={14}
+                    fill="none" stroke="#d97706" strokeWidth={2} opacity={0.85} />
                   {/* Core */}
                   <circle cx={kailashPt[0]} cy={kailashPt[1]} r={9}
-                    fill="#fbbf24"
+                    fill="#b45309" stroke="#ffffff" strokeWidth={1.5}
                     style={{ cursor: 'pointer' }}
                     onMouseEnter={e => onDotEnter(LOCATIONS[107], e)}
                     onMouseLeave={onDotLeave}
                     onClick={() => onDotClick(LOCATIONS[107])}
                   />
                   {/* Label */}
-                  <text x={kailashPt[0]} y={kailashPt[1] - 28}
+                  <text x={kailashPt[0]} y={kailashPt[1] - 26}
                     textAnchor="middle"
                     fontSize={11} fontWeight="900"
-                    fill="#fbbf24"
-                    style={{ pointerEvents: 'none' }}
+                    fill="#b45309"
+                    style={{ pointerEvents: 'none', letterSpacing: 1 }}
                   >
                     🏔 KAILASH
                   </text>
@@ -390,29 +453,29 @@ export default function KailashJourney() {
 
                 {/* ── Pilgrim marker (current level) ── */}
                 <g>
-                  {/* Pulsing outer ring (SVG SMIL animation) */}
+                  {/* Pulsing outer ring */}
                   <circle
                     cx={pilgrimPt[0]} cy={pilgrimPt[1]}
                     r={13} fill="none"
-                    stroke="#ffffff" strokeWidth={1.5}
-                    opacity={0.5}
+                    stroke="#c46b3e" strokeWidth={2}
+                    opacity={0.7}
                     className="kpulse"
                   />
                   {/* Static ring */}
-                  <circle cx={pilgrimPt[0]} cy={pilgrimPt[1]} r={12}
-                    fill="none" stroke="#ffffff" strokeWidth={2} opacity={0.6}
+                  <circle cx={pilgrimPt[0]} cy={pilgrimPt[1]} r={11}
+                    fill="none" stroke="#3e382d" strokeWidth={2} opacity={0.8}
                     style={{ pointerEvents: 'none' }}
                   />
                   {/* Bright core */}
                   <circle cx={pilgrimPt[0]} cy={pilgrimPt[1]} r={7}
-                    fill="#ffffff"
+                    fill="#c46b3e" stroke="#ffffff" strokeWidth={1.5}
                     style={{ pointerEvents: 'none' }}
                   />
                   {/* "YOU" label */}
                   <text x={pilgrimPt[0]} y={pilgrimPt[1] - 18}
                     textAnchor="middle"
-                    fontSize={9} fontWeight="900"
-                    fill="#ffffff"
+                    fontSize={10} fontWeight="900"
+                    fill="#3e382d"
                     style={{ pointerEvents: 'none', letterSpacing: 1 }}
                   >
                     ✦ YOU
@@ -423,23 +486,70 @@ export default function KailashJourney() {
             </div>
           </div>
 
+          {/* ── Floating Zoom & Recenter Controls ── */}
+          <div style={{
+            position: 'absolute', right: 14, bottom: 14,
+            display: 'flex', flexDirection: 'column', gap: 6,
+            zIndex: 40,
+          }}>
+            <button
+              onClick={() => handleZoom(1.3, 0, 0)}
+              title="Zoom In"
+              style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
+                color: '#3e382d', fontSize: 18, fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+              }}
+            >
+              +
+            </button>
+            <button
+              onClick={() => handleZoom(0.77, 0, 0)}
+              title="Zoom Out"
+              style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
+                color: '#3e382d', fontSize: 18, fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+              }}
+            >
+              −
+            </button>
+            <button
+              onClick={() => setTransform({ zoom: 1, x: 0, y: 0 })}
+              title="Reset / Recenter View"
+              style={{
+                width: 34, height: 34, borderRadius: 8,
+                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
+                color: '#c46b3e', fontSize: 13, fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+              }}
+            >
+              🎯
+            </button>
+          </div>
+
           {/* ── Tooltip ── */}
           {tooltip.visible && tooltip.loc && (
             <div style={{
               position: 'absolute',
               left: Math.min(tooltip.x + 14, (containerRef.current?.offsetWidth || 400) - 180),
               top:  tooltip.y - 56,
-              background: '#0f0e17',
+              background: '#f4efd8',
               border: `2px solid ${getColor(tooltip.loc.level)}`,
               borderRadius: 10, padding: '7px 13px',
               pointerEvents: 'none', zIndex: 50,
-              boxShadow: `0 4px 24px ${getColor(tooltip.loc.level)}44`,
+              boxShadow: `0 4px 18px rgba(62, 56, 45, 0.18)`,
               minWidth: 160,
             }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: getColor(tooltip.loc.level), letterSpacing: 0.5 }}>
                 {tooltip.loc.level === 108 ? '🏔 ' : ''}{tooltip.loc.name}
               </div>
-              <div style={{ fontSize: 9, color: '#6b7280', marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 2, fontWeight: 500 }}>
                 {tooltip.loc.region} · Point {tooltip.loc.level}
               </div>
             </div>
@@ -448,12 +558,12 @@ export default function KailashJourney() {
 
         {/* ── LEGEND PANEL ─────────────────────────────────────────────── */}
         <div style={{
-          width: 148, background: '#0d0c1a',
-          borderLeft: '1px solid #1e1b2e',
+          width: 148, background: '#ebdcb2',
+          borderLeft: '1px solid rgba(62, 56, 45, 0.15)',
           padding: '14px 12px', flexShrink: 0,
           overflowY: 'auto',
         }}>
-          <div style={{ fontSize: 9, color: '#4a4560', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>
+          <div style={{ fontSize: 9, color: '#6b5e48', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 800, marginBottom: 10 }}>
             Regions
           </div>
           {REGIONS.map(r => {
@@ -461,31 +571,31 @@ export default function KailashJourney() {
             return (
               <div key={r.label} style={{
                 display: 'flex', alignItems: 'center', gap: 7,
-                marginBottom: 8, opacity: reached ? 1 : 0.35,
+                marginBottom: 8, opacity: reached ? 1 : 0.45,
               }}>
                 <div style={{
                   width: 12, height: 12, borderRadius: '50%',
                   background: r.color, flexShrink: 0,
-                  boxShadow: reached ? `0 0 8px ${r.color}88` : 'none',
+                  boxShadow: reached ? `0 0 6px ${r.color}66` : 'none',
                 }} />
-                <span style={{ fontSize: 10, color: reached ? '#e2e0f0' : '#4a4560', fontWeight: reached ? 700 : 400, lineHeight: 1.3 }}>
+                <span style={{ fontSize: 10, color: '#3e382d', fontWeight: reached ? 700 : 400, lineHeight: 1.3 }}>
                   {r.label}
                 </span>
               </div>
             );
           })}
 
-          <div style={{ borderTop: '1px solid #1e1b2e', marginTop: 10, paddingTop: 10 }}>
-            <div style={{ fontSize: 9, color: '#4a4560', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, marginBottom: 8 }}>
+          <div style={{ borderTop: '1px solid rgba(62, 56, 45, 0.15)', marginTop: 10, paddingTop: 10 }}>
+            <div style={{ fontSize: 9, color: '#6b5e48', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 800, marginBottom: 8 }}>
               Path
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <div style={{ width: 24, height: 3, background: '#f59e0b', borderRadius: 2 }} />
-              <span style={{ fontSize: 10, color: '#e2e0f0', fontWeight: 600 }}>Visited</span>
+              <div style={{ width: 24, height: 3.5, background: '#c46b3e', borderRadius: 2 }} />
+              <span style={{ fontSize: 10, color: '#3e382d', fontWeight: 600 }}>Visited</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 24, height: 3, background: '#2a2640', borderRadius: 2 }} />
-              <span style={{ fontSize: 10, color: '#4a4560' }}>Upcoming</span>
+              <div style={{ width: 24, height: 3.5, background: '#d8cca8', borderRadius: 2 }} />
+              <span style={{ fontSize: 10, color: '#6b5e48' }}>Upcoming</span>
             </div>
           </div>
         </div>
@@ -493,8 +603,8 @@ export default function KailashJourney() {
 
       {/* ── BOTTOM HUD ──────────────────────────────────────────────────── */}
       <div style={{
-        background: '#0d0c1a',
-        borderTop: '1px solid #1e1b2e',
+        background: '#ebdcb2',
+        borderTop: '1px solid rgba(62, 56, 45, 0.15)',
         padding: '12px 14px',
         flexShrink: 0, zIndex: 20,
       }}>
@@ -502,62 +612,63 @@ export default function KailashJourney() {
 
           {/* Selected location card */}
           <div style={{
-            background: '#0f0e17',
-            border: `2px solid ${selColor}33`,
+            background: '#f4efd8',
+            border: `2px solid ${selColor}44`,
             borderRadius: 12, padding: '10px 13px', marginBottom: 10,
             display: 'flex', gap: 11, alignItems: 'center',
+            boxShadow: '0 2px 8px rgba(62, 56, 45, 0.08)',
           }}>
             <div style={{
               width: 38, height: 38, borderRadius: 9, flexShrink: 0,
-              background: `${selColor}18`,
-              border: `2px solid ${selColor}44`,
+              background: `${selColor}20`,
+              border: `2px solid ${selColor}66`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             }}>
               {selectedLevel === 108 ? '🏔' : selectedLevel === userLevel ? '🧘' : selectedLevel < userLevel ? '✅' : '🔒'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: selectedLevel <= userLevel ? selColor : '#4a4560' }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: selectedLevel <= userLevel ? selColor : '#6b5e48' }}>
                   {selectedLoc.name}
                 </span>
-                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 20, fontWeight: 700, background: `${selColor}20`, color: selColor }}>
+                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 20, fontWeight: 700, background: `${selColor}22`, color: selColor }}>
                   Pt {selectedLevel}
                 </span>
-                {selectedLevel === userLevel && <span style={{ fontSize: 9, color: '#e0d7ff', fontWeight: 800 }}>← You are here</span>}
+                {selectedLevel === userLevel && <span style={{ fontSize: 9, color: '#c46b3e', fontWeight: 800 }}>← You are here</span>}
               </div>
-              <div style={{ fontSize: 10, color: '#4a4560', marginBottom: 2 }}>
+              <div style={{ fontSize: 10, color: '#6b5e48', marginBottom: 2, fontWeight: 500 }}>
                 <MapPin size={8} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
                 {selectedLoc.region}
               </div>
-              <div style={{ fontSize: 10, color: '#2d2a44', lineHeight: 1.5 }}>{selectedLoc.desc}</div>
+              <div style={{ fontSize: 10, color: '#3e382d', lineHeight: 1.5 }}>{selectedLoc.desc}</div>
             </div>
           </div>
 
           {/* Level + progress */}
           <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
             <div style={{
-              background: '#0f0e17', border: '2px solid #1e1b2e',
+              background: '#f4efd8', border: '2px solid rgba(62, 56, 45, 0.15)',
               borderRadius: 9, padding: '7px 13px', textAlign: 'center', flexShrink: 0,
             }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#a5b4fc', lineHeight: 1 }}>{userLevel}</div>
-              <div style={{ fontSize: 8, color: '#4a4560', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 1 }}>Level</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#c46b3e', lineHeight: 1 }}>{userLevel}</div>
+              <div style={{ fontSize: 8, color: '#6b5e48', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 1, fontWeight: 700 }}>Level</div>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 10 }}>
-                <span style={{ color: '#4a4560' }}>Progress to next</span>
-                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{levelPct}%</span>
+                <span style={{ color: '#6b5e48', fontWeight: 600 }}>Progress to next</span>
+                <span style={{ color: '#c46b3e', fontWeight: 800 }}>{levelPct}%</span>
               </div>
-              <div style={{ background: '#1e1b2e', borderRadius: 100, height: 6, overflow: 'hidden' }}>
+              <div style={{ background: '#d8cca8', borderRadius: 100, height: 6, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', borderRadius: 100,
-                  background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+                  background: 'linear-gradient(90deg, #c46b3e, #d97706)',
                   width: `${levelPct}%`, transition: 'width 0.5s ease',
                 }} />
               </div>
-              <div style={{ fontSize: 10, color: '#4a4560', marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 4 }}>
                 {userLevel < 108
-                  ? <>{pointsToNext} pts → <span style={{ color: '#f59e0b', fontWeight: 700 }}>{nextLoc.name}</span></>
-                  : <span style={{ color: '#fbbf24', fontWeight: 700 }}>🏔 Kailash reached! Journey complete.</span>
+                  ? <>{pointsToNext} pts → <span style={{ color: '#c46b3e', fontWeight: 700 }}>{nextLoc.name}</span></>
+                  : <span style={{ color: '#b45309', fontWeight: 700 }}>🏔 Kailash reached! Journey complete.</span>
                 }
               </div>
             </div>
