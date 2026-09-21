@@ -766,26 +766,69 @@ h1.page-title {
   margin: 28px 0;
 }
 
-/* ─── Nav Bar (Low-Profile Grounded Manuscript Header) ──────────────────── */
 /* ─── Nav Bar (Vivid Saffron / Orange Painted Header) ──────────────────── */
 .navbar {
   position: fixed;
-  top: 14px;
+  top: 0;
   left: 0;
   right: 0;
-  display: flex;
-  justify-content: center;
-  z-index: 900;
-  pointer-events: none;
-  padding: 0 16px;
-  height: 50px;
+  height: 56px;
+  padding: 0 20px;
   background: linear-gradient(180deg, #e65c00 0%, #d9572b 100%);
   border-bottom: none;
   box-shadow: 0 4px 15px rgba(217, 87, 43, 0.25);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   color: #ffffff;
+  z-index: 900;
+  pointer-events: auto;
+}
+
+/* Left cluster: hamburger + brand */
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mobile hamburger toggle */
+.mobile-menu-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.mobile-menu-toggle:hover,
+.mobile-menu-toggle.active {
+  background: rgba(255, 255, 255, 0.32);
+  border-color: #ffffff;
+}
+
+/* User avatar initials circle */
+.navbar-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .navbar-pill-dock:hover {
@@ -1205,8 +1248,8 @@ h1.page-title {
   }
 
   .page {
-    padding-top: 68px !important;
-    padding-bottom: 92px !important;
+    padding-top: 72px !important;
+    padding-bottom: 32px !important;
   }
 }
 
@@ -1220,7 +1263,7 @@ h1.page-title {
   }
 
   .page {
-    padding-top: 86px !important;
+    padding-top: 72px !important;
   }
 }
 

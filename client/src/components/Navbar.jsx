@@ -24,6 +24,8 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
+  const currentLevel = user.currentLevel || 1;
+
   // Navigation items matching spiritual manuscript aesthetics
   const navItems = [
     { path: '/', label: 'Home', icon: <Home size={16} strokeWidth={1.8} />, id: 'nav-home' },
@@ -33,6 +35,9 @@ export default function Navbar() {
     { path: '/select-practices', label: 'Practices', icon: <Settings size={16} strokeWidth={1.8} />, id: 'nav-select-practices' },
     { path: '/progress', label: 'Progress', icon: <LineChart size={16} strokeWidth={1.8} />, id: 'nav-progress' },
   ];
+
+  // Full list for the mobile drawer (same items)
+  const allNavItems = navItems;
 
   return (
     <>
