@@ -5,7 +5,8 @@ import { LOCATIONS, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKm
 import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import HandDrawnNavbarEdge from '../components/HandDrawnNavbarEdge';
-import { KundaliniSerpentSpiralMotif, AgniYogiMotif, BalanceYogiMotif, ExpansionSunYogiMotif } from '../components/SadhanaMotifs';
+import { LandmarkSketchAnchor } from '../components/KailashLandmarkSketches';
+
 
 // ── Region color config (vivid manuscript palette)
 const REGIONS = [
@@ -433,23 +434,6 @@ export default function KailashJourney() {
                 {r.label.toUpperCase()}
               </text>
             ))}
-            {/* ── Sacred Hand-Drawn Yogic Logos & Motifs Along the Trail ── */}
-            <g transform="translate(620, 2920)" opacity={0.22} style={{ pointerEvents: 'none' }}>
-              <KundaliniSerpentSpiralMotif size={180} color="#d9572b" strokeWidth={1.8} />
-            </g>
-            <g transform="translate(80, 2250)" opacity={0.20} style={{ pointerEvents: 'none' }}>
-              <AgniYogiMotif size={160} color="#d97706" strokeWidth={1.8} />
-            </g>
-            <g transform="translate(640, 1550)" opacity={0.22} style={{ pointerEvents: 'none' }}>
-              <BalanceYogiMotif size={165} color="#d96b00" strokeWidth={1.8} />
-            </g>
-            <g transform="translate(60, 850)" opacity={0.22} style={{ pointerEvents: 'none' }}>
-              <ExpansionSunYogiMotif size={175} color="#2b8a4b" strokeWidth={1.8} />
-            </g>
-            <g transform="translate(620, 180)" opacity={0.25} style={{ pointerEvents: 'none' }}>
-              <KundaliniSerpentSpiralMotif size={190} color="#b45309" strokeWidth={1.8} />
-            </g>
-
             {/* ── Full Mountain Trail (Unvisited - Soft manuscript guide) ── */}
             <path
               d={fullPathD}
@@ -508,6 +492,9 @@ export default function KailashJourney() {
 
               return (
                 <g key={loc.level}>
+                  {/* Landmark Hand-Drawn Sketch caricature anchored to major destinations */}
+                  <LandmarkSketchAnchor level={loc.level} pt={pt} color={col} />
+
                   {/* Milestone 10-point outer hand-drawn ring */}
                   {isMilestone && (
                     <circle cx={pt[0]} cy={pt[1]} r={22}
@@ -570,6 +557,9 @@ export default function KailashJourney() {
 
             {/* ── Kailash Beacon & Summit Badge (Top Peak) ── */}
             <g>
+              {/* Landmark Sketch caricature anchored to Mount Kailash Summit */}
+              <LandmarkSketchAnchor level={108} pt={kailashPt} color="#b45309" />
+
               <circle cx={kailashPt[0]} cy={kailashPt[1]} r={42} fill="#b4530915" />
               <circle cx={kailashPt[0]} cy={kailashPt[1]} r={28} fill="none" stroke="#b45309" strokeWidth={2} opacity={0.6} />
               <circle cx={kailashPt[0]} cy={kailashPt[1]} r={18} fill="none" stroke="#d97706" strokeWidth={2} opacity={0.85} />
