@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LOCATIONS, getLevelProgress, getPointsToNextLevel } from '../utils/locations';
+import { LOCATIONS, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
+
 import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import TornPaperEdge from '../components/TornPaperEdge';
+import HandDrawnNavbarEdge from '../components/HandDrawnNavbarEdge';
 import { KundaliniSerpentSpiralMotif, AgniYogiMotif, BalanceYogiMotif, ExpansionSunYogiMotif } from '../components/SadhanaMotifs';
 
 // ── Region color config (vivid manuscript palette)
@@ -321,15 +322,19 @@ export default function KailashJourney() {
         .kpulse { animation: kpulse 2.4s ease-in-out infinite; }
       `}</style>
 
-      {/* ── TOP BAR (Saffron-Terracotta Manuscript Banner) ───────────────── */}
+      {/* ── TOP BAR (Saffron-Terracotta Hand-Drawn Manuscript Banner) ───────── */}
       <div style={{
-        background: 'linear-gradient(180deg, #c45525 0%, #d9572b 100%)',
+        position: 'relative',
+        background: 'linear-gradient(180deg, #e65c00 0%, #d9572b 100%)',
         color: '#fffcf7',
-        padding: '12px 14px 8px 14px',
+        padding: '12px 14px 10px 14px',
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0, zIndex: 20,
         boxShadow: '0 4px 15px rgba(196, 85, 37, 0.25)',
       }}>
+        {/* Organic Hand-Drawn Wavy Bottom Edge with Leaf Vine Flourishes */}
+        <HandDrawnNavbarEdge fill="#d9572b" height={32} />
+
         <button
           onClick={() => navigate('/')}
           id="journey-back-btn"
@@ -338,17 +343,18 @@ export default function KailashJourney() {
             color: '#ffffff', borderRadius: 8, padding: '6px 12px',
             display: 'flex', alignItems: 'center', gap: 5,
             cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            position: 'relative', zIndex: 2,
           }}
         >
           <ChevronLeft size={14} /> Back
         </button>
 
-        <div style={{ flex: 1, textAlign: 'center' }}>
+        <div style={{ flex: 1, textAlign: 'center', position: 'relative', zIndex: 2 }}>
           <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: 2, color: '#ffffff', textTransform: 'uppercase', fontFamily: '"Cormorant Garamond", serif', textShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
             🏔 Kailash Pilgrim Trail
           </div>
-          <div style={{ fontSize: 10, color: '#fceee6', marginTop: 1, fontWeight: 600 }}>
-            Level {userLevel} / 108 · Zoom: {Math.round(view.zoom * 100)}% · Drag to pan
+          <div style={{ fontSize: 11, color: '#fceee6', marginTop: 2, fontWeight: 700 }}>
+            Level {userLevel} / 108 · 📍 {getKmTraveled(userLevel).toLocaleString()} km traveled · 🏔 {getKmRemaining(userLevel).toLocaleString()} km to Kailash
           </div>
         </div>
 
@@ -361,6 +367,7 @@ export default function KailashJourney() {
             borderRadius: 8, padding: '6px 10px',
             display: 'flex', alignItems: 'center', gap: 4,
             cursor: 'pointer', fontSize: 11, fontWeight: 700,
+            position: 'relative', zIndex: 2,
           }}
         >
           <Layers size={13} /> {showLegend ? 'Close' : 'Regions'}
@@ -370,14 +377,12 @@ export default function KailashJourney() {
           background: 'rgba(255, 252, 247, 0.2)', border: '1px solid rgba(255, 252, 247, 0.4)',
           borderRadius: 8, padding: '5px 11px',
           display: 'flex', alignItems: 'center', gap: 5,
+          position: 'relative', zIndex: 2,
         }}>
           <Star size={12} style={{ color: '#ffea79' }} />
-          <span style={{ fontSize: 14, fontWeight: 900, color: '#ffffff' }}>{totalScore}</span>
+          <span style={{ fontSize: 13, fontWeight: 900, color: '#ffffff' }}>{totalScore}</span>
         </div>
       </div>
-
-      {/* Organic Torn Paper Edge Transition */}
-      <TornPaperEdge fill="#f4efd8" bannerColor="#d9572b" height={26} />
 
       {/* ── MAP CANVAS (100% Full Trail Overview on Load) ───────── */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
@@ -747,7 +752,7 @@ export default function KailashJourney() {
                 {tooltip.loc.region} · Level {tooltip.loc.level} of 108
               </div>
 
-              {/* Remaining Distance to Kailash Badge */}
+              {/* Remaining Distance to Kailash & Traveled Badge */}
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 fontSize: 10, fontWeight: 800, color: '#d9572b',
@@ -755,8 +760,8 @@ export default function KailashJourney() {
                 padding: '2px 8px', borderRadius: 6, marginBottom: 6,
               }}>
                 🧭 {tooltip.loc.level === 108
-                  ? 'Summit Reached!'
-                  : `${Math.max(0, 3300 - Math.round((tooltip.loc.level - 1) * 30.8)).toLocaleString()} km more to Kailash`
+                  ? 'Summit Reached! 3,300 km Traveled'
+                  : `${getKmTraveled(tooltip.loc.level).toLocaleString()} km traveled · ${getKmRemaining(tooltip.loc.level).toLocaleString()} km to Kailash`
                 }
               </div>
 
@@ -835,8 +840,8 @@ export default function KailashJourney() {
               </div>
               <div style={{ fontSize: 10, color: '#6b5e48', marginTop: 3 }}>
                 {userLevel < 108
-                  ? <><span style={{ color: '#d9572b', fontWeight: 800 }}>{Math.max(0, 3300 - Math.round((userLevel - 1) * 30.8)).toLocaleString()} km more to Kailash</span> · {pointsToNext} pts to <span style={{ color: '#c46b3e', fontWeight: 700 }}>{nextLoc.name}</span></>
-                  : <span style={{ color: '#b45309', fontWeight: 700 }}>🏔 Kailash reached! Journey complete.</span>
+                  ? <><span style={{ color: '#d9572b', fontWeight: 800 }}>📍 {getKmTraveled(userLevel).toLocaleString()} km traveled</span> · <span style={{ color: '#d9572b', fontWeight: 800 }}>🏔 {getKmRemaining(userLevel).toLocaleString()} km to Kailash</span> · {pointsToNext} pts to <span style={{ color: '#c46b3e', fontWeight: 700 }}>{nextLoc.name}</span></>
+                  : <span style={{ color: '#b45309', fontWeight: 700 }}>🏔 Kailash reached! 3,300 km traveled. Journey complete.</span>
                 }
               </div>
             </div>

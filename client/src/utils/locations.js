@@ -153,3 +153,16 @@ export function getLevelProgress(score) {
 export function getLocation(level) {
   return LOCATIONS.find(l => l.level === level) || LOCATIONS[0];
 }
+
+export function getKmTraveled(level) {
+  if (!level || level <= 1) return 0;
+  if (level >= 108) return 3300;
+  return Math.round((level - 1) * 30.84);
+}
+
+export function getKmRemaining(level) {
+  if (!level || level <= 1) return 3300;
+  if (level >= 108) return 0;
+  return Math.max(0, 3300 - getKmTraveled(level));
+}
+

@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { Calendar, Mountain, Zap, Star } from 'lucide-react';
 import api from '../api';
 import TornPaperEdge from '../components/TornPaperEdge';
-import { getLocation, getLevelProgress, getPointsToNextLevel } from '../utils/locations';
+import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
+
 import { KundaliniSerpentSpiralMotif, YogicArtisticBanner, SacredBackgroundMotifsLayer, SacredIconsGridSection } from '../components/SadhanaMotifs';
 
 
@@ -51,6 +52,9 @@ export default function Landing() {
   const currentLocation = getLocation(currentLevel);
   const levelProgress = getLevelProgress(totalScore);
   const pointsToNext = getPointsToNextLevel(totalScore);
+  const kmTraveled = getKmTraveled(currentLevel);
+  const kmRemaining = getKmRemaining(currentLevel);
+
 
   // ── Sync from user context when it updates (e.g., after server refresh)
   useEffect(() => {
@@ -178,7 +182,7 @@ export default function Landing() {
         </div>
       )}
 
-      <div className="page river-page" style={{ paddingTop: 16 }}>
+      <div className="page river-page" style={{ paddingTop: 96 }}>
         <div className="container-lg animate-in" style={{ maxWidth: 840, padding: '0 8px', position: 'relative', zIndex: 2 }}>
 
 
@@ -228,8 +232,15 @@ export default function Landing() {
                   {currentLocation.name}
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, lineHeight: 1.4 }}>
                 {currentLocation.desc.length > 60 ? currentLocation.desc.slice(0, 57) + '…' : currentLocation.desc}
+              </div>
+
+              {/* Both Distance Metrics: Traveled & Remaining */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: '#d9572b', marginBottom: 6, flexWrap: 'wrap' }}>
+                <span>📍 {kmTraveled.toLocaleString()} km traveled</span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span>🏔 {kmRemaining.toLocaleString()} km more to Kailash</span>
               </div>
 
               {/* Progress bar to next level */}

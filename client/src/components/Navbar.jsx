@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain, Compass } from 'lucide-react';
-import TornPaperEdge from './TornPaperEdge';
+import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain, Compass, ChevronDown } from 'lucide-react';
+import HandDrawnNavbarEdge from './HandDrawnNavbarEdge';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -24,23 +24,24 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  // Extensible list of navigation items
+  // Navigation items matching spiritual manuscript aesthetics
   const navItems = [
-    { path: '/', label: 'Home', icon: <Home size={18} strokeWidth={1.5} />, id: 'nav-home' },
-    { path: '/tracker', label: 'Sadhana Tracker', icon: <BookOpen size={18} strokeWidth={1.5} />, id: 'nav-tracker' },
-    { path: '/personal-journey', label: 'My Journey', icon: <Compass size={18} strokeWidth={1.5} />, id: 'nav-personal-journey' },
-    { path: '/journey', label: 'Kailash Journey', icon: <Mountain size={18} strokeWidth={1.5} />, id: 'nav-journey' },
-    // { path: '/life-tracker', label: 'Life Journal', icon: '🌱', id: 'nav-life-tracker' },
-    // { path: '/life-metrics', label: 'Life Metrics', icon: '📊', id: 'nav-life-metrics' },
-    { path: '/select-practices', label: 'Practices', icon: <Settings size={18} strokeWidth={1.5} />, id: 'nav-select-practices' },
-    { path: '/progress', label: 'Sadhana Progress', icon: <LineChart size={18} strokeWidth={1.5} />, id: 'nav-progress' },
+    { path: '/', label: 'Home', icon: <Home size={16} strokeWidth={1.8} />, id: 'nav-home' },
+    { path: '/tracker', label: 'Tracker', icon: <BookOpen size={16} strokeWidth={1.8} />, id: 'nav-tracker' },
+    { path: '/personal-journey', label: 'My Journey', icon: <Compass size={16} strokeWidth={1.8} />, id: 'nav-personal-journey' },
+    { path: '/journey', label: 'Kailash Journey', icon: <Mountain size={16} strokeWidth={1.8} />, id: 'nav-journey' },
+    { path: '/select-practices', label: 'Practices', icon: <Settings size={16} strokeWidth={1.8} />, id: 'nav-select-practices' },
+    { path: '/progress', label: 'Progress', icon: <LineChart size={16} strokeWidth={1.8} />, id: 'nav-progress' },
   ];
 
   return (
     <>
       <nav className="navbar">
+        {/* Organic Hand-Drawn Wavy Bottom Edge with Leaf Vine Flourishes */}
+        <HandDrawnNavbarEdge fill="#d9572b" height={32} />
+
         <div className="navbar-left">
-          {/* Top Left Menu Toggle Icon */}
+          {/* Top Left Menu Toggle Icon for Mobile */}
           <button
             className={`navbar-menu-btn ${menuOpen ? 'active' : ''}`}
             onClick={() => setMenuOpen(!menuOpen)}
@@ -49,12 +50,18 @@ export default function Navbar() {
           >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sun size={20} /> Seekers Journey
-          </span>
+
+          {/* White Rounded Brand Logo Badge (inspired by reference image) */}
+          <Link to="/" className="navbar-brand-badge" style={{ textDecoration: 'none' }}>
+            <div className="navbar-logo-white-box">
+              <img src="/logo.png" className="navbar-logo-img" alt="Logo" onError={(e) => { e.target.style.display = 'none'; }} />
+              <Sun size={18} className="navbar-logo-fallback-icon" />
+            </div>
+            <span className="navbar-brand-title">Seekers Journey</span>
+          </Link>
         </div>
 
-        {/* Desktop inline nav links */}
+        {/* Desktop Inline Navigation Links with Carets */}
         <div className="navbar-links desktop-only">
           {navItems.map((item) => (
             <Link
@@ -63,7 +70,9 @@ export default function Navbar() {
               className={`nav-link ${isActive(item.path) ? 'nav-link-active' : ''}`}
               id={item.id}
             >
-              <span style={{ display: 'flex' }}>{item.icon}</span> {item.label}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {item.icon} {item.label}
+              </span>
             </Link>
           ))}
         </div>
@@ -75,7 +84,6 @@ export default function Navbar() {
           </button>
         </div>
       </nav>
-      <TornPaperEdge fill="var(--bg-primary, #f4efd8)" bannerColor="#d9572b" height={22} />
 
       {/* Mobile / Slide-Out Navigation Drawer */}
       {menuOpen && (
