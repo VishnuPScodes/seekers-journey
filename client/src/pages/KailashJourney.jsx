@@ -2,10 +2,11 @@ import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext';
 import { LOCATIONS, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
-import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed } from 'lucide-react';
+import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed, Volume2, VolumeX, Play, Pause, Film, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import HandDrawnNavbarEdge from '../components/HandDrawnNavbarEdge';
-import { LandmarkSketchAnchor } from '../components/KailashLandmarkSketches';
+import { LandmarkSketchAnchor, ClassicalTempleDanceSketch } from '../components/KailashLandmarkSketches';
+import hampiVideo from '../assets/videos/hampi.mp4';
 
 
 // ── Region color config (vivid manuscript palette)
@@ -135,6 +136,8 @@ export default function KailashJourney() {
   const [selectedLevel, setSelectedLevel] = useState(userLevel);
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, loc: null });
   const [showLegend, setShowLegend] = useState(false);
+  const [hampiVideoMuted, setHampiVideoMuted] = useState(true);
+  const [showHampiModal, setShowHampiModal] = useState(false);
 
   // ── Camera view state: default to 3.3 (330% Zoom) centered directly on seeker location
   const [view, setView] = useState({
@@ -302,7 +305,12 @@ export default function KailashJourney() {
     setTooltip({ visible: true, x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0), loc });
   }, []);
   const onDotLeave = useCallback(() => setTooltip(t => ({ ...t, visible: false })), []);
-  const onDotClick = useCallback((loc) => setSelectedLevel(loc.level), []);
+  const onDotClick = useCallback((loc) => {
+    setSelectedLevel(loc.level);
+    if (loc.level === 20) {
+      setShowHampiModal(true);
+    }
+  }, []);
 
   return (
     <div style={{
@@ -719,21 +727,21 @@ export default function KailashJourney() {
             </div>
           )}
 
-          {/* ── Rich Destination Tooltip (Short Description & Kilometers Traveled) ── */}
+          {/* ── Rich Destination Tooltip & Hampi Video Popup Card ── */}
           {tooltip.visible && tooltip.loc && (
             <div style={{
               position: 'absolute',
-              left: Math.min(Math.max(12, tooltip.x + 14), (containerRef.current?.offsetWidth || 400) - 250),
-              top: Math.max(12, tooltip.y - 110),
+              left: Math.min(Math.max(12, tooltip.x + 14), (containerRef.current?.offsetWidth || 400) - (tooltip.loc.level === 20 ? 340 : 250)),
+              top: Math.max(12, tooltip.y - (tooltip.loc.level === 20 ? 280 : 110)),
               background: '#f4efd8',
               border: `2px solid ${getColor(tooltip.loc.level)}`,
-              borderRadius: 12, padding: '10px 14px',
-              pointerEvents: 'none', zIndex: 100,
-              boxShadow: `0 8px 24px rgba(62, 56, 45, 0.28)`,
-              maxWidth: 240,
+              borderRadius: 14, padding: '12px 14px',
+              pointerEvents: tooltip.loc.level === 20 ? 'auto' : 'none', zIndex: 100,
+              boxShadow: `0 12px 32px rgba(62, 56, 45, 0.35)`,
+              maxWidth: tooltip.loc.level === 20 ? 330 : 240,
             }}>
               {/* Location Title */}
-              <div style={{ fontSize: 13, fontWeight: 900, color: getColor(tooltip.loc.level), letterSpacing: 0.3, marginBottom: 2 }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: getColor(tooltip.loc.level), letterSpacing: 0.3, marginBottom: 2 }}>
                 {tooltip.loc.level === 108 ? '🏔 ' : '📍 '}{tooltip.loc.name}
               </div>
 
@@ -742,23 +750,95 @@ export default function KailashJourney() {
                 {tooltip.loc.region} · Level {tooltip.loc.level} of 108
               </div>
 
-              {/* Remaining Distance to Kailash & Traveled Badge */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 10, fontWeight: 800, color: '#d9572b',
-                background: 'rgba(217, 87, 43, 0.12)', border: '1px solid rgba(217, 87, 43, 0.3)',
-                padding: '2px 8px', borderRadius: 6, marginBottom: 6,
-              }}>
-                🧭 {tooltip.loc.level === 108
-                  ? 'Summit Reached! 3,300 km Traveled'
-                  : `${getKmTraveled(tooltip.loc.level).toLocaleString()} km traveled · ${getKmRemaining(tooltip.loc.level).toLocaleString()} km to Kailash`
-                }
-              </div>
+              {/* Hampi Special Video & Classical Dance Card */}
+              {tooltip.loc.level === 20 ? (
+                <div>
+                  {/* Cinematic Video Player Box */}
+                  <div style={{
+                    position: 'relative', borderRadius: 10, overflow: 'hidden',
+                    border: '1.5px solid #059669', marginBottom: 8, background: '#000',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                  }}>
+                    <video
+                      src={hampiVideo}
+                      autoPlay
+                      loop
+                      muted={hampiVideoMuted}
+                      playsInline
+                      style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+                    />
+                    <div style={{
+                      position: 'absolute', top: 6, left: 6,
+                      background: 'rgba(5, 150, 105, 0.9)', color: '#fff',
+                      fontSize: 8, fontWeight: 800, padding: '2px 7px', borderRadius: 20,
+                      letterSpacing: 0.5, textTransform: 'uppercase', backdropFilter: 'blur(4px)',
+                    }}>
+                      🎬 Cinematic Temple Video
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setHampiVideoMuted(!hampiVideoMuted); }}
+                      style={{
+                        position: 'absolute', bottom: 6, right: 6,
+                        background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.4)',
+                        color: '#fff', borderRadius: '50%', width: 26, height: 26,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      }}
+                      title={hampiVideoMuted ? "Unmute Sound" : "Mute Sound"}
+                    >
+                      {hampiVideoMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                    </button>
+                  </div>
 
-              {/* Short Description */}
-              <div style={{ fontSize: 11, color: '#1e1b15', lineHeight: 1.4, fontWeight: 500 }}>
-                {tooltip.loc.desc}
-              </div>
+                  {/* Classical Dance Mudra Card */}
+                  <div style={{
+                    background: 'rgba(5, 150, 105, 0.08)',
+                    border: '1px solid rgba(5, 150, 105, 0.25)',
+                    borderRadius: 8, padding: '8px 10px', marginBottom: 8,
+                    display: 'flex', gap: 8, alignItems: 'center',
+                  }}>
+                    <div style={{ flexShrink: 0 }}>
+                      <ClassicalTempleDanceSketch size={38} color="#059669" />
+                    </div>
+                    <div style={{ fontSize: 9.5, color: '#1e1b15', lineHeight: 1.35 }}>
+                      <strong style={{ color: '#059669', display: 'block', marginBottom: 1 }}>💃 Classical Temple Dance (Nritta Seva)</strong>
+                      Sacred Devadasi dance mudras in Virupaksha Ranga Mantapa echoing Shiva's Nataraja rhythm.
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowHampiModal(true); }}
+                    style={{
+                      width: '100%', padding: '6px 12px', borderRadius: 7,
+                      background: 'linear-gradient(180deg, #059669 0%, #047857 100%)',
+                      color: '#fff', border: 'none', fontSize: 10, fontWeight: 800,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)',
+                    }}
+                  >
+                    <Sparkles size={11} /> Expand Temple & Dance Showcase →
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Remaining Distance to Kailash & Traveled Badge */}
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 10, fontWeight: 800, color: '#d9572b',
+                    background: 'rgba(217, 87, 43, 0.12)', border: '1px solid rgba(217, 87, 43, 0.3)',
+                    padding: '2px 8px', borderRadius: 6, marginBottom: 6,
+                  }}>
+                    🧭 {tooltip.loc.level === 108
+                      ? 'Summit Reached! 3,300 km Traveled'
+                      : `${getKmTraveled(tooltip.loc.level).toLocaleString()} km traveled · ${getKmRemaining(tooltip.loc.level).toLocaleString()} km to Kailash`
+                    }
+                  </div>
+
+                  {/* Short Description */}
+                  <div style={{ fontSize: 11, color: '#1e1b15', lineHeight: 1.4, fontWeight: 500 }}>
+                    {tooltip.loc.desc}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -838,6 +918,122 @@ export default function KailashJourney() {
           </div>
         </div>
       </div>
+
+      {/* ── HAMPI VIRUPAKSHA TEMPLE & CLASSICAL DANCE SHOWCASE MODAL ── */}
+      {showHampiModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(28, 24, 20, 0.72)', backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }}>
+          <div style={{
+            background: '#f8f3e2', border: '2px solid #059669',
+            borderRadius: 20, maxWidth: 640, width: '100%', padding: '24px 24px 20px 24px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.4)', position: 'relative',
+            maxHeight: '90vh', overflowY: 'auto',
+          }}>
+            {/* Close button */}
+            <button
+              onClick={() => setShowHampiModal(false)}
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                background: 'rgba(62,56,45,0.12)', border: 'none', borderRadius: '50%',
+                width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: '#1e1b15',
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, background: 'rgba(5, 150, 105, 0.15)',
+                border: '1.5px solid rgba(5, 150, 105, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <ClassicalTempleDanceSketch size={36} color="#059669" />
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#059669', fontFamily: '"Cormorant Garamond", serif', lineHeight: 1.1 }}>
+                  Hampi Virupaksha Temple & Classical Dance
+                </div>
+                <div style={{ fontSize: 11, color: '#6b5e48', fontWeight: 600, marginTop: 2 }}>
+                  Pt 20 · Tungabhadra River & Vijayanagara Sacred Heritage
+                </div>
+              </div>
+            </div>
+
+            {/* High-Definition Cinematic Video Player */}
+            <div style={{
+              position: 'relative', borderRadius: 14, overflow: 'hidden',
+              border: '2px solid #059669', marginBottom: 18, background: '#000',
+              boxShadow: '0 10px 28px rgba(0,0,0,0.3)',
+            }}>
+              <video
+                src={hampiVideo}
+                autoPlay
+                loop
+                muted={hampiVideoMuted}
+                playsInline
+                controls
+                style={{ width: '100%', maxHeight: 330, objectFit: 'cover', display: 'block' }}
+              />
+              <div style={{
+                position: 'absolute', top: 12, left: 12,
+                background: 'rgba(5, 150, 105, 0.92)', color: '#fff',
+                fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 20,
+                letterSpacing: 0.5, textTransform: 'uppercase', backdropFilter: 'blur(4px)',
+                pointerEvents: 'none',
+              }}>
+                🎬 Cinematic Temple Aerial & Sacred Gopuram
+              </div>
+              <button
+                onClick={() => setHampiVideoMuted(!hampiVideoMuted)}
+                style={{
+                  position: 'absolute', bottom: 12, right: 12,
+                  background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.5)',
+                  color: '#fff', borderRadius: 20, padding: '5px 12px',
+                  display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700, backdropFilter: 'blur(4px)',
+                }}
+              >
+                {hampiVideoMuted ? <><VolumeX size={14} /> Unmute Audio</> : <><Volume2 size={14} /> Sound Playing</>}
+              </button>
+            </div>
+
+            {/* Classical Temple Dance Spotlight Section */}
+            <div style={{
+              background: 'rgba(5, 150, 105, 0.08)', border: '1.5px solid rgba(5, 150, 105, 0.3)',
+              borderRadius: 14, padding: '16px', marginBottom: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <Sparkles size={18} style={{ color: '#059669' }} />
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', fontFamily: '"Cormorant Garamond", serif' }}>
+                  Classical Temple Dance (Nritta & Natya Mudras)
+                </span>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#1e1b15', lineHeight: 1.6, margin: 0 }}>
+                In the 100-pillared Ranga Mantapa of Virupaksha Temple, classical Devadasi temple dancers performed sacred <strong>Nritta & Natya mudras</strong>—translating cosmic rhythmic vibrations into dance to invoke Lord Shiva's Nataraja form. The stone chariot and musical pillars echo these sacred dance cadences.
+              </p>
+            </div>
+
+            {/* Temple Architecture & History Details */}
+            <div style={{
+              background: 'rgba(217, 87, 43, 0.06)', border: '1px solid rgba(217, 87, 43, 0.25)',
+              borderRadius: 14, padding: '16px',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#d9572b', marginBottom: 4 }}>
+                🏛 Sacred Virupaksha Gopuram & Heritage
+              </div>
+              <p style={{ fontSize: 12, color: '#383126', lineHeight: 1.5, margin: 0 }}>
+                Dating back to the 7th century, Virupaksha Temple stands on the sacred banks of the Tungabhadra River at Hampi. Featuring a towering 50-meter Gopuram, inverse pinhole camera projections, and sacred Shiva shrines, it remains an active uninterrupted place of worship for over 1,300 years.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
