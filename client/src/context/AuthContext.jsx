@@ -69,6 +69,14 @@ export function AuthProvider({ children }) {
     localStorage.setItem(USER_KEY, JSON.stringify(updated));
   };
 
+  const switchPersona = async (personaId) => {
+    const { data } = await api.post('/auth/switch-persona', { personaId });
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -78,10 +86,11 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, switchPersona }}>
       {children}
     </AuthContext.Provider>
   );
 }
+
 
 export const useAuth = () => useContext(AuthContext);

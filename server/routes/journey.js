@@ -3,6 +3,10 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const JourneyEvent = require('../models/JourneyEvent');
 const User = require('../models/User');
+const UserProgram = require('../models/UserProgram');
+const Mandala = require('../models/Mandala');
+const VolunteeringEvent = require('../models/VolunteeringEvent');
+const { OFFICIAL_PROGRAMS, VOLUNTEERING_PATHWAYS, SYNTHETIC_PERSONAS } = require('../config/ishaReferenceData');
 
 const CATEGORY_DEFAULT_ICONS = {
   start: '🌱',
@@ -13,6 +17,137 @@ const CATEGORY_DEFAULT_ICONS = {
   personal: '✨',
   community: '🕊️',
 };
+
+// GET /api/journey/me — Complete multi-dimensional spiritual journey profile
+router.get('/me', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // 1. Chronological wave events sorted ascending (from past to today)
+    const events = await JourneyEvent.find({ userId }).sort({ date: 1, createdAt: 1 });
+
+    // 2. Programs completed
+    const programs = await UserProgram.find({ userId }).sort({ completionDate: 1 });
+
+    // 3. Active / latest Mandala
+    const mandala = await Mandala.findOne({ userId }).sort({ createdAt: -1 });
+
+    // 4. Volunteering / Seva history
+    const seva = await VolunteeringEvent.find({ userId }).sort({ startDate: -1 });
+
+    // Calculate years and months elapsed on the path
+    const startDate = user.journeyStartDate || user.createdAt || new Date();
+    const elapsedMs = Math.max(0, Date.now() - new Date(startDate).getTime());
+    const totalDaysElapsed = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
+    const yearsElapsed = Math.floor(totalDaysElapsed / 365);
+    const monthsElapsed = Math.floor((totalDaysElapsed % 365) / 30);
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        city: user.city || 'Bengaluru',
+        region: user.region || 'India',
+        journeyStartDate: startDate,
+        yearsElapsed,
+        monthsElapsed,
+        timeOnPathLabel: yearsElapsed > 0
+          ? `${yearsElapsed} yr${yearsElapsed > 1 ? 's' : ''}, ${monthsElapsed} mo${monthsElapsed > 1 ? 's' : ''}`
+          : `${monthsElapsed} month${monthsElapsed > 1 ? 's' : ''}`,
+        cohortPersona: user.cohortPersona || 'B',
+        selectedPractices: user.selectedPractices || [],
+        practiceConfig: user.practiceConfig || [],
+        totalCumulativeScore: user.totalCumulativeScore || 0,
+        currentLevel: user.currentLevel || 1,
+        pradakshinaCount: user.pradakshinaCount || 0,
+        originStory: {
+          discoveryDate: user.discoveryDate,
+          discoveryChannel: user.discoveryChannel || 'YouTube Video Discourse',
+          firstAttraction: user.firstAttraction || 'Clarity and profound logic of Sadhguru',
+          initialMotivation: user.initialMotivation || 'Seeking inner balance and conscious growth',
+          originStoryText: user.originStoryText || '',
+        },
+        mandalaStatus: user.mandalaStatus || { active: false },
+      },
+      events,
+      programs,
+      mandala,
+      seva,
+      officialPrograms: OFFICIAL_PROGRAMS,
+      volunteeringPathways: VOLUNTEERING_PATHWAYS,
+    });
+  } catch (err) {
+    console.error('Fetch journey/me error:', err);
+    res.status(500).json({ message: 'Server error fetching journey profile' });
+  }
+});
+
+// GET /api/journey/personas — Archetype definitions for Demo Persona Switcher
+router.get('/personas', auth, async (req, res) => {
+  res.json({
+    personas: SYNTHETIC_PERSONAS,
+  });
+});
+
+// PUT /api/journey/origin-story — Update seeker's discovery and origin story
+router.put('/origin-story', auth, async (req, res) => {
+  try {
+    const { discoveryChannel, firstAttraction, initialMotivation, originStoryText, discoveryDate } = req.body;
+    const update = {};
+    if (discoveryChannel !== undefined) update.discoveryChannel = discoveryChannel;
+    if (firstAttraction !== undefined) update.firstAttraction = firstAttraction;
+    if (initialMotivation !== undefined) update.initialMotivation = initialMotivation;
+    if (originStoryText !== undefined) update.originStoryText = originStoryText;
+    if (discoveryDate !== undefined) update.discoveryDate = new Date(discoveryDate);
+
+    const user = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true });
+    res.json({
+      message: 'Origin story saved 🙏',
+      originStory: {
+        discoveryDate: user.discoveryDate,
+        discoveryChannel: user.discoveryChannel,
+        firstAttraction: user.firstAttraction,
+        initialMotivation: user.initialMotivation,
+        originStoryText: user.originStoryText,
+      },
+    });
+  } catch (err) {
+    console.error('Update origin story error:', err);
+    res.status(500).json({ message: 'Server error updating origin story' });
+  }
+});
+
+// POST /api/journey/voice-reflection — Record a whisper of grace (quick reflection)
+router.post('/voice-reflection', auth, async (req, res) => {
+  try {
+    const { text, practiceName } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: 'Reflection text is required' });
+    }
+
+    const event = new JourneyEvent({
+      userId: req.user._id,
+      type: 'user',
+      category: 'personal',
+      title: practiceName ? `Reflection: ${practiceName}` : 'Sacred Reflection',
+      description: text.trim(),
+      date: new Date(),
+      icon: '✨',
+    });
+    await event.save();
+
+    res.status(201).json({
+      message: 'Reflection recorded 🙏',
+      event,
+    });
+  } catch (err) {
+    console.error('Voice reflection error:', err);
+    res.status(500).json({ message: 'Server error saving reflection' });
+  }
+});
 
 // GET /api/journey/events — Fetch all journey timeline events for current seeker
 router.get('/events', auth, async (req, res) => {

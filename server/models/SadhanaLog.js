@@ -5,6 +5,13 @@ const practiceEntrySchema = new mongoose.Schema({
   count: { type: Number, default: 0, min: 0 },
   score: { type: Number, default: 0 }, // points earned for this practice
   kapalabhatiCount: { type: Number, default: null }, // only for Shakti Chalana Kriya
+  timeOfDay: {
+    type: String,
+    enum: ['morning', 'afternoon', 'evening', 'night', 'unspecified'],
+    default: 'morning',
+  },
+  sessionTime: { type: String, default: '05:45' }, // e.g. 05:45 AM
+  durationMinutes: { type: Number, default: 21 },
 });
 
 const sadhanaLogSchema = new mongoose.Schema({

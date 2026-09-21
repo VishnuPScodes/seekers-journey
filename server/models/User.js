@@ -68,6 +68,56 @@ const userSchema = new mongoose.Schema({
     },
     default: {},
   },
+  // Origin Story & Personal Discovery
+  city: {
+    type: String,
+    default: 'Bengaluru',
+  },
+  region: {
+    type: String,
+    default: 'India',
+  },
+  discoveryDate: {
+    type: Date,
+  },
+  discoveryChannel: {
+    type: String,
+    default: 'YouTube / Video Discourse',
+  },
+  firstAttraction: {
+    type: String,
+    default: 'Clarity, profound logic, and experiential nature of Sadhguru',
+  },
+  initialMotivation: {
+    type: String,
+    default: 'Seeking inner balance, mental clarity, and spiritual depth',
+  },
+  originStoryText: {
+    type: String,
+    default: '',
+  },
+  cohortPersona: {
+    type: String,
+    enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Custom'],
+    default: 'Custom',
+  },
+  journeyStartDate: {
+    type: Date,
+    default: Date.now,
+  },
+  isSynthetic: {
+    type: Boolean,
+    default: false,
+  },
+  mandalaStatus: {
+    active: { type: Boolean, default: false },
+    practiceName: { type: String, default: 'Shambhavi Mahamudra' },
+    targetDays: { type: Number, default: 40 },
+    currentDay: { type: Number, default: 1 },
+    completedDays: { type: Number, default: 0 },
+    startDate: { type: Date },
+    lastCompletedDate: { type: String },
+  },
 }, { timestamps: true });
 
 // Hash password before save

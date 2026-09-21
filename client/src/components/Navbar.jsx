@@ -43,12 +43,12 @@ export default function Navbar() {
         <div className="navbar-left">
           {/* Top Left Menu Toggle Icon for Mobile */}
           <button
-            className={`navbar-menu-btn ${menuOpen ? 'active' : ''}`}
+            className={`mobile-menu-toggle ${menuOpen ? 'active' : ''}`}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle Navigation Menu"
+            aria-label="Toggle Menu"
             id="navbar-toggle-btn"
           >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
           {/* White Rounded Brand Logo Badge (inspired by reference image) */}
@@ -85,7 +85,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile / Slide-Out Navigation Drawer */}
+      {/* ─── MOBILE SLIDE-OUT SACRED DRAWER ─── */}
       {menuOpen && (
         <div className="nav-backdrop" onClick={() => setMenuOpen(false)} />
       )}
@@ -93,28 +93,31 @@ export default function Navbar() {
       <aside className={`nav-drawer ${menuOpen ? 'open' : ''}`}>
         <div className="nav-drawer-header">
           <div className="nav-drawer-brand">
-            <span className="brand-icon-sm" style={{ display: 'flex' }}><Sun size={20} /></span>
+            <span className="navbar-sun-glyph lg">
+              <Sun size={18} strokeWidth={2} />
+            </span>
             <div className="brand-text-sm">
               <strong>Seekers Journey</strong>
               <span>Your Sacred Path with Isha</span>
             </div>
           </div>
           <button className="btn-close-drawer" onClick={() => setMenuOpen(false)} aria-label="Close Menu">
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         <div className="nav-drawer-user">
-          <div className="navbar-avatar lg">{initials}</div>
+          <div className="navbar-avatar-circle lg">{initials}</div>
           <div className="user-details">
             <span className="user-name">{user.name || 'Practitioner'}</span>
             <span className="user-email">{user.email}</span>
+            <span className="user-station-tag">Spiritual Station • Level {currentLevel}</span>
           </div>
         </div>
 
         <div className="nav-drawer-links">
-          <span className="drawer-section-title">Navigation</span>
-          {navItems.map((item) => (
+          <span className="drawer-section-title">Sacred Navigation</span>
+          {allNavItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
@@ -128,7 +131,7 @@ export default function Navbar() {
         </div>
 
         <div className="nav-drawer-footer">
-          <button className="btn-drawer-logout" onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="btn-drawer-logout" onClick={handleLogout}>
             <LogOut size={16} /> Logout
           </button>
         </div>
