@@ -139,18 +139,25 @@ export default function KailashJourney() {
   const [hampiVideoMuted, setHampiVideoMuted] = useState(true);
   const [showHampiModal, setShowHampiModal] = useState(false);
 
-  // ── Camera view state: default to 3.3 (330% Zoom) centered directly on seeker location
+  // ── Camera view state
   const [view, setView] = useState({
     zoom: DEFAULT_ZOOM,
     centerX: pilgrimPt[0],
     centerY: pilgrimPt[1],
   });
-
+  const [isDragging, setIsDragging] = useState(false);
+  const [smoothTransition, setSmoothTransition] = useState(false);
 
   const dragging     = useRef(false);
-  const dragOrigin   = useRef({ x: 0, y: 0, cx: VW / 2, cy: VH / 2 });
+  const dragLast     = useRef({ x: 0, y: 0 });
+  const velocity     = useRef({ x: 0, y: 0 });
+  const inertiaFrame = useRef(null);
+  const viewRef      = useRef(view);
   const touchState   = useRef(null);
   const containerRef = useRef(null);
+
+  // Keep viewRef in sync so inertia can read latest view
+  useEffect(() => { viewRef.current = view; }, [view]);
 
   const selectedLoc = LOCATIONS.find(l => l.level === selectedLevel) || LOCATIONS[0];
   const nextLoc     = LOCATIONS.find(l => l.level === Math.min(userLevel + 1, 108)) || LOCATIONS[107];
@@ -183,31 +190,58 @@ export default function KailashJourney() {
     return `${minX.toFixed(1)} ${minY.toFixed(1)} ${vW.toFixed(1)} ${vH.toFixed(1)}`;
   }, [view]);
 
-  // ── Focus camera on specific point
+  // ── Focus camera on specific point (with smooth animation)
   const focusOnPoint = useCallback((pt, zoom = 6.0) => {
+    setSmoothTransition(true);
     setView({
       zoom: Math.min(Math.max(zoom, 1), 12),
       centerX: pt[0],
       centerY: pt[1],
     });
+    setTimeout(() => setSmoothTransition(false), 500);
   }, []);
 
-  // ── Zoom logic
-  const handleZoom = useCallback((zoomFactor) => {
+  // ── Zoom toward a specific SVG point (cursor or pinch center)
+  const zoomToward = useCallback((svgX, svgY, factor, animate = false) => {
+    if (animate) setSmoothTransition(true);
     setView((prev) => {
-      const newZoom = Math.min(Math.max(prev.zoom * zoomFactor, 1), 12);
-      return { ...prev, zoom: newZoom };
+      const newZoom = Math.min(Math.max(prev.zoom * factor, 1), 14);
+      // Shift center so the SVG point under cursor stays fixed
+      const zoomRatio = newZoom / prev.zoom;
+      const newCX = svgX + (prev.centerX - svgX) / zoomRatio;
+      const newCY = svgY + (prev.centerY - svgY) / zoomRatio;
+      return { zoom: newZoom, centerX: newCX, centerY: newCY };
     });
+    if (animate) setTimeout(() => setSmoothTransition(false), 400);
   }, []);
 
-  // ── Scroll wheel zoom
+  // ── Simple zoom without cursor centering (button clicks)
+  const handleZoom = useCallback((zoomFactor) => {
+    zoomToward(viewRef.current.centerX, viewRef.current.centerY, zoomFactor, true);
+  }, [zoomToward]);
+
+  // ── Scroll wheel zoom — centered on mouse cursor position in SVG space
   const onWheel = useCallback((e) => {
     e.preventDefault();
-    const delta = -e.deltaY;
-    let factor = 1 + delta * 0.003;
-    factor = Math.min(Math.max(factor, 0.75), 1.35);
-    handleZoom(factor);
-  }, [handleZoom]);
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+
+    // Convert mouse position to SVG coordinate
+    const v = viewRef.current;
+    const vW = VW / v.zoom;
+    const vH = VH / v.zoom;
+    const minCX = Math.max(vW / 2, Math.min(VW - vW / 2, v.centerX));
+    const minCY = Math.max(vH / 2, Math.min(VH - vH / 2, v.centerY));
+    const svgX = (minCX - vW / 2) + ((e.clientX - rect.left) / rect.width) * vW;
+    const svgY = (minCY - vH / 2) + ((e.clientY - rect.top) / rect.height) * vH;
+
+    // Smooth, natural zoom speed
+    const rawDelta = e.deltaMode === 1 ? e.deltaY * 20 : e.deltaY; // handle line vs pixel mode
+    const factor = Math.pow(0.998, rawDelta);
+    const clampedFactor = Math.min(Math.max(factor, 0.6), 1.6);
+    zoomToward(svgX, svgY, clampedFactor);
+  }, [zoomToward]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -216,88 +250,168 @@ export default function KailashJourney() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [onWheel]);
 
-  // ── Mouse Pan
+  // ── Keyboard navigation
+  useEffect(() => {
+    const onKey = (e) => {
+      const step = 60 / viewRef.current.zoom;
+      switch (e.key) {
+        case 'ArrowUp':    e.preventDefault(); setView(p => ({ ...p, centerY: p.centerY - step })); break;
+        case 'ArrowDown':  e.preventDefault(); setView(p => ({ ...p, centerY: p.centerY + step })); break;
+        case 'ArrowLeft':  e.preventDefault(); setView(p => ({ ...p, centerX: p.centerX - step })); break;
+        case 'ArrowRight': e.preventDefault(); setView(p => ({ ...p, centerX: p.centerX + step })); break;
+        case '=': case '+': handleZoom(1.25); break;
+        case '-': case '_': handleZoom(0.8); break;
+        default: break;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleZoom]);
+
+  // ── Mouse Pan with inertia/momentum
+  const stopInertia = useCallback(() => {
+    if (inertiaFrame.current) {
+      cancelAnimationFrame(inertiaFrame.current);
+      inertiaFrame.current = null;
+    }
+  }, []);
+
+  const startInertia = useCallback(() => {
+    const decay = 0.88;
+    const tick = () => {
+      const vx = velocity.current.x;
+      const vy = velocity.current.y;
+      if (Math.abs(vx) < 0.3 && Math.abs(vy) < 0.3) {
+        inertiaFrame.current = null;
+        return;
+      }
+      velocity.current = { x: vx * decay, y: vy * decay };
+      setView(prev => {
+        const v = viewRef.current;
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return prev;
+        const svgUnitX = (VW / v.zoom) / rect.width;
+        const svgUnitY = (VH / v.zoom) / rect.height;
+        return {
+          ...prev,
+          centerX: prev.centerX - velocity.current.x * svgUnitX,
+          centerY: prev.centerY - velocity.current.y * svgUnitY,
+        };
+      });
+      inertiaFrame.current = requestAnimationFrame(tick);
+    };
+    inertiaFrame.current = requestAnimationFrame(tick);
+  }, []);
+
   const onMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
+    stopInertia();
     dragging.current = true;
-    dragOrigin.current = {
-      x: e.clientX,
-      y: e.clientY,
-      cx: view.centerX,
-      cy: view.centerY,
-    };
-  }, [view.centerX, view.centerY]);
+    setIsDragging(true);
+    dragLast.current = { x: e.clientX, y: e.clientY };
+    velocity.current = { x: 0, y: 0 };
+  }, [stopInertia]);
 
   const onMouseMove = useCallback((e) => {
     if (!dragging.current || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const dx = e.clientX - dragOrigin.current.x;
-    const dy = e.clientY - dragOrigin.current.y;
+    const dx = e.clientX - dragLast.current.x;
+    const dy = e.clientY - dragLast.current.y;
+    dragLast.current = { x: e.clientX, y: e.clientY };
 
-    // Convert pixel drag distance to SVG coordinate delta
-    const vW = VW / view.zoom;
-    const vH = VH / view.zoom;
-    const svgDx = (dx / rect.width) * vW;
-    const svgDy = (dy / rect.height) * vH;
+    // Track velocity for inertia
+    velocity.current = { x: dx * 0.6 + velocity.current.x * 0.4, y: dy * 0.6 + velocity.current.y * 0.4 };
+
+    const v = viewRef.current;
+    const svgUnitX = (VW / v.zoom) / rect.width;
+    const svgUnitY = (VH / v.zoom) / rect.height;
 
     setView((prev) => ({
       ...prev,
-      centerX: dragOrigin.current.cx - svgDx,
-      centerY: dragOrigin.current.cy - svgDy,
+      centerX: prev.centerX - dx * svgUnitX,
+      centerY: prev.centerY - dy * svgUnitY,
     }));
-  }, [view.zoom]);
+  }, []);
 
-  const onMouseUp = useCallback(() => { dragging.current = false; }, []);
+  const onMouseUp = useCallback(() => {
+    dragging.current = false;
+    setIsDragging(false);
+    startInertia();
+  }, [startInertia]);
 
-  // ── Touch Pan & Pinch Zoom
+  // ── Touch Pan & Pinch Zoom (properly centered)
   const onTouchStart = useCallback((e) => {
+    e.preventDefault();
+    stopInertia();
     if (e.touches.length === 1) {
       const t = e.touches[0];
       touchState.current = {
         type: 'pan',
-        x: t.clientX,
-        y: t.clientY,
-        cx: view.centerX,
-        cy: view.centerY,
+        lastX: t.clientX,
+        lastY: t.clientY,
       };
+      velocity.current = { x: 0, y: 0 };
     } else if (e.touches.length === 2) {
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      touchState.current = { type: 'pinch', dist, zoom: view.zoom };
+      const midX = (t1.clientX + t2.clientX) / 2;
+      const midY = (t1.clientY + t2.clientY) / 2;
+      touchState.current = { type: 'pinch', dist, midX, midY };
     }
-  }, [view.centerX, view.centerY, view.zoom]);
+  }, [stopInertia]);
 
   const onTouchMove = useCallback((e) => {
+    e.preventDefault();
     if (!touchState.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
 
     if (touchState.current.type === 'pan' && e.touches.length === 1) {
       const t = e.touches[0];
-      const rect = containerRef.current.getBoundingClientRect();
-      const dx = t.clientX - touchState.current.x;
-      const dy = t.clientY - touchState.current.y;
+      const dx = t.clientX - touchState.current.lastX;
+      const dy = t.clientY - touchState.current.lastY;
+      touchState.current.lastX = t.clientX;
+      touchState.current.lastY = t.clientY;
 
-      const vW = VW / view.zoom;
-      const vH = VH / view.zoom;
-      const svgDx = (dx / rect.width) * vW;
-      const svgDy = (dy / rect.height) * vH;
+      velocity.current = { x: dx * 0.6 + velocity.current.x * 0.4, y: dy * 0.6 + velocity.current.y * 0.4 };
 
-      setView((prev) => ({
+      const v = viewRef.current;
+      const svgUnitX = (VW / v.zoom) / rect.width;
+      const svgUnitY = (VH / v.zoom) / rect.height;
+      setView(prev => ({
         ...prev,
-        centerX: touchState.current.cx - svgDx,
-        centerY: touchState.current.cy - svgDy,
+        centerX: prev.centerX - dx * svgUnitX,
+        centerY: prev.centerY - dy * svgUnitY,
       }));
+
     } else if (touchState.current.type === 'pinch' && e.touches.length === 2) {
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const midX = (t1.clientX + t2.clientX) / 2;
+      const midY = (t1.clientY + t2.clientY) / 2;
       const factor = dist / touchState.current.dist;
-      handleZoom(factor);
-      touchState.current.dist = dist;
-    }
-  }, [view.zoom, handleZoom]);
 
-  const onTouchEnd = useCallback(() => { touchState.current = null; }, []);
+      // Zoom toward pinch midpoint in SVG space
+      const v = viewRef.current;
+      const vW = VW / v.zoom;
+      const vH = VH / v.zoom;
+      const clamped_cx = Math.max(vW / 2, Math.min(VW - vW / 2, v.centerX));
+      const clamped_cy = Math.max(vH / 2, Math.min(VH - vH / 2, v.centerY));
+      const svgX = (clamped_cx - vW / 2) + ((midX - rect.left) / rect.width) * vW;
+      const svgY = (clamped_cy - vH / 2) + ((midY - rect.top) / rect.height) * vH;
+
+      zoomToward(svgX, svgY, factor);
+      touchState.current.dist = dist;
+      touchState.current.midX = midX;
+      touchState.current.midY = midY;
+    }
+  }, [zoomToward]);
+
+  const onTouchEnd = useCallback(() => {
+    touchState.current = null;
+    startInertia();
+  }, [startInertia]);
 
   // ── Dot hover/click
   const onDotEnter = useCallback((loc, e) => {
@@ -401,8 +515,9 @@ export default function KailashJourney() {
           style={{
             width: '100%', height: '100%',
             overflow: 'hidden', position: 'relative',
-            cursor: dragging.current ? 'grabbing' : 'grab',
+            cursor: isDragging ? 'grabbing' : 'grab',
             background: '#f4efd8',
+            touchAction: 'none', // prevent browser scroll interference on touch
           }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
@@ -415,7 +530,10 @@ export default function KailashJourney() {
           <svg
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
-            style={{ width: '100%', height: '100%', display: 'block', userSelect: 'none' }}
+            style={{
+              width: '100%', height: '100%', display: 'block', userSelect: 'none',
+              transition: smoothTransition ? 'all 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+            }}
           >
             {/* ── Background ── */}
             <rect width={VW} height={VH} fill="#f4efd8" />
@@ -629,61 +747,99 @@ export default function KailashJourney() {
           {/* ── Floating Zoom Controls with Focus Seeker Button ── */}
           <div style={{
             position: 'absolute', right: 14, bottom: 84,
-            display: 'flex', flexDirection: 'column', gap: 6,
+            display: 'flex', flexDirection: 'column', gap: 5,
             zIndex: 40,
           }}>
+            {/* Zoom In */}
             <button
               onClick={() => handleZoom(1.3)}
-              title="Zoom In"
+              title="Zoom In (+)"
               style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
-                color: '#3e382d', fontSize: 20, fontWeight: 'bold',
+                width: 38, height: 38, borderRadius: 10,
+                background: '#ebdcb2', border: '1.5px solid rgba(62, 56, 45, 0.25)',
+                color: '#3e382d', fontSize: 22, fontWeight: 'bold',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+                cursor: 'pointer', boxShadow: '0 3px 10px rgba(62, 56, 45, 0.18)',
+                transition: 'transform 0.1s, background 0.15s',
               }}
+              onMouseEnter={e => e.currentTarget.style.background = '#e0d0a0'}
+              onMouseLeave={e => e.currentTarget.style.background = '#ebdcb2'}
             >
               +
             </button>
+
+            {/* Zoom level pill */}
+            <div style={{
+              width: 38, height: 28, borderRadius: 8,
+              background: 'rgba(62, 56, 45, 0.12)', border: '1px solid rgba(62, 56, 45, 0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, fontWeight: 800, color: '#6b5e48', letterSpacing: 0.3,
+            }}>
+              {Math.round(view.zoom * 100)}%
+            </div>
+
+            {/* Zoom Out */}
             <button
               onClick={() => handleZoom(0.77)}
-              title="Zoom Out"
+              title="Zoom Out (-)"
               style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
-                color: '#3e382d', fontSize: 20, fontWeight: 'bold',
+                width: 38, height: 38, borderRadius: 10,
+                background: '#ebdcb2', border: '1.5px solid rgba(62, 56, 45, 0.25)',
+                color: '#3e382d', fontSize: 22, fontWeight: 'bold',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+                cursor: 'pointer', boxShadow: '0 3px 10px rgba(62, 56, 45, 0.18)',
               }}
+              onMouseEnter={e => e.currentTarget.style.background = '#e0d0a0'}
+              onMouseLeave={e => e.currentTarget.style.background = '#ebdcb2'}
             >
               −
             </button>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: 'rgba(62, 56, 45, 0.15)', margin: '2px 4px' }} />
+
+            {/* Focus on Me */}
             <button
               onClick={() => focusOnPoint(pilgrimPt, 6.0)}
-              title="Focus on My Location (600% Zoom)"
+              title="Focus on My Location"
               style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
+                width: 38, height: 38, borderRadius: 10,
+                background: '#fff4ec', border: '1.5px solid rgba(196, 107, 62, 0.4)',
                 color: '#c46b3e', fontSize: 14, fontWeight: 'bold',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+                cursor: 'pointer', boxShadow: '0 3px 10px rgba(196, 107, 62, 0.15)',
               }}
+              onMouseEnter={e => e.currentTarget.style.background = '#fde8d4'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff4ec'}
             >
-              <LocateFixed size={18} />
+              <LocateFixed size={17} />
             </button>
+
+            {/* Full Overview */}
             <button
-              onClick={() => setView({ zoom: 1.0, centerX: VW / 2, centerY: VH / 2 })}
-              title="Full Map Overview (100%)"
+              onClick={() => { setSmoothTransition(true); setView({ zoom: 1.0, centerX: VW / 2, centerY: VH / 2 }); setTimeout(() => setSmoothTransition(false), 500); }}
+              title="Full Trail Overview"
               style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: '#ebdcb2', border: '1px solid rgba(62, 56, 45, 0.25)',
-                color: '#6b5e48', fontSize: 13, fontWeight: 'bold',
+                width: 38, height: 38, borderRadius: 10,
+                background: '#ebdcb2', border: '1.5px solid rgba(62, 56, 45, 0.25)',
+                color: '#6b5e48', fontSize: 14, fontWeight: 'bold',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(62, 56, 45, 0.15)',
+                cursor: 'pointer', boxShadow: '0 3px 10px rgba(62, 56, 45, 0.18)',
               }}
+              onMouseEnter={e => e.currentTarget.style.background = '#e0d0a0'}
+              onMouseLeave={e => e.currentTarget.style.background = '#ebdcb2'}
             >
-              🎯
+              🗺️
             </button>
+
+            {/* Keyboard hint */}
+            <div style={{
+              width: 38, textAlign: 'center',
+              fontSize: 7.5, color: '#9b8e78', fontWeight: 600, lineHeight: 1.3,
+              marginTop: 2,
+            }}>
+              ↑↓←→<br/>± zoom
+            </div>
           </div>
 
           {/* ── Floating Region Drawer / Overlay ── */}
