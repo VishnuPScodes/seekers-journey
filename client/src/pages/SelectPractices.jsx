@@ -197,7 +197,7 @@ export default function SelectPractices() {
         customPractices: data.customPractices,
         practicesSelected: true,
       });
-      navigate('/tracker');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save practices');
     } finally {
@@ -218,7 +218,7 @@ export default function SelectPractices() {
               <div className="brand-icon" style={{ display: 'flex', justifyContent: 'center' }}>
                 <Sun size={28} strokeWidth={1.5} />
               </div>
-              <h1 className="brand-title">
+              <h1 className="brand-title font-serif">
                 {isEditing ? 'Configure Practices' : 'Your Daily Sadhana'}
               </h1>
               <p className="brand-subtitle" style={{ marginBottom: 0 }}>
@@ -598,7 +598,7 @@ export default function SelectPractices() {
                   type="button"
                   className="btn btn-outline"
                   style={{ flex: 1 }}
-                  onClick={() => navigate('/tracker')}
+                  onClick={() => navigate('/')}
                 >
                   ← Back
                 </button>

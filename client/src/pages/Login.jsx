@@ -24,7 +24,7 @@ export default function Login() {
     try {
       const user = await login(form.email, form.password);
       if (user.practicesSelected) {
-        navigate('/tracker');
+        navigate('/');
       } else {
         navigate('/select-practices');
       }
@@ -41,8 +41,8 @@ export default function Login() {
         <div className="glass-card">
           <div className="brand">
             <div className="brand-icon" style={{ display: 'flex', justifyContent: 'center' }}><Sun size={28} strokeWidth={1.5} /></div>
-            <h1 className="brand-title">Sadhana Tracker</h1>
-            <p className="brand-subtitle">Begin your daily practice journey</p>
+            <h1 className="brand-title font-serif">Seekers Journey</h1>
+            <p className="brand-subtitle">Begin your sacred daily pilgrimage</p>
           </div>
 
           {error && (

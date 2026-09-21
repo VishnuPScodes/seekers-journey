@@ -199,9 +199,9 @@ export default function Congrats() {
             <button
               id="congrats-continue-btn"
               className="btn btn-primary"
-              onClick={() => navigate('/tracker')}
+              onClick={() => navigate('/')}
             >
-              <Sunrise size={18} style={{ display: 'inline', marginRight: 8 }} /> New Day
+              <Sunrise size={18} style={{ display: 'inline', marginRight: 8 }} /> Return Home
             </button>
             <Link
               to="/progress"

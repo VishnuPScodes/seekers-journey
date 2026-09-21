@@ -44,8 +44,8 @@ export default function Register() {
         <div className="glass-card">
           <div className="brand">
             <div className="brand-icon" style={{ display: 'flex', justifyContent: 'center' }}><Sun size={28} strokeWidth={1.5} /></div>
-            <h1 className="brand-title">Create Account</h1>
-            <p className="brand-subtitle">Start your sadhana journey today</p>
+            <h1 className="brand-title font-serif">Create Account</h1>
+            <p className="brand-subtitle">Step onto the sacred path of inner transformation</p>
           </div>
 
           {error && (
