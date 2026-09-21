@@ -14,6 +14,7 @@ const sadhanaRoutes = require('./routes/sadhana');
 const lifeRoutes = require('./routes/life');
 const journeyRoutes = require('./routes/journey');
 const insightsRoutes = require('./routes/insights');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,6 +30,7 @@ app.use('/api/sadhana', sadhanaRoutes);
 app.use('/api/life', lifeRoutes);
 app.use('/api/journey', journeyRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));

@@ -9,11 +9,20 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT token to every request (with graceful backward compatibility)
+// Attach JWT token to every request (with graceful admin token isolation)
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('seekers_token') || localStorage.getItem('sadhana_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const isAdminReq = config.url && config.url.includes('/admin');
+
+  if (isAdminReq) {
+    const adminToken = localStorage.getItem('seekers_admin_token');
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    }
+  } else {
+    const userToken = localStorage.getItem('seekers_token') || localStorage.getItem('sadhana_token');
+    if (userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
+    }
   }
   return config;
 });
@@ -22,12 +31,20 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('seekers_token');
-      localStorage.removeItem('seekers_user');
-      localStorage.removeItem('sadhana_token');
-      localStorage.removeItem('sadhana_user');
-      window.location.href = '/login';
+    const isAuthLoginReq = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/admin/login');
+
+    if (error.response?.status === 401 && !isAuthLoginReq) {
+      const isAdminReq = error.config?.url?.includes('/admin');
+      if (isAdminReq) {
+        localStorage.removeItem('seekers_admin_token');
+        localStorage.removeItem('seekers_admin_user');
+      } else {
+        localStorage.removeItem('seekers_token');
+        localStorage.removeItem('seekers_user');
+        localStorage.removeItem('sadhana_token');
+        localStorage.removeItem('sadhana_user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

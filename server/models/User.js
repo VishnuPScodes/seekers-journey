@@ -109,6 +109,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
   mandalaStatus: {
     active: { type: Boolean, default: false },
     practiceName: { type: String, default: 'Shambhavi Mahamudra' },
