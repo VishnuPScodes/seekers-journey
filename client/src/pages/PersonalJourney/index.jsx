@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../../components/Navbar';
-import { SacredBackgroundMotifsLayer } from '../../components/SadhanaMotifs';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
 
@@ -99,9 +98,6 @@ export default function PersonalJourney() {
       <Navbar />
 
       <div className="pj-root-container">
-        {/* Background Sacred Ambient Motifs */}
-        <SacredBackgroundMotifsLayer color="#d9572b" />
-
         <main className="pj-content-wrapper animate-in">
           {/* 1. Identity & Living Sadhana Standing */}
           <JourneyHero

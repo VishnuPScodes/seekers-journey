@@ -8,7 +8,7 @@ import api from '../api';
 import TornPaperEdge from '../components/TornPaperEdge';
 import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
-import { KundaliniSerpentSpiralMotif, YogicArtisticBanner, SacredBackgroundMotifsLayer, SacredIconsGridSection } from '../components/SadhanaMotifs';
+import { KundaliniSerpentSpiralMotif, YogicArtisticBanner, SacredIconsGridSection } from '../components/SadhanaMotifs';
 
 
 // ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
@@ -162,9 +162,6 @@ export default function Landing() {
   return (
     <>
       <Navbar />
-
-      {/* Full-Screen Ambient Floating Sacred Icons Layer */}
-      <SacredBackgroundMotifsLayer color="#d9572b" />
 
       {/* River Background Canvas */}
       <div className="river-bg">
