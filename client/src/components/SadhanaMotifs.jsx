@@ -347,145 +347,31 @@ export function ExpansionSunYogiMotif({
 
 
 /**
- * ── Decorative Yogic Banner Card (Combining Photo 1 & Photo 2 Artwork) ───────────────
+ * ── Pure Decorative Yogic Motifs Row (No text or card boxes, pure icons for landing page) ───
  */
 export function YogicArtisticBanner({ color = '#d9572b' }) {
   return (
     <div
-      className="yogic-artistic-banner animate-in"
+      className="yogic-pure-icons-row animate-in"
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        justify: 'space-evenly',
+        gap: 16,
+        margin: '20px 0 24px',
+        padding: '12px 0',
         position: 'relative',
-        margin: '18px 0 24px',
-        padding: '22px 20px 20px',
-        background: 'linear-gradient(135deg, rgba(254, 246, 230, 0.88) 0%, rgba(248, 230, 200, 0.75) 100%)',
-        border: '1.5px solid rgba(217, 87, 43, 0.35)',
-        borderRadius: 20,
-        boxShadow: '0 12px 28px -6px rgba(45, 30, 15, 0.18), inset 0 2px 4px rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        overflow: 'hidden',
+        zIndex: 2,
       }}
     >
-      {/* Background Watermark Kundalini Serpent Spiral (Photo 1) */}
-      <div
-        style={{
-          position: 'absolute',
-          right: -30,
-          top: -20,
-          opacity: 0.12,
-          pointerEvents: 'none',
-          transform: 'rotate(15deg) scale(1.3)',
-        }}
-      >
-        <KundaliniSerpentSpiralMotif size={240} color={color} strokeWidth={1.8} />
+      <div className="yogic-pure-icon-item" style={{ transition: 'transform 0.3s ease', cursor: 'pointer' }}>
+        <AgniYogiMotif size={72} color={color} strokeWidth={1.8} />
       </div>
-
-      {/* Header Banner Content */}
-      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', marginBottom: 16 }}>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            color: color,
-            marginBottom: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          <span style={{ display: 'inline-block', width: 24, height: 1, background: color, opacity: 0.5 }} />
-          Sadhana Gurukulam • Sacred Motifs
-          <span style={{ display: 'inline-block', width: 24, height: 1, background: color, opacity: 0.5 }} />
-        </div>
-        <h3
-          style={{
-            fontFamily: '"Cormorant Garamond", serif',
-            fontSize: 22,
-            fontWeight: 800,
-            color: '#1e1b15',
-            margin: 0,
-            lineHeight: 1.2,
-          }}
-        >
-          Prepare Yourself for Life
-        </h3>
-        <p style={{ fontSize: 11, color: '#54493b', margin: '4px 0 0', opacity: 0.9 }}>
-          Embrace the three dimensions of inner transformation: Intensity, Balance & Expansion
-        </p>
+      <div className="yogic-pure-icon-item" style={{ transition: 'transform 0.3s ease', cursor: 'pointer' }}>
+        <BalanceYogiMotif size={72} color={color} strokeWidth={1.8} />
       </div>
-
-      {/* 3 Pillars Grid (Photo 2 Icons) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
-          gap: 12,
-          position: 'relative',
-          zIndex: 2,
-        }}
-      >
-        {/* Pillar 1: Agni / Intensity */}
-        <div
-          className="yogic-pillar-card"
-          style={{
-            background: 'rgba(255, 255, 255, 0.65)',
-            border: '1px solid rgba(217, 87, 43, 0.25)',
-            borderRadius: 14,
-            padding: '12px 8px',
-            textAlign: 'center',
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-            <AgniYogiMotif size={64} color={color} strokeWidth={1.8} />
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#1e1b15', marginBottom: 2 }}>Agni</div>
-          <div style={{ fontSize: 10, color: '#54493b', opacity: 0.85 }}>Inner Flame</div>
-        </div>
-
-        {/* Pillar 2: Balance / Samata */}
-        <div
-          className="yogic-pillar-card"
-          style={{
-            background: 'rgba(255, 255, 255, 0.65)',
-            border: '1px solid rgba(217, 87, 43, 0.25)',
-            borderRadius: 14,
-            padding: '12px 8px',
-            textAlign: 'center',
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-            <BalanceYogiMotif size={64} color={color} strokeWidth={1.8} />
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#1e1b15', marginBottom: 2 }}>Samata</div>
-          <div style={{ fontSize: 10, color: '#54493b', opacity: 0.85 }}>Equilibrium</div>
-        </div>
-
-        {/* Pillar 3: Expansion / Prana */}
-        <div
-          className="yogic-pillar-card"
-          style={{
-            background: 'rgba(255, 255, 255, 0.65)',
-            border: '1px solid rgba(217, 87, 43, 0.25)',
-            borderRadius: 14,
-            padding: '12px 8px',
-            textAlign: 'center',
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-            <ExpansionSunYogiMotif size={64} color={color} strokeWidth={1.8} />
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#1e1b15', marginBottom: 2 }}>Prana</div>
-          <div style={{ fontSize: 10, color: '#54493b', opacity: 0.85 }}>Vital Expansion</div>
-        </div>
+      <div className="yogic-pure-icon-item" style={{ transition: 'transform 0.3s ease', cursor: 'pointer' }}>
+        <ExpansionSunYogiMotif size={76} color={color} strokeWidth={1.8} />
       </div>
     </div>
   );
@@ -595,75 +481,35 @@ export function SacredBackgroundMotifsLayer({ color = '#d9572b' }) {
 }
 
 /**
- * ── Scattered Ambient Icons Showcase Section ────────────────────────────────────────
- * Interactive scattered grid section showing pure hand-drawn icons and logos all over!
+ * ── Pure Icons Stream Section (No Cards or Text) ───────────────────────────────────
  */
 export function SacredIconsGridSection({ color = '#d9572b' }) {
-  const iconItems = [
-    { title: 'Kundalini Spiral', desc: 'Coiled serpent energy', component: <KundaliniSerpentSpiralMotif size={82} color={color} strokeWidth={1.8} /> },
-    { title: 'Agni Sadhana', desc: 'Inner flame of intensity', component: <AgniYogiMotif size={76} color={color} strokeWidth={1.8} /> },
-    { title: 'Samata Balance', desc: 'Equilibrium & harmony', component: <BalanceYogiMotif size={76} color={color} strokeWidth={1.8} /> },
-    { title: 'Prana Expansion', desc: 'Solar vital receptivity', component: <ExpansionSunYogiMotif size={82} color={color} strokeWidth={1.8} /> },
-  ];
-
   return (
     <div
-      className="sacred-icons-showcase-section animate-in"
+      className="sacred-icons-pure-row animate-in"
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        justify: 'space-evenly',
+        flexWrap: 'wrap',
+        gap: 20,
         margin: '24px 0 32px',
-        padding: '24px 16px',
-        background: 'radial-gradient(ellipse at center, rgba(254, 246, 230, 0.7) 0%, rgba(246, 226, 192, 0.35) 100%)',
-        border: '1px solid rgba(217, 87, 43, 0.25)',
-        borderRadius: 24,
-        boxShadow: '0 10px 30px -8px rgba(45, 30, 15, 0.12), inset 0 2px 4px rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        textAlign: 'center',
+        padding: '16px 0',
         position: 'relative',
         zIndex: 2,
       }}
     >
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', color: color, marginBottom: 4 }}>
-        ✨ Sacred Artistry & Symbols
+      <div style={{ animation: 'serpent-float 7s ease-in-out infinite alternate' }}>
+        <KundaliniSerpentSpiralMotif size={88} color={color} strokeWidth={1.8} />
       </div>
-      <h3 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, fontWeight: 800, color: '#1e1b15', margin: '0 0 16px' }}>
-        Yogic Logos & Emblems Scattered Stream
-      </h3>
-
-      {/* Floating scattered icon capsules */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: 14,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {iconItems.map((item, idx) => (
-          <div
-            key={item.title}
-            className="sacred-icon-floating-card"
-            style={{
-              background: 'rgba(255, 255, 255, 0.75)',
-              border: '1.5px solid rgba(217, 87, 43, 0.3)',
-              borderRadius: 20,
-              padding: '16px 10px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              boxShadow: '0 6px 16px -2px rgba(45, 30, 15, 0.1)',
-              cursor: 'pointer',
-              animation: `serpent-float ${6 + idx * 1.2}s ease-in-out ${-idx * 0.8}s infinite alternate`,
-            }}
-          >
-            <div style={{ marginBottom: 8 }}>{item.component}</div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#1e1b15', marginBottom: 2 }}>{item.title}</div>
-            <div style={{ fontSize: 10, color: '#54493b', opacity: 0.85 }}>{item.desc}</div>
-          </div>
-        ))}
+      <div style={{ animation: 'serpent-float 8.5s ease-in-out -1.5s infinite alternate' }}>
+        <AgniYogiMotif size={82} color={color} strokeWidth={1.8} />
+      </div>
+      <div style={{ animation: 'serpent-float 6.5s ease-in-out -3s infinite alternate' }}>
+        <BalanceYogiMotif size={82} color={color} strokeWidth={1.8} />
+      </div>
+      <div style={{ animation: 'serpent-float 9s ease-in-out -2s infinite alternate' }}>
+        <ExpansionSunYogiMotif size={88} color={color} strokeWidth={1.8} />
       </div>
     </div>
   );
