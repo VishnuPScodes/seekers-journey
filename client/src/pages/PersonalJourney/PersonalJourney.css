@@ -1,0 +1,681 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PERSONAL JOURNEY — SACRED CHRONICLE SCOPED STYLES
+   Isolated stylesheet scoped strictly under .pj-root-container.
+   ZERO contamination to other pages or global index.css.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pj-root-container {
+  /* Scoped Theme Tokens */
+  --pj-bg-parchment: #f4efd8;
+  --pj-bg-card: #ece5cb;
+  --pj-bg-card-glass: rgba(238, 231, 211, 0.82);
+  --pj-bg-card-subtle: rgba(226, 218, 194, 0.55);
+  --pj-border: rgba(217, 87, 43, 0.24);
+  --pj-border-hairline: rgba(217, 87, 43, 0.14);
+  --pj-border-strong: rgba(217, 87, 43, 0.48);
+  --pj-border-gold: rgba(196, 154, 69, 0.4);
+
+  --pj-terracotta: #d9572b;
+  --pj-terracotta-dark: #b4421b;
+  --pj-terracotta-glow: rgba(217, 87, 43, 0.18);
+  --pj-saffron: #e65c00;
+  --pj-gold: #c49a45;
+  --pj-gold-light: #f7eed8;
+  --pj-olive: #4e6346;
+  --pj-olive-light: rgba(78, 99, 70, 0.12);
+  --pj-water: #4a7079;
+
+  --pj-text-charcoal: #1e1b15;
+  --pj-text-secondary: #383126;
+  --pj-text-muted: #665b4c;
+  --pj-text-light: #887a68;
+
+  --pj-font-serif: "Cormorant Garamond", Georgia, serif;
+  --pj-font-sans: "Plus Jakarta Sans", "Inter", -apple-system, sans-serif;
+
+  --pj-radius-sm: 8px;
+  --pj-radius-md: 14px;
+  --pj-radius-lg: 20px;
+  --pj-radius-pill: 9999px;
+
+  --pj-shadow-card: 0 4px 20px rgba(44, 38, 31, 0.07), 0 1px 3px rgba(44, 38, 31, 0.04);
+  --pj-shadow-hover: 0 8px 30px rgba(217, 87, 43, 0.12), 0 2px 8px rgba(44, 38, 31, 0.06);
+  --pj-shadow-bead: 0 4px 14px rgba(217, 87, 43, 0.28);
+
+  font-family: var(--pj-font-sans);
+  color: var(--pj-text-charcoal);
+  min-height: 100vh;
+  padding: 88px 16px 64px;
+  position: relative;
+  background-color: var(--pj-bg-parchment);
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(217, 87, 43, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(196, 154, 69, 0.05) 0%, transparent 45%);
+}
+
+/* ── Container Layout ──────────────────────────────────────────────────────── */
+.pj-content-wrapper {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Typography Helpers ────────────────────────────────────────────────────── */
+.pj-serif {
+  font-family: var(--pj-font-serif);
+}
+
+.pj-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Shared Card Surface ───────────────────────────────────────────────────── */
+.pj-card {
+  background: var(--pj-bg-card-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-lg);
+  box-shadow: var(--pj-shadow-card);
+  padding: clamp(18px, 3.5vw, 28px);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pj-card:hover {
+  box-shadow: var(--pj-shadow-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. JOURNEY HERO & IDENTITY
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pj-hero-card {
+  background: linear-gradient(135deg, rgba(244, 239, 216, 0.95) 0%, rgba(236, 227, 201, 0.88) 100%);
+  border: 1.5px solid var(--pj-border-strong);
+  position: relative;
+}
+
+.pj-hero-motif-bg {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  opacity: 0.12;
+  pointer-events: none;
+  transform: rotate(15deg);
+}
+
+.pj-hero-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pj-hero-title {
+  font-size: clamp(28px, 4.5vw, 38px);
+  font-weight: 700;
+  color: var(--pj-text-charcoal);
+  line-height: 1.15;
+  margin: 4px 0 6px;
+}
+
+.pj-hero-time-label {
+  font-size: 14px;
+  color: var(--pj-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.pj-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pj-whisper-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: var(--pj-radius-pill);
+  background: linear-gradient(180deg, #e65c00 0%, #d9572b 100%);
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(217, 87, 43, 0.35);
+  transition: all 0.2s ease;
+}
+
+.pj-whisper-trigger-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(217, 87, 43, 0.45);
+}
+
+/* Practices & Rhythm Banner */
+.pj-hero-banner {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: var(--pj-bg-card-subtle);
+  border: 1px solid var(--pj-border-hairline);
+  border-radius: var(--pj-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pj-practice-pills-wrap {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.pj-practice-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: #fdfbf7;
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-pill);
+  color: var(--pj-text-charcoal);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pj-rhythm-badge {
+  text-align: right;
+}
+
+.pj-rhythm-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pj-olive);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. "WHERE I STARTED" — ORIGIN STORY SCROLL
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pj-origin-card {
+  border-left: 4px solid var(--pj-terracotta);
+}
+
+.pj-origin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pj-origin-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--pj-terracotta-glow);
+  color: var(--pj-terracotta);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pj-origin-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--pj-text-charcoal);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pj-origin-quote {
+  font-size: 16px;
+  font-style: italic;
+  color: var(--pj-text-secondary);
+  line-height: 1.65;
+  margin: 14px 0 16px;
+  padding-left: 12px;
+  border-left: 2px solid var(--pj-border-strong);
+}
+
+.pj-origin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.pj-origin-box {
+  padding: 12px 14px;
+  background: var(--pj-bg-card-subtle);
+  border-radius: var(--pj-radius-sm);
+  border: 1px solid var(--pj-border-hairline);
+}
+
+.pj-origin-box-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--pj-text-muted);
+  letter-spacing: 0.08em;
+}
+
+.pj-origin-box-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-text-charcoal);
+  margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. THE RIVER OF TIME — SERPENTINE TIMELINE
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pj-river-card {
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.pj-river-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.pj-river-title {
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--pj-text-charcoal);
+  margin: 2px 0 0;
+}
+
+.pj-river-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Zoom Toggle Switch */
+.pj-zoom-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--pj-bg-card-subtle);
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-pill);
+  padding: 2px;
+}
+
+.pj-zoom-btn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pj-text-muted);
+  padding: 5px 12px;
+  border-radius: var(--pj-radius-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pj-zoom-btn.active {
+  background: var(--pj-terracotta);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(217, 87, 43, 0.3);
+}
+
+/* Year Scrubber Pills */
+.pj-scrubber-pill {
+  background: var(--pj-bg-card-subtle);
+  border: 1px solid var(--pj-border-hairline);
+  color: var(--pj-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pj-radius-pill);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pj-scrubber-pill:hover {
+  background: var(--pj-terracotta-glow);
+  border-color: var(--pj-terracotta);
+  color: var(--pj-terracotta);
+}
+
+/* Category Filter Pills */
+.pj-category-filters {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 18px;
+  scrollbar-width: thin;
+}
+
+.pj-cat-pill {
+  background: var(--pj-bg-card-subtle);
+  border: 1px solid var(--pj-border-hairline);
+  color: var(--pj-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--pj-radius-pill);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+}
+
+.pj-cat-pill:hover {
+  border-color: var(--pj-border-strong);
+  color: var(--pj-text-charcoal);
+}
+
+.pj-cat-pill.active {
+  background: var(--pj-terracotta);
+  border-color: var(--pj-terracotta);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(217, 87, 43, 0.25);
+}
+
+/* Scrollable Serpentine Stage */
+.pj-river-scroll-canvas {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 24px 8px 32px;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pj-border) transparent;
+}
+
+.pj-river-scroll-canvas::-webkit-scrollbar {
+  height: 6px;
+}
+.pj-river-scroll-canvas::-webkit-scrollbar-thumb {
+  background: var(--pj-border);
+  border-radius: 99px;
+}
+
+/* River Node Bead */
+.pj-node-bead {
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.pj-node-bead:hover {
+  transform: scale(1.22) !important;
+  box-shadow: 0 0 16px rgba(217, 87, 43, 0.45), 0 4px 12px rgba(44, 38, 31, 0.15) !important;
+}
+
+/* Zoomed-in Detail Card */
+.pj-node-detail-card {
+  position: absolute;
+  width: 220px;
+  background: #fdfbf7;
+  border: 1.5px solid var(--pj-border-strong);
+  border-radius: var(--pj-radius-md);
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(44, 38, 31, 0.16);
+  z-index: 30;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.2s ease;
+}
+
+.pj-node-detail-card:hover {
+  transform: translateX(-50%) translateY(-2px);
+  border-color: var(--pj-terracotta);
+}
+
+/* Overview Hover Tooltip */
+.pj-hover-tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #25201a;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: var(--pj-radius-sm);
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  z-index: 40;
+  pointer-events: none;
+  border: 1px solid rgba(217, 87, 43, 0.4);
+}
+
+/* Empty River Invitation State */
+.pj-river-empty-state {
+  text-align: center;
+  padding: 36px 20px;
+  background: var(--pj-bg-card-subtle);
+  border-radius: var(--pj-radius-md);
+  border: 1.5px dashed var(--pj-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. SACRED CURRICULUM — THE MOUNTAIN ASCENT
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pj-curriculum-card {
+  position: relative;
+}
+
+.pj-curriculum-metrics {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pj-curriculum-metric-box {
+  padding: 6px 16px;
+  border-radius: var(--pj-radius-sm);
+  text-align: center;
+  min-width: 84px;
+}
+
+/* Completed Program Cards */
+.pj-completed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.pj-completed-card {
+  padding: 16px 18px;
+  background: rgba(78, 99, 70, 0.07);
+  border: 1.5px solid rgba(78, 99, 70, 0.35);
+  border-radius: var(--pj-radius-md);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.pj-completed-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--pj-olive);
+}
+
+/* Upcoming & Prerequisite Pathways */
+.pj-upcoming-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.pj-prereq-card {
+  padding: 18px 20px;
+  background: var(--pj-bg-card-subtle);
+  border: 1.5px solid var(--pj-border-hairline);
+  border-radius: var(--pj-radius-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.pj-prereq-card.eligible {
+  background: rgba(217, 87, 43, 0.06);
+  border-color: var(--pj-border-strong);
+  box-shadow: 0 4px 18px rgba(217, 87, 43, 0.1);
+}
+
+.pj-prereq-card.eligible:hover {
+  transform: translateY(-2px);
+  border-color: var(--pj-terracotta);
+}
+
+.pj-prereq-checklist {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fdfbf7;
+  border-radius: var(--pj-radius-sm);
+  border: 1px solid var(--pj-border-hairline);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. MANDALA & SEVA SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pj-mandala-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.pj-mandala-box {
+  padding: 16px 18px;
+  background: var(--pj-bg-card-subtle);
+  border: 1px solid var(--pj-border-hairline);
+  border-radius: var(--pj-radius-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. MODALS (WHISPER OF GRACE, ORIGIN STORY, MILESTONE VIEWER)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pj-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 24, 20, 0.52);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.pj-modal-dialog {
+  width: 100%;
+  max-width: 480px;
+  background: #f8f3e2;
+  border: 1.5px solid var(--pj-border-strong);
+  border-radius: var(--pj-radius-lg);
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  position: relative;
+  animation: pjFadeInScale 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pjFadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pj-modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--pj-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pj-modal-close-btn:hover {
+  color: var(--pj-terracotta);
+}
+
+.pj-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #fdfbf7;
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-sm);
+  color: var(--pj-text-charcoal);
+  font-family: var(--pj-font-sans);
+  font-size: 13px;
+  transition: border-color 0.18s ease;
+}
+
+.pj-input:focus {
+  outline: none;
+  border-color: var(--pj-terracotta);
+  box-shadow: 0 0 0 3px var(--pj-terracotta-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. RESPONSIVE BREAKPOINTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .pj-root-container {
+    padding: 76px 12px 48px;
+  }
+
+  .pj-hero-title {
+    font-size: 26px;
+  }
+
+  .pj-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pj-rhythm-badge {
+    text-align: left;
+  }
+
+  .pj-river-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pj-river-controls {
+    justify-content: space-between;
+  }
+}
