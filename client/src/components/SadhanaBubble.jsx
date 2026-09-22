@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { PRACTICE_ICONS } from '../utils/practiceIcons';
 import { Hand, Check } from 'lucide-react';
+import { HandDrawnTileTop } from './HandDrawnNavbarEdge';
 
 export default function SadhanaBubble({
   name,
@@ -157,10 +158,8 @@ export default function SadhanaBubble({
         </span>
       )}
 
-      {/* Top Ornate Arch Line Accent with Lotus Petal Center */}
-      <div className="shrine-card-arch">
-        <span className="shrine-arch-lotus">🪷</span>
-      </div>
+      {/* Top Hand-Drawn Wavy Terracotta Stroke Accent (Matching Navbar Aesthetics) */}
+      <HandDrawnTileTop fill="#d9572b" height={18} />
 
       {/* Target & Tap Count Badge Pill */}
       <div className={`shrine-count-badge ${isDone ? 'badge-done' : ''}`}>

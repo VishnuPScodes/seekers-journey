@@ -9,7 +9,127 @@ import TornPaperEdge from '../components/TornPaperEdge';
 import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
 import { KundaliniSerpentSpiralMotif, YogicArtisticBanner } from '../components/SadhanaMotifs';
+import { HandDrawnBannerHeader } from '../components/HandDrawnNavbarEdge';
 
+
+// ── 3D Sacred Saffron Terracotta Level Badge ──────────────────────────────
+function LevelBadge3D({ level, progress }) {
+  const size = 72;
+  const cx = 36;
+  const cy = 36;
+  const r = 28;
+  const circumference = 2 * Math.PI * r;
+  const validProgress = Math.min(1, Math.max(0.01, progress || 0));
+  const dashOffset = circumference * (1 - validProgress);
+
+  // Tip bead position angle (-90deg is top)
+  const angle = (validProgress * 360 - 90) * (Math.PI / 180);
+  const tipX = cx + r * Math.cos(angle);
+  const tipY = cy + r * Math.sin(angle);
+
+  return (
+    <div className="level-badge-large-3d">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ filter: 'drop-shadow(0 4px 8px rgba(217, 87, 43, 0.25))' }}>
+        <defs>
+          {/* Main 3D Arc Gradient: Glowing Saffron Terracotta Orange */}
+          <linearGradient id="level3dGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ffa066" />
+            <stop offset="45%" stopColor="#e65c2b" />
+            <stop offset="100%" stopColor="#b83d14" />
+          </linearGradient>
+
+          {/* Track Channel Shadow */}
+          <linearGradient id="trackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(180, 80, 20, 0.18)" />
+            <stop offset="100%" stopColor="rgba(244, 239, 216, 0.5)" />
+          </linearGradient>
+
+          {/* 3D Bead Radial Sheen */}
+          <radialGradient id="beadGrad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="45%" stopColor="#ff8c52" />
+            <stop offset="100%" stopColor="#a8320a" />
+          </radialGradient>
+
+          {/* Inner 3D Medallion Parchment Dome */}
+          <radialGradient id="medallionBg" cx="40%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#fffdf9" />
+            <stop offset="60%" stopColor="#f4ebd0" />
+            <stop offset="100%" stopColor="#ebd6aa" />
+          </radialGradient>
+
+          {/* Soft Drop Shadow for Arc */}
+          <filter id="arcGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="1.8" floodColor="#b83d14" floodOpacity="0.4" />
+          </filter>
+        </defs>
+
+        {/* Outer Bevel Ring Accent */}
+        <circle cx={cx} cy={cy} r="33.5" fill="none" stroke="rgba(217, 87, 43, 0.16)" strokeWidth="1" />
+
+        {/* Recessed Inner Channel Track */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke="url(#trackGrad)"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
+
+        {/* Vibrant 3D Saffron Orange Progress Arc */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke="url(#level3dGrad)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${cx} ${cy})`}
+          filter="url(#arcGlow)"
+          style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
+        />
+
+        {/* 3D End Tip Gem/Bead */}
+        {validProgress > 0.03 && (
+          <g transform={`translate(${tipX}, ${tipY})`}>
+            <circle r="4" fill="url(#beadGrad)" style={{ filter: 'drop-shadow(0 1px 2.5px rgba(168, 50, 10, 0.5))' }} />
+            <circle r="1.2" cx="-0.8" cy="-0.8" fill="#ffffff" opacity="0.85" />
+          </g>
+        )}
+
+        {/* Inner 3D Medallion Body */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r="21"
+          fill="url(#medallionBg)"
+          stroke="rgba(217, 87, 43, 0.24)"
+          strokeWidth="1"
+          style={{ filter: 'drop-shadow(0 2px 4px rgba(120, 40, 10, 0.15))' }}
+        />
+        <circle
+          cx={cx}
+          cy={cy}
+          r="20"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.85)"
+          strokeWidth="0.8"
+        />
+      </svg>
+
+      {/* Number & Label Overlay */}
+      <div className="level-badge-inner-overlay">
+        <span className="level-badge-num-3d">{level}</span>
+        <span className="level-badge-lbl-3d">LEVEL</span>
+      </div>
+    </div>
+  );
+}
 
 // ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
 function getPebbleScatterStyle(index) {
@@ -243,14 +363,8 @@ export default function Landing() {
             id="level-score-card"
             style={{ cursor: 'pointer' }}
           >
-            {/* Left: Level badge */}
-            <div className="level-badge-large">
-              <div className="level-badge-ring" style={{ '--progress': levelProgress }} />
-              <div className="level-badge-inner">
-                <span className="level-badge-num">{currentLevel}</span>
-                <span className="level-badge-lbl">Level</span>
-              </div>
-            </div>
+            {/* Left: 3D Sacred Level Badge */}
+            <LevelBadge3D level={currentLevel} progress={levelProgress} />
 
             {/* Right: Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -298,16 +412,13 @@ export default function Landing() {
 
           </div>
 
-          {/* ── Sacred Yogic Artistic Banner (Pillars of Sadhana: Agni, Samata, Prana) ── */}
-          <YogicArtisticBanner color="#d9572b" />
-
           {/* ── Sacred Sadhana Shrine Cards ────────────────────────────── */}
           {selectedPractices.length > 0 ? (
             <div className="shrine-cards-wrapper animate-in" style={{ animationDelay: '0.1s', margin: '20px 0 28px' }}>
-              <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 14, textAlign: 'center' }}>
-                <Zap size={12} style={{ color: '#d9572b' }} />
-                Sacred Sadhana Shrine Tiles • Tap to record daily practice
-              </div>
+              <HandDrawnBannerHeader
+                title="Sacred Sadhana Shrine Tiles"
+                subtitle="Tap any tile to record your daily practice"
+              />
 
               {/* Grid Container for Shrine Cards */}
               <div
@@ -352,6 +463,10 @@ export default function Landing() {
             </div>
           )}
 
+          {/* ── Sacred Yogic Artistic Banner (Centered Horizontally at Bottom) ── */}
+          <div style={{ marginTop: 32, marginBottom: 20, display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <YogicArtisticBanner color="#d9572b" />
+          </div>
         </div>
       </div>
     </>

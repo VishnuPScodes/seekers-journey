@@ -86,3 +86,119 @@ export default function HandDrawnNavbarEdge({
     </div>
   );
 }
+
+/**
+ * HandDrawnTileTop
+ * Mini hand-drawn painted wave curve SVG for the top edge of Sadhana Shrine Tile cards.
+ */
+export function HandDrawnTileTop({ fill = '#d9572b', height = 18 }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        overflow: 'hidden',
+        lineHeight: 0,
+        pointerEvents: 'none',
+        zIndex: 4,
+        borderTopLeftRadius: '14px',
+        borderTopRightRadius: '14px',
+      }}
+    >
+      <svg
+        viewBox="0 0 200 24"
+        preserveAspectRatio="none"
+        style={{ display: 'block', width: '100%', height: `${height}px` }}
+      >
+        {/* Watercolor shadow curve */}
+        <path
+          d="M 0,0 L 200,0 L 200,8 C 160,22 130,4 100,16 C 70,4 40,22 0,8 Z"
+          fill="rgba(180, 60, 20, 0.25)"
+        />
+        {/* Main painted wavy stroke matching navbar */}
+        <path
+          d="M 0,0 L 200,0 L 200,6 C 160,18 130,2 100,13 C 70,2 40,18 0,6 Z"
+          fill={fill}
+        />
+        {/* Lotus dot at apex */}
+        <circle cx="100" cy="6.5" r="2.2" fill="#ffffff" />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * HandDrawnBannerHeader
+ * Hand-drawn wavy terracotta banner header with curved bottom edge and vine flourish.
+ */
+export function HandDrawnBannerHeader({ title, subtitle }) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        backgroundColor: '#d9572b',
+        color: '#ffffff',
+        padding: '12px 24px 16px',
+        borderRadius: '16px 16px 0 0',
+        textAlign: 'center',
+        margin: '0 auto 24px',
+        maxWidth: '560px',
+        boxShadow: '0 6px 18px rgba(217, 87, 43, 0.28)',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: '"Cormorant Garamond", serif',
+          fontSize: '19px',
+          fontWeight: '700',
+          letterSpacing: '0.6px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#ffffff',
+          textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+        }}
+      >
+        <span style={{ fontSize: '15px' }}>✨</span>
+        <span>{title}</span>
+        <span style={{ fontSize: '15px' }}>✨</span>
+      </div>
+
+      {subtitle && (
+        <div style={{ fontSize: '12px', opacity: 0.9, marginTop: '2px', fontWeight: '500' }}>
+          {subtitle}
+        </div>
+      )}
+
+      {/* Hand-Drawn Wavy Bottom Edge SVG */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          width: '100%',
+          overflow: 'hidden',
+          lineHeight: 0,
+          pointerEvents: 'none',
+          marginTop: -1,
+        }}
+      >
+        <svg
+          viewBox="0 0 560 24"
+          preserveAspectRatio="none"
+          style={{ display: 'block', width: '100%', height: '18px' }}
+        >
+          <path
+            d="M 0,0 L 560,0 L 560,6 C 450,22 360,4 270,15 C 180,4 90,22 0,6 Z"
+            fill="#d9572b"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
