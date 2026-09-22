@@ -32,11 +32,25 @@ app.use('/api/journey', journeyRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/admin', adminRoutes);
 
-// ─── Health check ─────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
+// ─── Health Checks & Root Route ───────────────────────────────────────────────
+const healthCheck = (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatusMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
 
-// API-only server — frontend is served by Netlify
-// (static file serving removed)
+  res.json({
+    status: 'OK',
+    message: 'Sadhana Tracker API is running smoothly 🙏',
+    uptimeSeconds: Math.floor(process.uptime()),
+    database: dbStatusMap[dbState] || 'unknown',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+  });
+};
+
+app.get('/', healthCheck);
+app.get('/api', healthCheck);
+app.get('/health', healthCheck);
+app.get('/api/health', healthCheck);
 
 // ─── MongoDB + Start ──────────────────────────────────────────────────────────
 mongoose
