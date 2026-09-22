@@ -31,12 +31,13 @@ export function AuthProvider({ children }) {
         setUser(JSON.parse(stored));
         // Refresh user data from server to get latest score/level
         api.get('/user/me').then(({ data }) => {
-          const updated = JSON.parse(stored);
-          updated.totalCumulativeScore = data.totalCumulativeScore || 0;
-          updated.currentLevel = data.currentLevel || 1;
-          if (data.practiceConfig) updated.practiceConfig = data.practiceConfig;
-          if (data.customPractices) updated.customPractices = data.customPractices;
-          if (data.selectedPractices) updated.selectedPractices = data.selectedPractices;
+          const currentStored = localStorage.getItem(USER_KEY);
+          const parsed = currentStored ? JSON.parse(currentStored) : {};
+          const updated = {
+            ...parsed,
+            ...data,
+            practicesSelected: data.practicesSelected ?? (data.selectedPractices && data.selectedPractices.length > 0),
+          };
           setUser(updated);
           localStorage.setItem(USER_KEY, JSON.stringify(updated));
         }).catch(() => {});

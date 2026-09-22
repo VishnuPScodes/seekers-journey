@@ -30,6 +30,8 @@ function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return <div className="page"><div className="spinner" style={{ width: 36, height: 36 }} /></div>;
   if (!user) return <Navigate to="/login" replace />;
+  const hasPractices = user.practicesSelected || (Array.isArray(user.selectedPractices) && user.selectedPractices.length > 0);
+  if (!hasPractices) return <Navigate to="/select-practices" replace />;
   return <Landing />;
 }
 
@@ -64,14 +66,7 @@ function AppRoutes() {
         }
       />
 
-      <Route
-        path="/progress"
-        element={
-          <ProtectedRoute>
-            <Progress />
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/select-practices"
         element={

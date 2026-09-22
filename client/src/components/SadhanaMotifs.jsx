@@ -389,7 +389,7 @@ export function SacredBackgroundMotifsLayer({ color = '#d9572b' }) {
         position: 'fixed',
         inset: 0,
         pointerEvents: 'none',
-        zIndex: 1,
+        zIndex: 0,
         overflow: 'hidden',
       }}
     >
