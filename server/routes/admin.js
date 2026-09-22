@@ -214,4 +214,96 @@ router.post('/users/:userId/mark-contacted', adminAuth, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN NOTIFICATION ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
+const AdminNotification = require('../models/AdminNotification');
+const { syncAdminNotifications } = require('../services/notificationService');
+
+// GET /api/admin/notifications — Fetch all admin notifications & unread count
+router.get('/notifications', adminAuth, async (req, res) => {
+  try {
+    // Run background scanner sync non-blockingly so API response is instant (0ms delay)
+    syncAdminNotifications().catch(err => console.error('Background sync error:', err));
+
+    const { type, unreadOnly } = req.query;
+    const filter = {};
+    if (type && type !== 'all') {
+      filter.type = type;
+    }
+    if (unreadOnly === 'true') {
+      filter.isRead = false;
+    }
+
+    const notifications = await AdminNotification.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+
+    const unreadCount = await AdminNotification.countDocuments({ isRead: false });
+
+    res.json({
+      notifications,
+      unreadCount,
+    });
+  } catch (err) {
+    console.error('Fetch admin notifications error:', err);
+    res.status(500).json({ message: 'Server error fetching admin notifications' });
+  }
+});
+
+// PUT /api/admin/notifications/:id/read — Mark single notification as read
+router.put('/notifications/:id/read', adminAuth, async (req, res) => {
+  try {
+    const notification = await AdminNotification.findByIdAndUpdate(
+      req.params.id,
+      { $set: { isRead: true } },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    const unreadCount = await AdminNotification.countDocuments({ isRead: false });
+    res.json({ message: 'Notification marked as read', notification, unreadCount });
+  } catch (err) {
+    console.error('Mark notification read error:', err);
+    res.status(500).json({ message: 'Server error marking notification read' });
+  }
+});
+
+// PUT /api/admin/notifications/mark-all-read — Mark all notifications as read
+router.put('/notifications/mark-all-read', adminAuth, async (req, res) => {
+  try {
+    await AdminNotification.updateMany({ isRead: false }, { $set: { isRead: true } });
+    res.json({ message: 'All notifications marked as read', unreadCount: 0 });
+  } catch (err) {
+    console.error('Mark all notifications read error:', err);
+    res.status(500).json({ message: 'Server error marking all notifications read' });
+  }
+});
+
+// DELETE /api/admin/notifications/:id — Delete a notification
+router.delete('/notifications/:id', adminAuth, async (req, res) => {
+  try {
+    await AdminNotification.findByIdAndDelete(req.params.id);
+    const unreadCount = await AdminNotification.countDocuments({ isRead: false });
+    res.json({ message: 'Notification deleted', unreadCount });
+  } catch (err) {
+    console.error('Delete notification error:', err);
+    res.status(500).json({ message: 'Server error deleting notification' });
+  }
+});
+
+// DELETE /api/admin/notifications — Clear all notifications
+router.delete('/notifications', adminAuth, async (req, res) => {
+  try {
+    await AdminNotification.deleteMany({});
+    res.json({ message: 'All notifications cleared', unreadCount: 0 });
+  } catch (err) {
+    console.error('Clear notifications error:', err);
+    res.status(500).json({ message: 'Server error clearing notifications' });
+  }
+});
+
 module.exports = router;
+

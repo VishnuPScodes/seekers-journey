@@ -5,6 +5,7 @@ const SadhanaLog = require('../models/SadhanaLog');
 const User = require('../models/User');
 const JourneyEvent = require('../models/JourneyEvent');
 const { scoreToLevel, calculateSadhanaScore } = require('../utils/scoring');
+const { notifyLevelMilestone, notifyStreakMilestone } = require('../services/notificationService');
 
 // POST /api/sadhana/log — save today's sadhana log with score
 router.post('/log', auth, async (req, res) => {
@@ -56,6 +57,9 @@ router.post('/log', auth, async (req, res) => {
     if (newLevel !== oldLevel) {
       updatedUser.currentLevel = newLevel;
       await updatedUser.save();
+      if (newLevel > oldLevel) {
+        notifyLevelMilestone(updatedUser, newLevel).catch(err => console.error('Notify level error:', err));
+      }
     }
 
     // ── Auto-generate JourneyEvent milestones (non-blocking) ──

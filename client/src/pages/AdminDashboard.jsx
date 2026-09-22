@@ -4,6 +4,7 @@ import { useAdminAuth } from '../context/AdminAuthContext';
 import api from '../api';
 import GrowthAnalyticsModal from '../components/GrowthAnalyticsModal';
 import ShambhaviCandidatesModal from '../components/ShambhaviCandidatesModal';
+import AdminNotificationsModal from '../components/AdminNotificationsModal';
 
 export default function AdminDashboard() {
   const { adminUser, adminLogout, getAdminToken } = useAdminAuth();
@@ -13,6 +14,8 @@ export default function AdminDashboard() {
   // Modal & Tab states
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showShambhaviModal, setShowShambhaviModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const isNewJoinersRoute = location.pathname.includes('/new-joiners');
   const [activeTab, setActiveTab] = useState(isNewJoinersRoute ? 'new_joiners' : 'all');
 
@@ -52,10 +55,19 @@ export default function AdminDashboard() {
 
       setUsers(data.users || []);
       setStats(data.stats || { totalCount: 0, nonMeditatorsCount: 0, newJoinersCount: 0 });
+      setLoading(false); // Render user list immediately!
+
+      // Fetch unread notification count in background without blocking table
+      api.get('/admin/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(notifRes => {
+        setUnreadCount(notifRes.data.unreadCount || 0);
+      }).catch(nErr => {
+        console.error('Error fetching unread count:', nErr);
+      });
     } catch (err) {
       console.error('Error loading admin users data:', err);
       setError('Failed to fetch user directory. Please check network connection.');
-    } finally {
       setLoading(false);
     }
   };
@@ -216,6 +228,43 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Admin Notifications Bell Icon */}
+            <button
+              onClick={() => setShowNotificationsModal(true)}
+              title="Admin Notifications"
+              style={{
+                backgroundColor: 'rgba(62, 56, 45, 0.08)',
+                border: '1.5px solid rgba(62, 56, 45, 0.2)',
+                color: '#3e382d',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                position: 'relative',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>🔔</span>
+              <span>Notifications</span>
+              {unreadCount > 0 && (
+                <span style={{
+                  backgroundColor: '#d9572b',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  padding: '2px 7px',
+                  borderRadius: '10px',
+                  boxShadow: '0 2px 6px rgba(217, 87, 43, 0.4)',
+                }}>
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
             {/* Shambhavi Outreach — calls getTop5ShambhaviCandidates() inside the modal */}
             <button
               onClick={() => setShowShambhaviModal(true)}
@@ -1151,6 +1200,17 @@ export default function AdminDashboard() {
         users={users}
         getAdminToken={getAdminToken}
         onUserContacted={fetchUsersData}
+      />
+
+      {/* ── Admin Notifications Pop-Up Modal ───────────────────────── */}
+      <AdminNotificationsModal
+        isOpen={showNotificationsModal}
+        onClose={() => {
+          setShowNotificationsModal(false);
+          fetchUsersData();
+        }}
+        getAdminToken={getAdminToken}
+        onOpenShambhaviModal={() => setShowShambhaviModal(true)}
       />
     </div>
   );

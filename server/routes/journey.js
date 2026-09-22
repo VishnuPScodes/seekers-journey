@@ -7,6 +7,7 @@ const UserProgram = require('../models/UserProgram');
 const Mandala = require('../models/Mandala');
 const VolunteeringEvent = require('../models/VolunteeringEvent');
 const { OFFICIAL_PROGRAMS, VOLUNTEERING_PATHWAYS, SYNTHETIC_PERSONAS } = require('../config/ishaReferenceData');
+const { notifyProgramInterest, notifyInnerEngineeringCompleted } = require('../services/notificationService');
 
 const CATEGORY_DEFAULT_ICONS = {
   start: '🌱',
@@ -301,10 +302,6 @@ router.delete('/events/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this event' });
     }
 
-    if (event.type === 'auto') {
-      return res.status(400).json({ message: 'System milestone events cannot be deleted' });
-    }
-
     await JourneyEvent.findByIdAndDelete(req.params.id);
 
     res.json({ message: 'Journey event deleted successfully' });
@@ -314,4 +311,53 @@ router.delete('/events/:id', auth, async (req, res) => {
   }
 });
 
+// POST /api/journey/program — Express interest or record completed program
+router.post('/program', auth, async (req, res) => {
+  try {
+    const { programId, programName, status = 'interested', location, reflection } = req.body;
+
+    if (!programId || !programName) {
+      return res.status(400).json({ message: 'Program ID and name are required' });
+    }
+
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let program = await UserProgram.findOne({ userId, programId });
+    if (program) {
+      program.status = status;
+      if (location) program.location = location;
+      if (reflection) program.reflection = reflection;
+      await program.save();
+    } else {
+      program = await UserProgram.create({
+        userId,
+        programId,
+        programName,
+        status,
+        location: location || 'Isha Yoga Center',
+        reflection: reflection || '',
+      });
+    }
+
+    // Trigger Admin Notifications
+    if (status === 'interested' || status === 'registered') {
+      notifyProgramInterest(user, programName, status).catch(err => console.error('Notify program interest error:', err));
+    }
+    if (programName.toLowerCase().includes('inner engineering') && status === 'completed') {
+      notifyInnerEngineeringCompleted(user).catch(err => console.error('Notify Inner Engineering error:', err));
+    }
+
+    res.status(201).json({
+      message: `Program status recorded as ${status} 🙏`,
+      program,
+    });
+  } catch (err) {
+    console.error('Save program error:', err);
+    res.status(500).json({ message: 'Server error saving program' });
+  }
+});
+
 module.exports = router;
+

@@ -7,6 +7,8 @@ const JourneyEvent = require('../models/JourneyEvent');
 const { scoreToLevel, calculateSadhanaScore } = require('../utils/scoring');
 const { POINTS_PER_TAP, DEFAULT_TARGETS, DEFAULT_DAILY_TARGET } = require('../config/pointRules');
 
+const { notifyShambhaviAdded } = require('../services/notificationService');
+
 const getDefaultTarget = (name) =>
   (DEFAULT_TARGETS && DEFAULT_TARGETS[name]) || DEFAULT_DAILY_TARGET || 2;
 
@@ -76,6 +78,10 @@ router.post('/practices', auth, async (req, res) => {
       { selectedPractices, practiceConfig, practicesSelected: true },
       { new: true }
     );
+
+    if (user && user.selectedPractices.some(p => p.toLowerCase().includes('shambhavi'))) {
+      notifyShambhaviAdded(user).catch(err => console.error('Notify Shambhavi error:', err));
+    }
 
     res.json({
       message: 'Practices saved successfully',
