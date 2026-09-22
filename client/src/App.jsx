@@ -25,12 +25,12 @@ import GatheringsDirectory from './pages/Community/GatheringsDirectory';
 // Lazy-load the heavy Three.js game page
 const KailashJourney = lazy(() => import('./pages/KailashJourney'));
 
-// Smart redirect from / based on auth state
-function RootRedirect() {
+// Smart root route handler: renders Home/Landing page for logged-in users, redirects guests to /login
+function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return <div className="page"><div className="spinner" style={{ width: 36, height: 36 }} /></div>;
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to="/progress" replace />;
+  return <Landing />;
 }
 
 function AppRoutes() {
@@ -38,7 +38,9 @@ function AppRoutes() {
     <>
       <SacredBackgroundMotifsLayer color="#d9572b" />
       <Routes>
-      <Route path="/" element={<RootRedirect />} />
+      <Route path="/" element={<RootRoute />} />
+      <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="/landing" element={<ProtectedRoute><Landing /></ProtectedRoute>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
