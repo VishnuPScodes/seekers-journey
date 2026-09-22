@@ -148,7 +148,10 @@ router.post('/pradakshina', auth, async (req, res) => {
     const incrementBy = req.body.incrementBy ? parseInt(req.body.incrementBy) : 1;
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { $inc: { pradakshinaCount: incrementBy } },
+      { 
+        $inc: { pradakshinaCount: incrementBy },
+        $set: { lastActivityDate: new Date() }
+      },
       { new: true }
     );
     res.json({
@@ -170,6 +173,7 @@ router.post('/guru-puja', auth, async (req, res) => {
       { $set: { guruPujaAttended: true } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+    await User.findByIdAndUpdate(req.user._id, { $set: { lastActivityDate: new Date() } });
     res.json({
       message: 'Guru Puja attended recorded! 🙏',
       guruPujaAttended: log.guruPujaAttended,
@@ -196,6 +200,7 @@ router.post('/reflection', auth, async (req, res) => {
       { $set: update },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+    await User.findByIdAndUpdate(req.user._id, { $set: { lastActivityDate: new Date() } });
 
     res.json({ message: 'Reflection updated', log });
   } catch (err) {

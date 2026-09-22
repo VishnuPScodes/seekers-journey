@@ -59,6 +59,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Update active status date on login
+    user.lastActivityDate = new Date();
+    await user.save();
+
     const token = signToken(user._id);
 
     res.json({

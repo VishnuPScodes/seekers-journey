@@ -105,7 +105,7 @@ router.get('/users', adminAuth, async (req, res) => {
     }
 
     let users = await User.find(query)
-      .select('name email selectedPractices practiceConfig currentLevel totalCumulativeScore createdAt journeyStartDate city region mandalaStatus isAdmin isSynthetic')
+      .select('name email selectedPractices practiceConfig currentLevel totalCumulativeScore createdAt journeyStartDate lastActivityDate city region mandalaStatus isAdmin isSynthetic shambhaviOutreachContactedAt')
       .lean();
 
     // Transform user objects for clean front-end consumption
@@ -124,6 +124,10 @@ router.get('/users', adminAuth, async (req, res) => {
       const joinDate = u.createdAt || u.journeyStartDate || new Date();
       const daysSinceJoining = Math.floor((new Date() - new Date(joinDate)) / (1000 * 60 * 60 * 24));
 
+      // Last active calculation
+      const lastActiveDate = u.lastActivityDate || u.createdAt || u.journeyStartDate || new Date();
+      const daysSinceLastActive = Math.max(0, Math.floor((new Date() - new Date(lastActiveDate)) / (1000 * 60 * 60 * 24)));
+
       return {
         id: u._id,
         name: u.name,
@@ -133,12 +137,16 @@ router.get('/users', adminAuth, async (req, res) => {
         totalCumulativeScore: u.totalCumulativeScore || 0,
         createdAt: u.createdAt,
         daysSinceJoining,
+        lastActivityDate: lastActiveDate,
+        daysSinceLastActive,
         isNewJoiner: daysSinceJoining <= 100,
         isNonMeditator: !isShambhaviPractitioner,
         city: u.city || 'Unknown',
         region: u.region || '',
         mandalaStatus: u.mandalaStatus,
         isAdmin: Boolean(u.isAdmin),
+        // ISO string (or null) of when this user was last marked contacted for Shambhavi outreach
+        shambhaviOutreachContactedAt: u.shambhaviOutreachContactedAt || null,
       };
     });
 
@@ -152,9 +160,11 @@ router.get('/users', adminAuth, async (req, res) => {
       users = users.filter(u => u.isNonMeditator);
     }
 
-    // Sort by Highest Level if requested
+    // Sort options
     if (sortBy === 'highest_level') {
       users.sort((a, b) => b.currentLevel - a.currentLevel || b.totalCumulativeScore - a.totalCumulativeScore);
+    } else if (sortBy === 'last_active') {
+      users.sort((a, b) => new Date(b.lastActivityDate) - new Date(a.lastActivityDate));
     } else {
       // Default sort by join date (newest first)
       users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -171,6 +181,36 @@ router.get('/users', adminAuth, async (req, res) => {
   } catch (err) {
     console.error('Fetch admin users error:', err);
     res.status(500).json({ message: 'Server error fetching users list' });
+  }
+});
+
+// POST /api/admin/users/:userId/mark-contacted
+// Stamps today's date on shambhaviOutreachContactedAt for the given user.
+// The frontend uses this to suppress them from the outreach list for 30 days.
+router.post('/users/:userId/mark-contacted', adminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { shambhaviOutreachContactedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log(`📞 Admin marked ${user.name} (${user.email}) as contacted for Shambhavi outreach.`);
+
+    return res.json({
+      message: `${user.name} marked as contacted. They will be hidden from the outreach list for 30 days.`,
+      userId: user._id,
+      shambhaviOutreachContactedAt: user.shambhaviOutreachContactedAt,
+    });
+  } catch (err) {
+    console.error('Mark contacted error:', err);
+    res.status(500).json({ message: 'Server error marking contact date' });
   }
 });
 

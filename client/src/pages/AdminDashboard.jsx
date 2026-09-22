@@ -2,13 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import api from '../api';
+import GrowthAnalyticsModal from '../components/GrowthAnalyticsModal';
+import ShambhaviCandidatesModal from '../components/ShambhaviCandidatesModal';
 
 export default function AdminDashboard() {
   const { adminUser, adminLogout, getAdminToken } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determine active view mode from URL path or tab ('all' vs 'new_joiners')
+  // Modal & Tab states
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [showShambhaviModal, setShowShambhaviModal] = useState(false);
   const isNewJoinersRoute = location.pathname.includes('/new-joiners');
   const [activeTab, setActiveTab] = useState(isNewJoinersRoute ? 'new_joiners' : 'all');
 
@@ -20,7 +24,12 @@ export default function AdminDashboard() {
   // Filters & Sorting state
   const [nonMeditatorsOnly, setNonMeditatorsOnly] = useState(false);
   const [sortByHighestLevel, setSortByHighestLevel] = useState(false);
+  const [sortByLastActive, setSortByLastActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Sync tab with URL
   useEffect(() => {
@@ -86,20 +95,52 @@ export default function AdminDashboard() {
       );
     }
 
-    // 4. Sort: Highest Level first vs Default (join date)
+    // 4. Sort handling
     if (sortByHighestLevel) {
       result.sort((a, b) => b.currentLevel - a.currentLevel || b.totalCumulativeScore - a.totalCumulativeScore);
+    } else if (sortByLastActive) {
+      result.sort((a, b) => new Date(b.lastActivityDate) - new Date(a.lastActivityDate));
     } else {
       result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
     return result;
-  }, [users, activeTab, nonMeditatorsOnly, searchQuery, sortByHighestLevel]);
+  }, [users, activeTab, nonMeditatorsOnly, searchQuery, sortByHighestLevel, sortByLastActive]);
+
+  // Reset pagination to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, nonMeditatorsOnly, sortByHighestLevel, sortByLastActive, searchQuery, itemsPerPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+  }, [filteredUsers.length, itemsPerPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
   const maxLevel = useMemo(() => {
     if (users.length === 0) return 1;
     return Math.max(...users.map(u => u.currentLevel || 1));
   }, [users]);
+
+  // Calculate visible page number buttons (e.g. max 5 buttons)
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + 4);
+
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [currentPage, totalPages]);
 
   return (
     <div style={{
@@ -175,6 +216,47 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Shambhavi Outreach — calls getTop5ShambhaviCandidates() inside the modal */}
+            <button
+              onClick={() => setShowShambhaviModal(true)}
+              style={{
+                backgroundColor: '#2d7d54',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(45, 125, 84, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              🪷 Shambhavi Outreach
+            </button>
+            <button
+              onClick={() => setShowAnalyticsModal(true)}
+              style={{
+                backgroundColor: '#d9572b',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(217, 87, 43, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              📊 Growth Analytics
+            </button>
             <button
               onClick={fetchUsersData}
               style={{
@@ -199,15 +281,14 @@ export default function AdminDashboard() {
                 navigate('/admin/login');
               }}
               style={{
-                backgroundColor: '#d9572b',
-                color: '#ffffff',
-                border: 'none',
+                backgroundColor: 'rgba(62, 56, 45, 0.12)',
+                color: '#3e382d',
+                border: '1px solid rgba(62, 56, 45, 0.2)',
                 padding: '8px 16px',
                 borderRadius: '8px',
                 fontSize: '13px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(217, 87, 43, 0.25)',
               }}
             >
               Log Out
@@ -248,15 +329,37 @@ export default function AdminDashboard() {
           marginBottom: '28px',
         }}>
           {/* Stat 1: Total Users */}
-          <div style={{
-            backgroundColor: '#ebdcb2',
-            borderRadius: '14px',
-            padding: '20px',
-            border: '1px solid rgba(62, 56, 45, 0.15)',
-            boxShadow: '0 2px 8px rgba(62, 56, 45, 0.05)',
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#7e6b53', letterSpacing: '0.5px' }}>
-              Total Registered Seekers
+          <div
+            onClick={() => {
+              setNonMeditatorsOnly(false);
+              setSortByHighestLevel(false);
+              setSearchQuery('');
+              handleTabChange('all');
+            }}
+            style={{
+              backgroundColor: '#ebdcb2',
+              borderRadius: '14px',
+              padding: '20px',
+              border: activeTab === 'all' && !nonMeditatorsOnly && !sortByHighestLevel
+                ? '2px solid #3e382d'
+                : '1.5px solid rgba(62, 56, 45, 0.2)',
+              boxShadow: activeTab === 'all' && !nonMeditatorsOnly && !sortByHighestLevel
+                ? '0 6px 16px rgba(62, 56, 45, 0.15)'
+                : '0 2px 8px rgba(62, 56, 45, 0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#7e6b53', letterSpacing: '0.5px' }}>
+                Total Registered Seekers
+              </div>
+              {activeTab === 'all' && !nonMeditatorsOnly && !sortByHighestLevel && (
+                <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#3e382d', color: '#fff', padding: '2px 6px', borderRadius: '8px' }}>
+                  ACTIVE
+                </span>
+              )}
             </div>
             <div style={{
               fontFamily: '"Cormorant Garamond", serif',
@@ -267,21 +370,40 @@ export default function AdminDashboard() {
             }}>
               {stats.totalCount.toLocaleString()}
             </div>
-            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px' }}>
-              Active users in database
+            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>👆 Click to view all seekers</span>
             </div>
           </div>
 
           {/* Stat 2: Non-Meditators */}
-          <div style={{
-            backgroundColor: '#ebdcb2',
-            borderRadius: '14px',
-            padding: '20px',
-            border: '1px solid rgba(217, 87, 43, 0.2)',
-            boxShadow: '0 2px 8px rgba(62, 56, 45, 0.05)',
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#d9572b', letterSpacing: '0.5px' }}>
-              Non-Meditators
+          <div
+            onClick={() => {
+              setNonMeditatorsOnly(true);
+            }}
+            style={{
+              backgroundColor: nonMeditatorsOnly ? 'rgba(217, 87, 43, 0.12)' : '#ebdcb2',
+              borderRadius: '14px',
+              padding: '20px',
+              border: nonMeditatorsOnly
+                ? '2px solid #d9572b'
+                : '1.5px solid rgba(217, 87, 43, 0.3)',
+              boxShadow: nonMeditatorsOnly
+                ? '0 6px 16px rgba(217, 87, 43, 0.2)'
+                : '0 2px 8px rgba(62, 56, 45, 0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#d9572b', letterSpacing: '0.5px' }}>
+                Non-Meditators
+              </div>
+              {nonMeditatorsOnly && (
+                <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#d9572b', color: '#fff', padding: '2px 6px', borderRadius: '8px' }}>
+                  FILTERED
+                </span>
+              )}
             </div>
             <div style={{
               fontFamily: '"Cormorant Garamond", serif',
@@ -292,21 +414,40 @@ export default function AdminDashboard() {
             }}>
               {stats.nonMeditatorsCount.toLocaleString()}
             </div>
-            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px' }}>
-              Seekers not practicing Shambhavi Mahamudra
+            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>👆 Click to list non-meditators</span>
             </div>
           </div>
 
           {/* Stat 3: New Joiners (Last 100 Days) */}
-          <div style={{
-            backgroundColor: '#ebdcb2',
-            borderRadius: '14px',
-            padding: '20px',
-            border: '1px solid rgba(62, 56, 45, 0.15)',
-            boxShadow: '0 2px 8px rgba(62, 56, 45, 0.05)',
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#2d7d54', letterSpacing: '0.5px' }}>
-              New Joiners (Last 100 Days)
+          <div
+            onClick={() => {
+              handleTabChange('new_joiners');
+            }}
+            style={{
+              backgroundColor: activeTab === 'new_joiners' ? 'rgba(45, 125, 84, 0.12)' : '#ebdcb2',
+              borderRadius: '14px',
+              padding: '20px',
+              border: activeTab === 'new_joiners'
+                ? '2px solid #2d7d54'
+                : '1.5px solid rgba(62, 56, 45, 0.2)',
+              boxShadow: activeTab === 'new_joiners'
+                ? '0 6px 16px rgba(45, 125, 84, 0.2)'
+                : '0 2px 8px rgba(62, 56, 45, 0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#2d7d54', letterSpacing: '0.5px' }}>
+                New Joiners (Last 100 Days)
+              </div>
+              {activeTab === 'new_joiners' && (
+                <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#2d7d54', color: '#fff', padding: '2px 6px', borderRadius: '8px' }}>
+                  VIEWING
+                </span>
+              )}
             </div>
             <div style={{
               fontFamily: '"Cormorant Garamond", serif',
@@ -317,21 +458,40 @@ export default function AdminDashboard() {
             }}>
               {stats.newJoinersCount.toLocaleString()}
             </div>
-            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px' }}>
-              Joined within the last 100 days
+            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>👆 Click to list new joiners</span>
             </div>
           </div>
 
           {/* Stat 4: Max Level */}
-          <div style={{
-            backgroundColor: '#ebdcb2',
-            borderRadius: '14px',
-            padding: '20px',
-            border: '1px solid rgba(62, 56, 45, 0.15)',
-            boxShadow: '0 2px 8px rgba(62, 56, 45, 0.05)',
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#b8860b', letterSpacing: '0.5px' }}>
-              Highest Reached Level
+          <div
+            onClick={() => {
+              setSortByHighestLevel(true);
+            }}
+            style={{
+              backgroundColor: sortByHighestLevel ? 'rgba(184, 134, 11, 0.12)' : '#ebdcb2',
+              borderRadius: '14px',
+              padding: '20px',
+              border: sortByHighestLevel
+                ? '2px solid #b8860b'
+                : '1.5px solid rgba(62, 56, 45, 0.2)',
+              boxShadow: sortByHighestLevel
+                ? '0 6px 16px rgba(184, 134, 11, 0.2)'
+                : '0 2px 8px rgba(62, 56, 45, 0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#b8860b', letterSpacing: '0.5px' }}>
+                Highest Reached Level
+              </div>
+              {sortByHighestLevel && (
+                <span style={{ fontSize: '10px', fontWeight: '700', backgroundColor: '#b8860b', color: '#fff', padding: '2px 6px', borderRadius: '8px' }}>
+                  SORTED
+                </span>
+              )}
             </div>
             <div style={{
               fontFamily: '"Cormorant Garamond", serif',
@@ -342,8 +502,8 @@ export default function AdminDashboard() {
             }}>
               Level {maxLevel}
             </div>
-            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px' }}>
-              Top level achieved across practitioners
+            <div style={{ fontSize: '12px', color: '#6e6454', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>👆 Click to sort by highest level</span>
             </div>
           </div>
         </div>
@@ -375,12 +535,11 @@ export default function AdminDashboard() {
                 border: 'none',
                 padding: '10px 20px',
                 borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '700',
-                cursor: 'pointer',
                 fontFamily: '"Cormorant Garamond", serif',
                 fontSize: '18px',
+                fontWeight: '700',
                 letterSpacing: '0.5px',
+                cursor: 'pointer',
                 boxShadow: activeTab === 'all' ? '0 4px 12px rgba(217, 87, 43, 0.25)' : 'none',
                 transition: 'all 0.2s ease',
               }}
@@ -488,7 +647,10 @@ export default function AdminDashboard() {
 
               {/* Sort 1: Sort by Highest Level Toggle */}
               <button
-                onClick={() => setSortByHighestLevel(!sortByHighestLevel)}
+                onClick={() => {
+                  setSortByHighestLevel(!sortByHighestLevel);
+                  if (!sortByHighestLevel) setSortByLastActive(false);
+                }}
                 style={{
                   backgroundColor: sortByHighestLevel ? '#3e382d' : '#f4efd8',
                   color: sortByHighestLevel ? '#ffffff' : '#3e382d',
@@ -519,11 +681,48 @@ export default function AdminDashboard() {
                 )}
               </button>
 
-              {(nonMeditatorsOnly || sortByHighestLevel || searchQuery) && (
+              {/* Sort 2: Sort by Recently Active Toggle */}
+              <button
+                onClick={() => {
+                  setSortByLastActive(!sortByLastActive);
+                  if (!sortByLastActive) setSortByHighestLevel(false);
+                }}
+                style={{
+                  backgroundColor: sortByLastActive ? '#2d7d54' : '#f4efd8',
+                  color: sortByLastActive ? '#ffffff' : '#3e382d',
+                  border: sortByLastActive ? '1.5px solid #2d7d54' : '1.5px solid rgba(62, 56, 45, 0.3)',
+                  padding: '9px 16px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: sortByLastActive ? '0 3px 10px rgba(45, 125, 84, 0.25)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <span>⚡</span>
+                <span>Sort: Recently Active</span>
+                {sortByLastActive && (
+                  <span style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    fontSize: '11px',
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                  }}>
+                    Active
+                  </span>
+                )}
+              </button>
+
+              {(nonMeditatorsOnly || sortByHighestLevel || sortByLastActive || searchQuery) && (
                 <button
                   onClick={() => {
                     setNonMeditatorsOnly(false);
                     setSortByHighestLevel(false);
+                    setSortByLastActive(false);
                     setSearchQuery('');
                   }}
                   style={{
@@ -544,21 +743,50 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Active Filters Summary Bar ───────────────────────────────── */}
+        {/* ── Active Filters & Pagination Summary Bar ─────────────────── */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
           marginBottom: '16px',
           fontSize: '13px',
           color: '#6e6454',
           padding: '0 4px',
         }}>
           <div>
-            Showing <strong>{filteredUsers.length}</strong> seeker{filteredUsers.length !== 1 ? 's' : ''}
-            {activeTab === 'new_joiners' && ' who joined in the last 100 days'}
-            {nonMeditatorsOnly && ' (not practicing Shambhavi Mahamudra)'}
-            {sortByHighestLevel && ' sorted by highest level'}
+            Showing <strong>{filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</strong>–
+            <strong>{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</strong> of <strong>{filteredUsers.length}</strong> seekers
+            {activeTab === 'new_joiners' && ' (joined in last 100 days)'}
+            {nonMeditatorsOnly && ' (not practicing Shambhavi)'}
+            {sortByHighestLevel && ' (sorted by highest level)'}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#3e382d' }}>
+              Rows per page:
+            </label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(62, 56, 45, 0.25)',
+                backgroundColor: '#f4efd8',
+                color: '#3e382d',
+                fontSize: '13px',
+                fontWeight: '600',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
           </div>
         </div>
 
@@ -620,159 +848,310 @@ export default function AdminDashboard() {
             </button>
           </div>
         ) : (
-          <div style={{
-            backgroundColor: '#ebdcb2',
-            borderRadius: '16px',
-            border: '1.5px solid rgba(217, 87, 43, 0.2)',
-            overflow: 'hidden',
-            boxShadow: '0 4px 16px rgba(62, 56, 45, 0.08)',
-          }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                textAlign: 'left',
-                fontSize: '14px',
-              }}>
-                <thead>
-                  <tr style={{
-                    backgroundColor: 'rgba(217, 87, 43, 0.08)',
-                    borderBottom: '1.5px solid rgba(217, 87, 43, 0.2)',
-                    color: '#3e382d',
-                  }}>
-                    <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
-                    <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Seeker Name</th>
-                    <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sadhanas / Practices</th>
-                    <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>Reached Level</th>
-                    <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Joined</th>
-                    <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status Tag</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((user, idx) => (
-                    <tr
-                      key={user.id}
-                      style={{
-                        borderBottom: '1px solid rgba(62, 56, 45, 0.1)',
-                        backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(244, 239, 216, 0.4)',
-                        transition: 'background-color 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(217, 87, 43, 0.06)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'rgba(244, 239, 216, 0.4)')}
-                    >
-                      {/* Index */}
-                      <td style={{ padding: '14px 18px', color: '#7e6b53', fontWeight: '600', fontSize: '13px' }}>
-                        {idx + 1}
-                      </td>
-
-                      {/* Name & Email */}
-                      <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: '700', color: '#3e382d', fontSize: '15px' }}>
-                          {user.name}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#7e6b53', marginTop: '2px' }}>
-                          {user.email} • {user.city}
-                        </div>
-                      </td>
-
-                      {/* Sadhanas Doing */}
-                      <td style={{ padding: '14px 18px', maxWidth: '340px' }}>
-                        {user.selectedPractices && user.selectedPractices.length > 0 ? (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {user.selectedPractices.map((practiceName, pIdx) => {
-                              const isShambhavi = practiceName.toLowerCase().includes('shambhavi');
-                              return (
-                                <span
-                                  key={pIdx}
-                                  style={{
-                                    backgroundColor: isShambhavi ? 'rgba(45, 125, 84, 0.12)' : 'rgba(62, 56, 45, 0.08)',
-                                    color: isShambhavi ? '#2d7d54' : '#3e382d',
-                                    border: isShambhavi ? '1px solid rgba(45, 125, 84, 0.3)' : '1px solid rgba(62, 56, 45, 0.15)',
-                                    fontSize: '11px',
-                                    fontWeight: '600',
-                                    padding: '3px 8px',
-                                    borderRadius: '12px',
-                                    display: 'inline-block',
-                                  }}
-                                >
-                                  {isShambhavi ? '🪷 ' : '🧘 '}
-                                  {practiceName}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <span style={{ fontSize: '12px', color: '#a09078', italic: true }}>No sadhanas assigned</span>
-                        )}
-                      </td>
-
-                      {/* Current Level */}
-                      <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                        <div style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: user.currentLevel >= 30 ? '#d9572b' : '#3e382d',
-                          color: '#ffffff',
-                          padding: '4px 12px',
-                          borderRadius: '16px',
-                          fontWeight: '700',
-                          fontSize: '13px',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-                        }}>
-                          <span>Lvl {user.currentLevel}</span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#7e6b53', marginTop: '3px' }}>
-                          {user.totalCumulativeScore.toLocaleString()} pts
-                        </div>
-                      </td>
-
-                      {/* Joined Date */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#3e382d' }}>
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}
-                        </div>
-                        <div style={{ fontSize: '11px', color: user.isNewJoiner ? '#2d7d54' : '#7e6b53', fontWeight: user.isNewJoiner ? '700' : 'normal' }}>
-                          {user.daysSinceJoining === 0 ? 'Joined Today' : `${user.daysSinceJoining} days ago`}
-                        </div>
-                      </td>
-
-                      {/* Status Tag */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        {user.isNonMeditator ? (
-                          <span style={{
-                            backgroundColor: 'rgba(217, 87, 43, 0.12)',
-                            color: '#d9572b',
-                            border: '1px solid rgba(217, 87, 43, 0.3)',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            padding: '4px 10px',
-                            borderRadius: '12px',
-                          }}>
-                            Non-Meditator
-                          </span>
-                        ) : (
-                          <span style={{
-                            backgroundColor: 'rgba(45, 125, 84, 0.12)',
-                            color: '#2d7d54',
-                            border: '1px solid rgba(45, 125, 84, 0.3)',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            padding: '4px 10px',
-                            borderRadius: '12px',
-                          }}>
-                            Shambhavi Practitioner
-                          </span>
-                        )}
-                      </td>
+          <>
+            <div style={{
+              backgroundColor: '#ebdcb2',
+              borderRadius: '16px',
+              border: '1.5px solid rgba(217, 87, 43, 0.2)',
+              overflow: 'hidden',
+              boxShadow: '0 4px 16px rgba(62, 56, 45, 0.08)',
+            }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                }}>
+                  <thead>
+                    <tr style={{
+                      backgroundColor: 'rgba(217, 87, 43, 0.08)',
+                      borderBottom: '1.5px solid rgba(217, 87, 43, 0.2)',
+                      color: '#3e382d',
+                    }}>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Seeker Name</th>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sadhanas / Practices</th>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'center' }}>Reached Level</th>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Joined</th>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last Active</th>
+                      <th style={{ padding: '14px 18px', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status Tag</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {paginatedUsers.map((user, idx) => {
+                      const absoluteIdx = (currentPage - 1) * itemsPerPage + idx + 1;
+                      return (
+                        <tr
+                          key={user.id}
+                          style={{
+                            borderBottom: '1px solid rgba(62, 56, 45, 0.1)',
+                            backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(244, 239, 216, 0.4)',
+                            transition: 'background-color 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(217, 87, 43, 0.06)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'rgba(244, 239, 216, 0.4)')}
+                        >
+                          {/* Index */}
+                          <td style={{ padding: '14px 18px', color: '#7e6b53', fontWeight: '600', fontSize: '13px' }}>
+                            {absoluteIdx}
+                          </td>
+
+                          {/* Name & Email */}
+                          <td style={{ padding: '14px 18px' }}>
+                            <div style={{ fontWeight: '700', color: '#3e382d', fontSize: '15px' }}>
+                              {user.name}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#7e6b53', marginTop: '2px' }}>
+                              {user.email} • {user.city}
+                            </div>
+                          </td>
+
+                          {/* Sadhanas Doing */}
+                          <td style={{ padding: '14px 18px', maxWidth: '340px' }}>
+                            {user.selectedPractices && user.selectedPractices.length > 0 ? (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {user.selectedPractices.map((practiceName, pIdx) => {
+                                  const isShambhavi = practiceName.toLowerCase().includes('shambhavi');
+                                  return (
+                                    <span
+                                      key={pIdx}
+                                      style={{
+                                        backgroundColor: isShambhavi ? 'rgba(45, 125, 84, 0.12)' : 'rgba(62, 56, 45, 0.08)',
+                                        color: isShambhavi ? '#2d7d54' : '#3e382d',
+                                        border: isShambhavi ? '1px solid rgba(45, 125, 84, 0.3)' : '1px solid rgba(62, 56, 45, 0.15)',
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        display: 'inline-block',
+                                      }}
+                                    >
+                                      {isShambhavi ? '🪷 ' : '🧘 '}
+                                      {practiceName}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: '#a09078', italic: true }}>No sadhanas assigned</span>
+                            )}
+                          </td>
+
+                          {/* Current Level */}
+                          <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              backgroundColor: user.currentLevel >= 30 ? '#d9572b' : '#3e382d',
+                              color: '#ffffff',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontWeight: '700',
+                              fontSize: '13px',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                            }}>
+                              <span>Lvl {user.currentLevel}</span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#7e6b53', marginTop: '3px' }}>
+                              {user.totalCumulativeScore.toLocaleString()} pts
+                            </div>
+                          </td>
+
+                          {/* Joined Date */}
+                          <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#3e382d' }}>
+                              {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}
+                            </div>
+                            <div style={{ fontSize: '11px', color: user.isNewJoiner ? '#2d7d54' : '#7e6b53', fontWeight: user.isNewJoiner ? '700' : 'normal' }}>
+                              {user.daysSinceJoining === 0 ? 'Joined Today' : `${user.daysSinceJoining} days ago`}
+                            </div>
+                          </td>
+
+                          {/* Last Active Date & Status */}
+                          <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#3e382d' }}>
+                              {user.lastActivityDate ? new Date(user.lastActivityDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}
+                            </div>
+                            <div style={{
+                              fontSize: '11px',
+                              color: user.daysSinceLastActive === 0 ? '#2d7d54' : user.daysSinceLastActive <= 7 ? '#d9572b' : '#7e6b53',
+                              fontWeight: user.daysSinceLastActive <= 7 ? '700' : 'normal'
+                            }}>
+                              {user.daysSinceLastActive === 0 ? '⚡ Active Today' : `${user.daysSinceLastActive} ${user.daysSinceLastActive === 1 ? 'day' : 'days'} ago`}
+                            </div>
+                          </td>
+
+                          {/* Status Tag */}
+                          <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                            {user.isNonMeditator ? (
+                              <span style={{
+                                backgroundColor: 'rgba(217, 87, 43, 0.12)',
+                                color: '#d9572b',
+                                border: '1px solid rgba(217, 87, 43, 0.3)',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                              }}>
+                                Non-Meditator
+                              </span>
+                            ) : (
+                              <span style={{
+                                backgroundColor: 'rgba(45, 125, 84, 0.12)',
+                                color: '#2d7d54',
+                                border: '1px solid rgba(45, 125, 84, 0.3)',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                              }}>
+                                Shambhavi Practitioner
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* ── Pagination Controls Bar ───────────────────────────────── */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginTop: '20px',
+              backgroundColor: '#ebdcb2',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              border: '1px solid rgba(62, 56, 45, 0.15)',
+            }}>
+              <div style={{ fontSize: '13px', color: '#6e6454' }}>
+                Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({filteredUsers.length} total seekers)
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                {/* First Page */}
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(62, 56, 45, 0.25)',
+                    backgroundColor: currentPage === 1 ? 'rgba(62, 56, 45, 0.05)' : '#f4efd8',
+                    color: currentPage === 1 ? '#a09078' : '#3e382d',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  « First
+                </button>
+
+                {/* Prev Page */}
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(62, 56, 45, 0.25)',
+                    backgroundColor: currentPage === 1 ? 'rgba(62, 56, 45, 0.05)' : '#f4efd8',
+                    color: currentPage === 1 ? '#a09078' : '#3e382d',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  ‹ Prev
+                </button>
+
+                {/* Page Number Buttons */}
+                {pageNumbers.map(pg => (
+                  <button
+                    key={pg}
+                    onClick={() => setCurrentPage(pg)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: pg === currentPage ? '1px solid #d9572b' : '1px solid rgba(62, 56, 45, 0.25)',
+                      backgroundColor: pg === currentPage ? '#d9572b' : '#f4efd8',
+                      color: pg === currentPage ? '#ffffff' : '#3e382d',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      boxShadow: pg === currentPage ? '0 2px 6px rgba(217, 87, 43, 0.3)' : 'none',
+                    }}
+                  >
+                    {pg}
+                  </button>
+                ))}
+
+                {/* Next Page */}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(62, 56, 45, 0.25)',
+                    backgroundColor: currentPage === totalPages ? 'rgba(62, 56, 45, 0.05)' : '#f4efd8',
+                    color: currentPage === totalPages ? '#a09078' : '#3e382d',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Next ›
+                </button>
+
+                {/* Last Page */}
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(62, 56, 45, 0.25)',
+                    backgroundColor: currentPage === totalPages ? 'rgba(62, 56, 45, 0.05)' : '#f4efd8',
+                    color: currentPage === totalPages ? '#a09078' : '#3e382d',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Last »
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </main>
+
+      {/* ── Growth Analytics Pop-Up Modal ────────────────────────────── */}
+      <GrowthAnalyticsModal
+        isOpen={showAnalyticsModal}
+        onClose={() => setShowAnalyticsModal(false)}
+        users={users}
+      />
+
+      {/* ── Shambhavi Outreach Pop-Up Modal ──────────────────────────── */}
+      {/* Passes the full user list; the modal internally filters to non-meditators
+          and runs the readiness scoring algorithm to surface the top 5 candidates */}
+      <ShambhaviCandidatesModal
+        isOpen={showShambhaviModal}
+        onClose={() => setShowShambhaviModal(false)}
+        users={users}
+        getAdminToken={getAdminToken}
+        onUserContacted={fetchUsersData}
+      />
     </div>
   );
 }

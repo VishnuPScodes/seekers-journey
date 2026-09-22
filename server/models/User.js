@@ -113,6 +113,13 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // Date an admin last marked this user as "contacted" for Shambhavi outreach.
+  // Used to suppress them from the outreach list for 30 days after contact.
+  shambhaviOutreachContactedAt: {
+    type: Date,
+    default: null,
+  },
+
   mandalaStatus: {
     active: { type: Boolean, default: false },
     practiceName: { type: String, default: 'Shambhavi Mahamudra' },
