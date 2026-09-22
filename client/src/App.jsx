@@ -17,6 +17,10 @@ import Progress from './pages/Progress';
 import PersonalJourney from './pages/PersonalJourney';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import Community from './pages/Community';
+import SanghasDirectory from './pages/Community/SanghasDirectory';
+import SanghaDetail from './pages/Community/SanghaDetail';
+import GatheringsDirectory from './pages/Community/GatheringsDirectory';
 
 // Lazy-load the heavy Three.js game page
 const KailashJourney = lazy(() => import('./pages/KailashJourney'));
@@ -26,8 +30,7 @@ function RootRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <div className="page"><div className="spinner" style={{ width: 36, height: 36 }} /></div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!user.practicesSelected) return <Navigate to="/select-practices" replace />;
-  return <Landing />;
+  return <Navigate to="/progress" replace />;
 }
 
 function AppRoutes() {
@@ -60,6 +63,14 @@ function AppRoutes() {
       />
 
       <Route
+        path="/progress"
+        element={
+          <ProtectedRoute>
+            <Progress />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/select-practices"
         element={
           <ProtectedRoute>
@@ -68,10 +79,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/tracker"
+        path="/congrats"
         element={
           <ProtectedRoute>
-            <Tracker />
+            <Congrats />
           </ProtectedRoute>
         }
       />
@@ -93,14 +104,6 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/congrats"
-        element={
-          <ProtectedRoute>
-            <Congrats />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/progress"
         element={
           <ProtectedRoute>
@@ -113,6 +116,62 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PersonalJourney />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community"
+        element={
+          <ProtectedRoute>
+            <Community />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community/feed"
+        element={
+          <ProtectedRoute>
+            <Community />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community/circles"
+        element={
+          <ProtectedRoute>
+            <SanghasDirectory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community/sanghas"
+        element={
+          <ProtectedRoute>
+            <SanghasDirectory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community/circles/:slugOrId"
+        element={
+          <ProtectedRoute>
+            <SanghaDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community/sanghas/:slugOrId"
+        element={
+          <ProtectedRoute>
+            <SanghaDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community/gatherings"
+        element={
+          <ProtectedRoute>
+            <GatheringsDirectory />
           </ProtectedRoute>
         }
       />

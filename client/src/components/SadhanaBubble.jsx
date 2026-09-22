@@ -9,6 +9,7 @@ export default function SadhanaBubble({
   totalTaps = 0,
   dailyTarget = 2,
   onTap,
+  onRevert,
   onDrag,
   onDragEnd,
   disabled = false,
@@ -163,6 +164,20 @@ export default function SadhanaBubble({
 
       {/* Target & Tap Count Badge Pill */}
       <div className={`shrine-count-badge ${isDone ? 'badge-done' : ''}`}>
+        {taps > 0 && onRevert && (
+          <button
+            type="button"
+            className="shrine-revert-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRevert(name);
+            }}
+            title={`Revert ${name} count (-1)`}
+            aria-label={`Revert ${name}`}
+          >
+            −
+          </button>
+        )}
         {isDone ? (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
             <Check size={11} strokeWidth={3} /> {taps}/{dailyTarget}

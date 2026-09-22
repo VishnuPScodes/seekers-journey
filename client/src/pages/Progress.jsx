@@ -9,9 +9,15 @@ import { PRACTICE_ICON_EMOJI as PRACTICE_ICONS } from '../utils/practiceIcons';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatShortDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
+function formatShortDate(dateVal) {
+  if (!dateVal) return '';
+  let d;
+  if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+    d = new Date(dateVal + 'T12:00:00Z');
+  } else {
+    d = new Date(dateVal);
+  }
+  if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
 }
 
@@ -29,7 +35,8 @@ function buildCalendarWeeks(days) {
   const weeks = [];
   let week = [];
   // Pad start so the first day lands on the correct column
-  const first = new Date(days[0].date + 'T00:00:00');
+  const dateStr = days[0].date.includes('T') ? days[0].date : days[0].date + 'T12:00:00';
+  const first = new Date(dateStr);
   const startDow = first.getDay(); // 0=Sun
   for (let i = 0; i < startDow; i++) week.push(null);
   for (const day of days) {

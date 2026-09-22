@@ -2960,6 +2960,33 @@ h1.page-title {
   border-radius: 12px;
   z-index: 5;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.shrine-revert-btn {
+  background: rgba(217, 87, 43, 0.2);
+  border: 1px solid rgba(217, 87, 43, 0.4);
+  color: #d9572b;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.shrine-revert-btn:hover {
+  background: #d9572b;
+  color: #ffffff;
+  transform: scale(1.15);
 }
 
 .shrine-count-badge.badge-done {
@@ -2967,6 +2994,17 @@ h1.page-title {
   border-color: #2b8a4b;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(43, 138, 75, 0.3);
+}
+
+.shrine-count-badge.badge-done .shrine-revert-btn {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.shrine-count-badge.badge-done .shrine-revert-btn:hover {
+  background: #ffffff;
+  color: #2b8a4b;
 }
 
 /* Card Content Container */
@@ -3576,4 +3614,209 @@ h1.page-title {
   width: 60px;
   text-align: right;
   flex-shrink: 0;
+}
+
+/* ─── Sacred Daily Sadhana Flow Card (Landing Page) ────────────────────────── */
+.sacred-flow-card {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  background: #fffdf7;
+  border: 1px solid rgba(217, 87, 43, 0.22);
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 20px rgba(44, 38, 31, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.sacred-flow-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d9572b, #c49a45, #d9572b);
+}
+
+.sacred-flow-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sacred-flow-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sacred-flow-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sacred-flow-badge.badge-quiet {
+  background: rgba(138, 125, 107, 0.12);
+  color: #726554;
+  border: 1px solid rgba(138, 125, 107, 0.25);
+}
+
+.sacred-flow-badge.badge-spark {
+  background: rgba(196, 154, 69, 0.14);
+  color: #9c7524;
+  border: 1px solid rgba(196, 154, 69, 0.35);
+}
+
+.sacred-flow-badge.badge-flame {
+  background: rgba(217, 87, 43, 0.12);
+  color: #d9572b;
+  border: 1px solid rgba(217, 87, 43, 0.3);
+}
+
+.sacred-flow-badge.badge-luminous {
+  background: rgba(230, 92, 0, 0.12);
+  color: #b84a00;
+  border: 1px solid rgba(230, 92, 0, 0.3);
+}
+
+.sacred-flow-badge.badge-mandala {
+  background: rgba(180, 66, 27, 0.14);
+  color: #b4421b;
+  border: 1px solid rgba(180, 66, 27, 0.35);
+}
+
+.sacred-flow-count-pill {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6e6353);
+  font-weight: 600;
+}
+
+.sacred-flow-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #d9572b, #e65c00);
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(217, 87, 43, 0.25);
+  transition: all 0.18s ease;
+}
+
+.sacred-flow-share-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(217, 87, 43, 0.35);
+}
+
+.sacred-flow-headline {
+  font-family: var(--font-serif, "Cormorant Garamond", serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-primary, #1e1b15);
+  margin: 0 0 6px;
+  line-height: 1.25;
+}
+
+.sacred-flow-message {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-secondary, #3d3528);
+  margin: 0 0 10px;
+}
+
+.sacred-flow-subtext-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fbf8ee;
+  border-radius: 8px;
+  border-left: 3px solid #c49a45;
+  margin-bottom: 14px;
+}
+
+.sacred-flow-quote-icon {
+  font-size: 0.88rem;
+  line-height: 1;
+}
+
+.sacred-flow-subtext {
+  font-family: var(--font-serif, "Cormorant Garamond", serif);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: #6e6353;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sacred-flow-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sacred-flow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: #f7f2e4;
+  border: 1px solid rgba(217, 87, 43, 0.16);
+  border-radius: 6px;
+  color: var(--text-primary, #1e1b15);
+}
+
+.sacred-flow-check {
+  color: #4e6346;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.sacred-flow-mult {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #d9572b;
+}
+
+.sacred-flow-links-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(217, 87, 43, 0.1);
+  flex-wrap: wrap;
+}
+
+.sacred-flow-nav-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #d9572b;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.sacred-flow-nav-link:hover {
+  color: #b4421b;
+  text-decoration: underline;
+}
+
+.sacred-flow-bullet {
+  color: var(--text-muted, #948674);
+  font-size: 0.7rem;
 }

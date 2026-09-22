@@ -5,6 +5,7 @@ const User = require('../models/User');
 const SadhanaLog = require('../models/SadhanaLog');
 const JourneyEvent = require('../models/JourneyEvent');
 const { scoreToLevel, calculateSadhanaScore } = require('../utils/scoring');
+const { evaluateSadhanaMilestones } = require('../utils/milestoneHelper');
 const { POINTS_PER_TAP, DEFAULT_TARGETS, DEFAULT_DAILY_TARGET } = require('../config/pointRules');
 
 const { notifyShambhaviAdded } = require('../services/notificationService');
@@ -181,45 +182,61 @@ router.post('/custom-practice', auth, async (req, res) => {
 // POST /api/user/tap-sadhana — record a session tap into today's SadhanaLog and recalculate score
 router.post('/tap-sadhana', auth, async (req, res) => {
   try {
-    const { practiceName } = req.body;
-    if (!practiceName) {
-      return res.status(400).json({ message: 'practiceName is required' });
+    const { practiceName, date: clientDate, action = 'increment' } = req.body;
+    if (!practiceName || typeof practiceName !== 'string' || !practiceName.trim()) {
+      return res.status(400).json({ message: 'Valid practiceName is required' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const cleanPracticeName = practiceName.trim();
+
+    // Client local date support with fallback to UTC server date
+    let logDate = new Date().toISOString().split('T')[0];
+    if (clientDate && typeof clientDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+      logDate = clientDate;
+    }
+
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // Find today's log if it already exists
-    let log = await SadhanaLog.findOne({ userId: req.user._id, date: today });
+    let log = await SadhanaLog.findOne({ userId: req.user._id, date: logDate });
     const oldScore = log ? (log.totalScore || 0) : 0;
+    const wasPerfectDay = log ? Boolean(log.isPerfectDay) : false;
 
     // Build the updated list of practices
     let currentPractices = log
       ? log.practices.map(p => ({
           name: p.name,
-          count: p.count,
+          count: Math.max(0, parseInt(p.count) || 0),
           score: p.score,
           kapalabhatiCount: p.kapalabhatiCount,
         }))
       : [];
 
-    const existingIdx = currentPractices.findIndex(p => p.name === practiceName);
+    const existingIdx = currentPractices.findIndex(
+      p => p.name && p.name.trim().toLowerCase() === cleanPracticeName.toLowerCase()
+    );
     if (existingIdx >= 0) {
-      currentPractices[existingIdx].count += 1;
+      if (action === 'decrement') {
+        currentPractices[existingIdx].count = Math.max(0, currentPractices[existingIdx].count - 1);
+      } else {
+        currentPractices[existingIdx].count += 1;
+      }
     } else {
-      currentPractices.push({
-        name: practiceName,
-        count: 1,
-        kapalabhatiCount: null,
-      });
+      if (action !== 'decrement') {
+        currentPractices.push({
+          name: cleanPracticeName,
+          count: 1,
+          kapalabhatiCount: null,
+        });
+      }
     }
 
     // Ensure all selectedPractices exist in the log array
     (user.selectedPractices || []).forEach(sp => {
-      if (!currentPractices.some(p => p.name === sp)) {
+      if (!currentPractices.some(p => p.name && p.name.trim().toLowerCase() === sp.trim().toLowerCase())) {
         currentPractices.push({ name: sp, count: 0, kapalabhatiCount: null });
       }
     });
@@ -235,7 +252,7 @@ router.post('/tap-sadhana', auth, async (req, res) => {
 
     // Save/update today's SadhanaLog
     const updatedLog = await SadhanaLog.findOneAndUpdate(
-      { userId: req.user._id, date: today },
+      { userId: req.user._id, date: logDate },
       { practices: scoredPractices, totalScore, isPerfectDay, source: 'bubble' },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
@@ -250,21 +267,37 @@ router.post('/tap-sadhana', auth, async (req, res) => {
       { new: true }
     );
 
-    const oldLevel = user.currentLevel;
+    const oldLevel = user.currentLevel || 1;
     const newLevel = scoreToLevel(updatedUser.totalCumulativeScore);
     if (newLevel !== updatedUser.currentLevel) {
       updatedUser.currentLevel = newLevel;
       await updatedUser.save();
     }
 
-    const tappedEntry = scoredPractices.find(p => p.name === practiceName);
-    const targetConfig = (user.practiceConfig || []).find(c => c.name === practiceName);
+    // ── Auto-evaluate JourneyEvent Milestones & Mandala Sync ──
+    const newMilestones = await evaluateSadhanaMilestones({
+      userId: req.user._id,
+      newLevel,
+      oldLevel,
+      cumulativeScore: updatedUser.totalCumulativeScore,
+      isPerfectDay,
+      wasPerfectDay,
+      practices: scoredPractices,
+      dateStr: logDate,
+    });
+
+    const tappedEntry = scoredPractices.find(
+      p => p.name && p.name.trim().toLowerCase() === cleanPracticeName.toLowerCase()
+    );
+    const targetConfig = (user.practiceConfig || []).find(
+      c => c.name && c.name.trim().toLowerCase() === cleanPracticeName.toLowerCase()
+    );
     const dailyTarget = targetConfig ? targetConfig.dailyTarget : 2;
 
     res.json({
       message: 'Practice recorded! 🙏',
-      practiceName,
-      count: tappedEntry ? tappedEntry.count : 1,
+      practiceName: cleanPracticeName,
+      count: tappedEntry ? tappedEntry.count : 0,
       dailyTarget,
       totalScore,
       deltaScore,
@@ -272,6 +305,7 @@ router.post('/tap-sadhana', auth, async (req, res) => {
       totalCumulativeScore: updatedUser.totalCumulativeScore,
       currentLevel: updatedUser.currentLevel,
       leveledUp: newLevel > oldLevel,
+      newMilestones: newMilestones || [],
       log: updatedLog,
     });
   } catch (err) {

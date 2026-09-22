@@ -82,19 +82,33 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/switch-persona — Instantly switch active session between synthetic persona archetypes
+// POST /api/auth/switch-persona — Instantly switch active session between personas
 router.post('/switch-persona', async (req, res) => {
   try {
     const { personaId } = req.body;
     let user;
-    if (!personaId || personaId === 'DEMO' || personaId === 'MAIN') {
-      user = await User.findOne({ email: 'diksh@gmail.com' });
+    const target = (personaId || 'DIKSHANT').toString().trim().toUpperCase();
+
+    if (target === 'DEMO' || target === 'MAIN' || target === 'DIKSHANT') {
+      user = await User.findOne({ email: 'dikshantbisht10@gmail.com' }) || await User.findOne({ email: 'diksh@gmail.com' });
+    } else if (target === 'PRIYA') {
+      user = await User.findOne({ email: 'priya.nair@seekers.journey' });
+    } else if (target === 'ANAND') {
+      user = await User.findOne({ email: 'anand.sharma@seekers.journey' });
+    } else if (target === 'RAJESH') {
+      user = await User.findOne({ email: 'rajesh.menon@seekers.journey' });
+    } else if (target === 'MEERA') {
+      user = await User.findOne({ email: 'meera.iyer@seekers.journey' });
+    } else if (target === 'VIKRAM') {
+      user = await User.findOne({ email: 'vikram.joshi@seekers.journey' });
+    } else if (personaId && personaId.includes('@')) {
+      user = await User.findOne({ email: personaId.toLowerCase().trim() });
     } else {
-      user = await User.findOne({ cohortPersona: personaId.toUpperCase(), isSynthetic: true });
+      user = await User.findOne({ cohortPersona: target, isSynthetic: true });
     }
 
     if (!user) {
-      user = await User.findOne();
+      user = await User.findOne({ email: 'dikshantbisht10@gmail.com' }) || await User.findOne();
     }
 
     if (!user) {
@@ -109,12 +123,15 @@ router.post('/switch-persona', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        selectedPractices: user.selectedPractices,
+        currentLevel: user.currentLevel || 1,
+        totalCumulativeScore: user.totalCumulativeScore || 0,
+        pradakshinaCount: user.pradakshinaCount || 0,
+        selectedPractices: user.selectedPractices || [],
         practiceConfig: user.practiceConfig || [],
         practicesSelected: user.practicesSelected,
         cohortPersona: user.cohortPersona || 'B',
-        city: user.city,
-        region: user.region,
+        city: user.city || 'Bengaluru',
+        region: user.region || 'India',
       },
     });
   } catch (err) {

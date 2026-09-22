@@ -8,6 +8,7 @@ const Mandala = require('../models/Mandala');
 const VolunteeringEvent = require('../models/VolunteeringEvent');
 const { OFFICIAL_PROGRAMS, VOLUNTEERING_PATHWAYS, SYNTHETIC_PERSONAS } = require('../config/ishaReferenceData');
 const { notifyProgramInterest, notifyInnerEngineeringCompleted } = require('../services/notificationService');
+const { evaluateProgramEligibility, PROGRAM_CATALOG } = require('../utils/programPrerequisites');
 
 const CATEGORY_DEFAULT_ICONS = {
   start: '🌱',
@@ -86,11 +87,80 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-// GET /api/journey/personas — Archetype definitions for Demo Persona Switcher
+// GET /api/journey/personas — Archetype & named persona definitions for Persona Switcher
 router.get('/personas', auth, async (req, res) => {
-  res.json({
-    personas: SYNTHETIC_PERSONAS,
-  });
+  try {
+    const namedEmails = [
+      { id: 'DIKSHANT', email: 'dikshantbisht10@gmail.com', role: 'Primary Seeker', icon: '🌟' },
+      { id: 'PRIYA', email: 'priya.nair@seekers.journey', role: 'Mandala Sadhaka', icon: '🪷' },
+      { id: 'ANAND', email: 'anand.sharma@seekers.journey', role: 'Surya Kriya & Japa', icon: '☀️' },
+      { id: 'RAJESH', email: 'rajesh.menon@seekers.journey', role: 'Elder Mentor & Seva', icon: '🏔️' },
+      { id: 'MEERA', email: 'meera.iyer@seekers.journey', role: 'Devotional Seeker', icon: '🌸' },
+      { id: 'VIKRAM', email: 'vikram.joshi@seekers.journey', role: 'Yatra Sadhaka', icon: '👣' },
+    ];
+
+    const spiritualPersonas = [];
+    for (const item of namedEmails) {
+      let u = await User.findOne({ email: item.email }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices');
+      if (!u && item.id === 'DIKSHANT') {
+        u = await User.findOne({ email: 'diksh@gmail.com' }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices');
+      }
+      if (u) {
+        spiritualPersonas.push({
+          id: item.id,
+          name: u.name,
+          email: u.email,
+          role: item.role,
+          icon: item.icon,
+          currentLevel: u.currentLevel || 1,
+          totalCumulativeScore: u.totalCumulativeScore || 0,
+          pradakshinaCount: u.pradakshinaCount || 0,
+          practices: u.selectedPractices || [],
+        });
+      }
+    }
+
+    res.json({
+      spiritualPersonas,
+      personas: SYNTHETIC_PERSONAS,
+    });
+  } catch (err) {
+    console.error('Error fetching personas:', err);
+    res.json({
+      spiritualPersonas: [],
+      personas: SYNTHETIC_PERSONAS,
+    });
+  }
+});
+
+// GET /api/journey/prerequisites-status — Evaluates user's completed programs and eligibility
+router.get('/prerequisites-status', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const userPrograms = await UserProgram.find({ userId, status: 'completed' }).sort({ completionDate: 1 });
+    const completedProgramIds = userPrograms.map(p => p.programId);
+
+    const mandala = await Mandala.findOne({ userId }).sort({ createdAt: -1 });
+    const mandalaStatus = {
+      ...(user.mandalaStatus || {}),
+      completedDays: mandala ? mandala.completedDaysCount : (user.mandalaStatus?.completedDays || 0),
+    };
+
+    const statusCatalog = evaluateProgramEligibility(completedProgramIds, mandalaStatus);
+
+    res.json({
+      completedCount: completedProgramIds.length,
+      completedPrograms: userPrograms,
+      catalog: statusCatalog,
+      mandalaStatus,
+    });
+  } catch (err) {
+    console.error('Error in prerequisites-status:', err);
+    res.status(500).json({ message: 'Server error evaluating program prerequisites' });
+  }
 });
 
 // PUT /api/journey/origin-story — Update seeker's discovery and origin story

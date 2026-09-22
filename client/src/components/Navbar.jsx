@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain, Compass, ChevronDown } from 'lucide-react';
+import { Home, BookOpen, Settings, LineChart, Menu, X, Sun, LogOut, Mountain, Compass, ChevronDown, Users } from 'lucide-react';
 import HandDrawnNavbarEdge from './HandDrawnNavbarEdge';
+import PersonaSwitcher from './PersonaSwitcher';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -29,8 +30,8 @@ export default function Navbar() {
   // Navigation items matching spiritual manuscript aesthetics
   const navItems = [
     { path: '/', label: 'Home', icon: <Home size={16} strokeWidth={1.8} />, id: 'nav-home' },
-    { path: '/tracker', label: 'Tracker', icon: <BookOpen size={16} strokeWidth={1.8} />, id: 'nav-tracker' },
     { path: '/personal-journey', label: 'My Journey', icon: <Compass size={16} strokeWidth={1.8} />, id: 'nav-personal-journey' },
+    { path: '/community', label: 'Sangha', icon: <Users size={16} strokeWidth={1.8} />, id: 'nav-community' },
     { path: '/journey', label: 'Kailash Journey', icon: <Mountain size={16} strokeWidth={1.8} />, id: 'nav-journey' },
     { path: '/select-practices', label: 'Practices', icon: <Settings size={16} strokeWidth={1.8} />, id: 'nav-select-practices' },
     { path: '/progress', label: 'Progress', icon: <LineChart size={16} strokeWidth={1.8} />, id: 'nav-progress' },
@@ -83,6 +84,7 @@ export default function Navbar() {
         </div>
 
         <div className="navbar-user desktop-only">
+          <PersonaSwitcher />
           <div className="navbar-avatar" title={user.name}>{initials}</div>
           <button className="btn-logout" onClick={handleLogout} id="navbar-logout-btn">
             Logout
@@ -135,7 +137,10 @@ export default function Navbar() {
           ))}
         </div>
 
-        <div className="nav-drawer-footer">
+        <div className="nav-drawer-footer" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'stretch' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <PersonaSwitcher />
+          </div>
           <button className="btn-drawer-logout" onClick={handleLogout}>
             <LogOut size={16} /> Logout
           </button>

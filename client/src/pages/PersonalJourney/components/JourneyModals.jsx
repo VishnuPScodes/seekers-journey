@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Mic, Feather, Calendar } from 'lucide-react';
+import { X, Mic, Feather, Calendar, Share2 } from 'lucide-react';
 import { CATEGORY_COLORS } from '../journeyDataUtils';
+import ShareToSanghaModal from './ShareToSanghaModal';
 
 export function WhisperModal({
   isOpen,
@@ -223,59 +224,88 @@ export function EventDetailModal({
   event,
   onClose,
 }) {
+  const [showShareModal, setShowShareModal] = useState(false);
   if (!event) return null;
   const colors = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.personal;
 
   return (
-    <div className="pj-modal-backdrop" onClick={onClose}>
-      <div className="pj-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 22 }}>{event.icon || '🪷'}</span>
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              padding: '3px 9px',
-              borderRadius: 'var(--pj-radius-pill)',
-              background: colors.bg,
-              color: colors.text,
-              border: `1px solid ${colors.border}`,
-            }}>
-              {colors.label || event.category}
-            </span>
+    <>
+      <div className="pj-modal-backdrop" onClick={onClose}>
+        <div className="pj-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: 22 }}>{event.icon || '🪷'}</span>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                padding: '3px 9px',
+                borderRadius: 'var(--pj-radius-pill)',
+                background: colors.bg,
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+              }}>
+                {colors.label || event.category}
+              </span>
+            </div>
+            <button type="button" onClick={onClose} className="pj-modal-close-btn">
+              <X size={18} />
+            </button>
           </div>
-          <button type="button" onClick={onClose} className="pj-modal-close-btn">
-            <X size={18} />
-          </button>
+
+          <h3 className="pj-serif" style={{ fontSize: 22, fontWeight: 700, color: 'var(--pj-text-charcoal)', margin: '0 0 6px' }}>
+            {event.title}
+          </h3>
+
+          <div style={{ fontSize: 12, color: 'var(--pj-text-muted)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Calendar size={13} color="var(--pj-terracotta)" />
+            {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Sacred Moment'}
+          </div>
+
+          {event.description && (
+            <p className="pj-serif" style={{
+              fontSize: 16,
+              fontStyle: 'italic',
+              color: 'var(--pj-text-secondary)',
+              lineHeight: 1.6,
+              margin: '0 0 16px',
+              borderLeft: `3px solid ${colors.text}`,
+              paddingLeft: 12,
+              background: 'var(--pj-bg-card-subtle)',
+              padding: '10px 14px',
+              borderRadius: 'var(--pj-radius-sm)',
+            }}>
+              "{event.description}"
+            </p>
+          )}
+
+          {/* Share to Sangha Bridge */}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--pj-border-hairline)', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="pj-whisper-trigger-btn"
+              onClick={() => setShowShareModal(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '7px 14px' }}
+              id="event-detail-share-sangha-btn"
+            >
+              <Share2 size={13} />
+              <span>Share to Sangha 🙏</span>
+            </button>
+          </div>
         </div>
-
-        <h3 className="pj-serif" style={{ fontSize: 22, fontWeight: 700, color: 'var(--pj-text-charcoal)', margin: '0 0 6px' }}>
-          {event.title}
-        </h3>
-
-        <div style={{ fontSize: 12, color: 'var(--pj-text-muted)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Calendar size={13} color="var(--pj-terracotta)" />
-          {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Sacred Moment'}
-        </div>
-
-        {event.description && (
-          <p className="pj-serif" style={{
-            fontSize: 16,
-            fontStyle: 'italic',
-            color: 'var(--pj-text-secondary)',
-            lineHeight: 1.6,
-            margin: 0,
-            borderLeft: `3px solid ${colors.text}`,
-            paddingLeft: 12,
-            background: 'var(--pj-bg-card-subtle)',
-            padding: '10px 14px',
-            borderRadius: 'var(--pj-radius-sm)',
-          }}>
-            "{event.description}"
-          </p>
-        )}
       </div>
-    </div>
+
+      {showShareModal && (
+        <ShareToSanghaModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          event={event}
+          onSharedSuccess={() => {
+            setShowShareModal(false);
+            onClose();
+          }}
+        />
+      )}
+    </>
   );
 }

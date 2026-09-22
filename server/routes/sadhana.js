@@ -6,17 +6,22 @@ const User = require('../models/User');
 const JourneyEvent = require('../models/JourneyEvent');
 const { scoreToLevel, calculateSadhanaScore } = require('../utils/scoring');
 const { notifyLevelMilestone, notifyStreakMilestone } = require('../services/notificationService');
+const { evaluateSadhanaMilestones } = require('../utils/milestoneHelper');
 
 // POST /api/sadhana/log — save today's sadhana log with score
 router.post('/log', auth, async (req, res) => {
   try {
-    const { practices, source = 'tracker' } = req.body;
+    const { practices, source = 'tracker', date: clientDate } = req.body;
 
     if (!practices || !Array.isArray(practices)) {
       return res.status(400).json({ message: 'Invalid practices data' });
     }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    // Support client local date with fallback
+    let logDate = new Date().toISOString().split('T')[0];
+    if (clientDate && typeof clientDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+      logDate = clientDate;
+    }
 
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -24,8 +29,9 @@ router.post('/log', auth, async (req, res) => {
     }
 
     // Existing score for today ensures no double counting
-    const existingLog = await SadhanaLog.findOne({ userId: req.user._id, date: today });
+    const existingLog = await SadhanaLog.findOne({ userId: req.user._id, date: logDate });
     const oldScore = existingLog ? (existingLog.totalScore || 0) : 0;
+    const wasPerfectDay = existingLog ? Boolean(existingLog.isPerfectDay) : false;
 
     const { scoredPractices, totalScore, isPerfectDay } = calculateSadhanaScore(
       practices,
@@ -37,7 +43,7 @@ router.post('/log', auth, async (req, res) => {
 
     // Upsert today's log
     const log = await SadhanaLog.findOneAndUpdate(
-      { userId: req.user._id, date: today },
+      { userId: req.user._id, date: logDate },
       { practices: scoredPractices, totalScore, isPerfectDay, source },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
@@ -52,8 +58,8 @@ router.post('/log', auth, async (req, res) => {
       { new: true }
     );
 
+    const oldLevel = user.currentLevel || 1;
     const newLevel = scoreToLevel(updatedUser.totalCumulativeScore);
-    const oldLevel = updatedUser.currentLevel || 1;
     if (newLevel !== oldLevel) {
       updatedUser.currentLevel = newLevel;
       await updatedUser.save();
@@ -62,50 +68,17 @@ router.post('/log', auth, async (req, res) => {
       }
     }
 
-    // ── Auto-generate JourneyEvent milestones (non-blocking) ──
-    try {
-      // 1. Major level milestone
-      if (newLevel > oldLevel && (newLevel % 5 === 0 || newLevel === 108 || (newLevel === 2 && oldLevel === 1))) {
-        const existingMilestone = await JourneyEvent.findOne({
-          userId: req.user._id,
-          category: 'milestone',
-          'metadata.level': newLevel,
-        });
-        if (!existingMilestone) {
-          await JourneyEvent.create({
-            userId: req.user._id,
-            type: 'auto',
-            category: 'milestone',
-            title: `Ascended to Level ${newLevel}`,
-            description: `Attained Level ${newLevel} on the path with ${updatedUser.totalCumulativeScore} cumulative sadhana points.`,
-            icon: '🏔️',
-            metadata: { level: newLevel, score: updatedUser.totalCumulativeScore },
-            date: new Date(),
-          });
-        }
-      }
-
-      // 2. First Perfect Day milestone
-      if (isPerfectDay && (!existingLog || !existingLog.isPerfectDay)) {
-        const pastPerfect = await JourneyEvent.findOne({
-          userId: req.user._id,
-          title: 'First Perfect Sadhana Day',
-        });
-        if (!pastPerfect) {
-          await JourneyEvent.create({
-            userId: req.user._id,
-            type: 'auto',
-            category: 'sadhana',
-            title: 'First Perfect Sadhana Day',
-            description: 'Completed all dedicated daily sadhana practices and targets in a single day.',
-            icon: '✨',
-            date: new Date(),
-          });
-        }
-      }
-    } catch (milestoneErr) {
-      console.warn('Auto journey event milestone error (non-fatal):', milestoneErr.message);
-    }
+    // ── Auto-generate JourneyEvent Milestones & Mandala Sync ──
+    const newMilestones = await evaluateSadhanaMilestones({
+      userId: req.user._id,
+      newLevel,
+      oldLevel,
+      cumulativeScore: updatedUser.totalCumulativeScore,
+      isPerfectDay,
+      wasPerfectDay,
+      practices: scoredPractices,
+      dateStr: logDate,
+    });
 
     res.json({
       message: 'Sadhana log saved!',
@@ -115,6 +88,7 @@ router.post('/log', auth, async (req, res) => {
       isPerfectDay,
       totalCumulativeScore: updatedUser.totalCumulativeScore,
       currentLevel: updatedUser.currentLevel,
+      newMilestones: newMilestones || [],
     });
   } catch (err) {
     console.error('Sadhana log error:', err);
@@ -125,8 +99,13 @@ router.post('/log', auth, async (req, res) => {
 // GET /api/sadhana/today — get today's log (if any) and user pradakshina count
 router.get('/today', auth, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    let log = await SadhanaLog.findOne({ userId: req.user._id, date: today });
+    const clientDate = req.query.date;
+    let targetDate = new Date().toISOString().split('T')[0];
+    if (clientDate && typeof clientDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+      targetDate = clientDate;
+    }
+
+    let log = await SadhanaLog.findOne({ userId: req.user._id, date: targetDate });
     const user = await User.findById(req.user._id).select('pradakshinaCount');
     if (!log) {
       log = {
@@ -537,20 +516,20 @@ router.get('/insights-report', auth, async (req, res) => {
     const allLogsDesc = await SadhanaLog.find({ userId: req.user._id }).sort({ date: -1 });
     let currentStreak = 0;
     if (allLogsDesc.length > 0) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const nowUtc = new Date();
+      const todayStr = req.query.date || nowUtc.toISOString().split('T')[0];
+      const yesterdayUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate() - 1));
+      const yesterdayStr = yesterdayUtc.toISOString().split('T')[0];
 
       const latestLogDate = allLogsDesc[0].date;
       if (latestLogDate === todayStr || latestLogDate === yesterdayStr) {
-        let checkDate = new Date(latestLogDate + 'T00:00:00');
+        let checkDate = new Date(latestLogDate + 'T12:00:00Z');
         for (const l of allLogsDesc) {
           const expectedStr = checkDate.toISOString().split('T')[0];
           const hasActivity = l.practices?.some(p => (p.count || 0) > 0) || (l.totalScore || 0) > 0;
           if (l.date === expectedStr && hasActivity) {
             currentStreak++;
-            checkDate.setDate(checkDate.getDate() - 1);
+            checkDate.setUTCDate(checkDate.getUTCDate() - 1);
           } else {
             break;
           }

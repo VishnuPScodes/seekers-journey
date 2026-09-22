@@ -8,7 +8,7 @@ import api from '../api';
 import TornPaperEdge from '../components/TornPaperEdge';
 import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
-import { KundaliniSerpentSpiralMotif, YogicArtisticBanner, SacredIconsGridSection } from '../components/SadhanaMotifs';
+import { KundaliniSerpentSpiralMotif, YogicArtisticBanner } from '../components/SadhanaMotifs';
 
 
 // ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
@@ -73,7 +73,8 @@ export default function Landing() {
   useEffect(() => {
     const fetchToday = async () => {
       try {
-        const { data } = await api.get('/sadhana/today');
+        const localDate = new Date().toLocaleDateString('en-CA');
+        const { data } = await api.get(`/sadhana/today?date=${localDate}`);
         if (data.log && Array.isArray(data.log.practices)) {
           const counts = {};
           data.log.practices.forEach(p => {
@@ -93,7 +94,13 @@ export default function Landing() {
   // ── Sadhana bubble tap handler — writes directly to unified SadhanaLog
   const handleBubbleTap = useCallback(async (practiceName) => {
     try {
-      const { data } = await api.post('/user/tap-sadhana', { practiceName });
+      // User's local calendar date YYYY-MM-DD
+      const localDate = new Date().toLocaleDateString('en-CA');
+      const { data } = await api.post('/user/tap-sadhana', {
+        practiceName,
+        date: localDate,
+        action: 'increment',
+      });
       setTotalScore(data.totalCumulativeScore);
       setCurrentLevel(data.currentLevel);
       setTodayCounts(prev => ({
@@ -112,6 +119,30 @@ export default function Landing() {
       }
     } catch (err) {
       console.error('Failed to record tap:', err);
+    }
+  }, [updateUser]);
+
+  // ── Sadhana bubble revert handler — decrements count if tapped by mistake
+  const handleBubbleRevert = useCallback(async (practiceName) => {
+    try {
+      const localDate = new Date().toLocaleDateString('en-CA');
+      const { data } = await api.post('/user/tap-sadhana', {
+        practiceName,
+        date: localDate,
+        action: 'decrement',
+      });
+      setTotalScore(data.totalCumulativeScore);
+      setCurrentLevel(data.currentLevel);
+      setTodayCounts(prev => ({
+        ...prev,
+        [practiceName]: data.count,
+      }));
+      updateUser({
+        totalCumulativeScore: data.totalCumulativeScore,
+        currentLevel: data.currentLevel,
+      });
+    } catch (err) {
+      console.error('Failed to revert tap:', err);
     }
   }, [updateUser]);
 
@@ -300,6 +331,7 @@ export default function Landing() {
                         totalTaps={todayCounts[name] || 0}
                         dailyTarget={dailyTarget}
                         onTap={handleBubbleTap}
+                        onRevert={handleBubbleRevert}
                         onDrag={handlePebbleDrag}
                         onDragEnd={handlePebbleDragEnd}
                       />
@@ -319,9 +351,6 @@ export default function Landing() {
               </Link>
             </div>
           )}
-
-          {/* ── Sacred Hand-Drawn Icons & Emblems Showcase Section ────────────── */}
-          <SacredIconsGridSection color="#d9572b" />
 
         </div>
       </div>
