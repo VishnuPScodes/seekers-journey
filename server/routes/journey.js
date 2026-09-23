@@ -9,6 +9,7 @@ const VolunteeringEvent = require('../models/VolunteeringEvent');
 const { OFFICIAL_PROGRAMS, VOLUNTEERING_PATHWAYS, SYNTHETIC_PERSONAS } = require('../config/ishaReferenceData');
 const { notifyProgramInterest, notifyInnerEngineeringCompleted } = require('../services/notificationService');
 const { evaluateProgramEligibility, PROGRAM_CATALOG } = require('../utils/programPrerequisites');
+const { syncUserProgramEvents } = require('../utils/programSyncHelper');
 
 const CATEGORY_DEFAULT_ICONS = {
   start: '🌱',
@@ -26,6 +27,9 @@ router.get('/me', auth, async (req, res) => {
     const userId = req.user._id;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Synchronize completed UserPrograms with JourneyEvents timeline
+    await syncUserProgramEvents(userId);
 
     // 1. Chronological wave events sorted ascending (from past to today)
     const events = await JourneyEvent.find({ userId }).sort({ date: 1, createdAt: 1 });
@@ -87,48 +91,96 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-// GET /api/journey/personas — Archetype & named persona definitions for Persona Switcher
+// GET /api/journey/personas — Curated unified seeker personas for Persona Switcher
 router.get('/personas', auth, async (req, res) => {
   try {
     const namedEmails = [
-      { id: 'DIKSHANT', email: 'dikshantbisht10@gmail.com', role: 'Primary Seeker', icon: '🌟' },
-      { id: 'PRIYA', email: 'priya.nair@seekers.journey', role: 'Mandala Sadhaka', icon: '🪷' },
-      { id: 'ANAND', email: 'anand.sharma@seekers.journey', role: 'Surya Kriya & Japa', icon: '☀️' },
-      { id: 'RAJESH', email: 'rajesh.menon@seekers.journey', role: 'Elder Mentor & Seva', icon: '🏔️' },
-      { id: 'MEERA', email: 'meera.iyer@seekers.journey', role: 'Devotional Seeker', icon: '🌸' },
-      { id: 'VIKRAM', email: 'vikram.joshi@seekers.journey', role: 'Yatra Sadhaka', icon: '👣' },
+      {
+        id: 'DIKSHANT',
+        email: 'dikshantbisht10@gmail.com',
+        role: 'Primary Seeker / Host',
+        icon: '🌟',
+        tagline: 'Active practitioner navigating high-level sadhana and daily commitments.',
+        defaultCity: 'Bengaluru',
+      },
+      {
+        id: 'PRIYA',
+        email: 'priya.nair@seekers.journey',
+        role: 'Mandala Sadhaka',
+        icon: '🪷',
+        tagline: 'Dedicated to the 40-day Shambhavi Mandala & Dhyanalinga resonance.',
+        defaultCity: 'Bengaluru',
+      },
+      {
+        id: 'ANAND',
+        email: 'anand.sharma@seekers.journey',
+        role: 'Surya Kriya & Japa',
+        icon: '☀️',
+        tagline: 'Cultivating steady discipline through Surya Kriya and morning Japa.',
+        defaultCity: 'Vrindavan',
+      },
+      {
+        id: 'RAJESH',
+        email: 'rajesh.menon@seekers.journey',
+        role: 'Elder Mentor & Seva',
+        icon: '🏔️',
+        tagline: 'Experienced elder practitioner offering guidance and volunteering seva.',
+        defaultCity: 'Coimbatore',
+      },
+      {
+        id: 'MEERA',
+        email: 'meera.iyer@seekers.journey',
+        role: 'Devotional Seeker',
+        icon: '🌸',
+        tagline: 'Deeply immersed in Bhairavi devotion, Shoonya, and sacred chants.',
+        defaultCity: 'Chennai',
+      },
+      {
+        id: 'VIKRAM',
+        email: 'vikram.joshi@seekers.journey',
+        role: 'Yatra Sadhaka',
+        icon: '👣',
+        tagline: 'Passionate about high-altitude sadhana, yatra, and exploratory kriya.',
+        defaultCity: 'Rishikesh',
+      },
     ];
 
-    const spiritualPersonas = [];
+    const curatedPersonas = [];
     for (const item of namedEmails) {
-      let u = await User.findOne({ email: item.email }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices');
+      let u = await User.findOne({ email: item.email }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices isSynthetic city');
       if (!u && item.id === 'DIKSHANT') {
-        u = await User.findOne({ email: 'diksh@gmail.com' }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices');
+        u = await User.findOne({ email: 'diksh@gmail.com' }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices isSynthetic city');
+      }
+      if (!u && item.id === 'DIKSHANT') {
+        u = await User.findOne({ email: { $regex: /dikshant/i } }).select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices isSynthetic city');
       }
       if (u) {
-        spiritualPersonas.push({
+        curatedPersonas.push({
           id: item.id,
           name: u.name,
           email: u.email,
           role: item.role,
           icon: item.icon,
+          tagline: item.tagline,
           currentLevel: u.currentLevel || 1,
           totalCumulativeScore: u.totalCumulativeScore || 0,
           pradakshinaCount: u.pradakshinaCount || 0,
           practices: u.selectedPractices || [],
+          city: u.city || item.defaultCity,
+          isSynthetic: item.id === 'DIKSHANT' ? false : (u.isSynthetic ?? true),
         });
       }
     }
 
     res.json({
-      spiritualPersonas,
-      personas: SYNTHETIC_PERSONAS,
+      personas: curatedPersonas,
+      spiritualPersonas: curatedPersonas,
     });
   } catch (err) {
     console.error('Error fetching personas:', err);
     res.json({
+      personas: [],
       spiritualPersonas: [],
-      personas: SYNTHETIC_PERSONAS,
     });
   }
 });
@@ -224,6 +276,10 @@ router.post('/voice-reflection', auth, async (req, res) => {
 router.get('/events', auth, async (req, res) => {
   try {
     const userId = req.user._id;
+
+    // Ensure completed programs are synchronized with the timeline
+    await syncUserProgramEvents(userId);
+
     let events = await JourneyEvent.find({ userId }).sort({ date: -1, createdAt: -1 });
 
     // If seeker has zero events yet, auto-populate baseline milestones from user profile
@@ -381,8 +437,8 @@ router.delete('/events/:id', auth, async (req, res) => {
   }
 });
 
-// POST /api/journey/program — Express interest or record completed program
-router.post('/program', auth, async (req, res) => {
+// POST /api/journey/program(s) — Express interest or record completed program
+router.post(['/program', '/programs'], auth, async (req, res) => {
   try {
     const { programId, programName, status = 'interested', location, reflection } = req.body;
 
@@ -417,6 +473,11 @@ router.post('/program', auth, async (req, res) => {
     }
     if (programName.toLowerCase().includes('inner engineering') && status === 'completed') {
       notifyInnerEngineeringCompleted(user).catch(err => console.error('Notify Inner Engineering error:', err));
+    }
+
+    // Synchronize completed program milestone onto River of Time timeline
+    if (status === 'completed') {
+      await syncUserProgramEvents(userId);
     }
 
     res.status(201).json({

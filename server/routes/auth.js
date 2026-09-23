@@ -90,7 +90,9 @@ router.post('/switch-persona', async (req, res) => {
     const target = (personaId || 'DIKSHANT').toString().trim().toUpperCase();
 
     if (target === 'DEMO' || target === 'MAIN' || target === 'DIKSHANT') {
-      user = await User.findOne({ email: 'dikshantbisht10@gmail.com' }) || await User.findOne({ email: 'diksh@gmail.com' });
+      user = await User.findOne({ email: 'dikshantbisht10@gmail.com' })
+        || await User.findOne({ email: 'diksh@gmail.com' })
+        || await User.findOne({ email: { $regex: /dikshant/i } });
     } else if (target === 'PRIYA') {
       user = await User.findOne({ email: 'priya.nair@seekers.journey' });
     } else if (target === 'ANAND') {
@@ -108,7 +110,9 @@ router.post('/switch-persona', async (req, res) => {
     }
 
     if (!user) {
-      user = await User.findOne({ email: 'dikshantbisht10@gmail.com' }) || await User.findOne();
+      user = await User.findOne({ email: 'dikshantbisht10@gmail.com' })
+        || await User.findOne({ email: 'diksh@gmail.com' })
+        || await User.findOne();
     }
 
     if (!user) {
@@ -132,6 +136,7 @@ router.post('/switch-persona', async (req, res) => {
         cohortPersona: user.cohortPersona || 'B',
         city: user.city || 'Bengaluru',
         region: user.region || 'India',
+        isSynthetic: !!user.isSynthetic,
       },
     });
   } catch (err) {

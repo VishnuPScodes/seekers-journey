@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Sparkles, MessageCircle, UserPlus, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, Sparkles, MessageCircle, UserPlus, Shield, ArrowRight } from 'lucide-react';
 import api from '../../../api';
 
 export default function NotificationsPopover() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -56,6 +58,54 @@ export default function NotificationsPopover() {
     }
   };
 
+  const handleNotificationClick = async (n) => {
+    // Mark as read in backend
+    if (!n.isRead) {
+      try {
+        await api.post(`/community/notifications/${n._id}/read`);
+        setNotifications((prev) =>
+          prev.map((item) => (item._id === n._id ? { ...item, isRead: true } : item))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (e) {
+        console.error('Failed to mark notification read:', e);
+      }
+    }
+
+    setIsOpen(false);
+
+    // Route dynamically based on notification type
+    const targetSanghaId = n.sanghaId || (n.entityType === 'Sangha' ? n.entityId : null);
+
+    if (n.type === 'join_request') {
+      if (targetSanghaId) {
+        navigate(`/community/circles/${targetSanghaId}?tab=requests`);
+      } else {
+        navigate('/community/circles');
+      }
+    } else if (n.type === 'join_approved') {
+      if (targetSanghaId) {
+        navigate(`/community/circles/${targetSanghaId}`);
+      } else {
+        navigate('/community/circles');
+      }
+    } else if (n.type === 'gathering_rsvp') {
+      if (n.entityId) {
+        navigate(`/community/gatherings/${n.entityId}`);
+      } else {
+        navigate('/community/gatherings');
+      }
+    } else if (n.type === 'sangha_join') {
+      if (targetSanghaId) {
+        navigate(`/community/circles/${targetSanghaId}`);
+      } else {
+        navigate('/community/circles');
+      }
+    } else {
+      navigate('/community');
+    }
+  };
+
   const getIcon = (type) => {
     switch (type) {
       case 'kudos':
@@ -64,8 +114,14 @@ export default function NotificationsPopover() {
         return '💬';
       case 'follow':
         return '🕊️';
+      case 'join_request':
+        return '🛡️';
+      case 'join_approved':
+        return '✨';
       case 'sangha_join':
         return '🏛️';
+      case 'gathering_rsvp':
+        return '🏔️';
       default:
         return '✨';
     }
@@ -132,7 +188,7 @@ export default function NotificationsPopover() {
             position: 'absolute',
             right: 0,
             top: 'calc(100% + 8px)',
-            width: 320,
+            width: 340,
             background: '#fffdf7',
             border: '1px solid var(--comm-border-gold)',
             borderRadius: 'var(--comm-radius-md)',
@@ -169,30 +225,56 @@ export default function NotificationsPopover() {
               All is quiet in your circle.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
               {notifications.map((n) => (
                 <div
                   key={n._id}
+                  onClick={() => handleNotificationClick(n)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handleNotificationClick(n);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 10,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: n.isRead ? 'transparent' : 'var(--comm-gold-light)',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: n.isRead ? 'rgba(255, 255, 255, 0.7)' : 'var(--comm-gold-light)',
                     border: '1px solid',
-                    borderColor: n.isRead ? 'transparent' : 'var(--comm-border-gold)',
+                    borderColor: n.isRead ? 'rgba(0, 0, 0, 0.05)' : 'var(--comm-border-gold)',
                     fontSize: '0.84rem',
                     lineHeight: 1.4,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
                   }}
+                  className="comm-notification-item"
                 >
-                  <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{getIcon(n.type)}</span>
+                  <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: 2 }}>{getIcon(n.type)}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: 'var(--comm-text-charcoal)', fontWeight: n.isRead ? 400 : 600 }}>
                       {n.message}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--comm-text-light)', marginTop: 2 }}>
-                      {getRelativeTime(n.createdAt)}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--comm-text-light)' }}>
+                        {getRelativeTime(n.createdAt)}
+                      </span>
+                      {n.type === 'join_request' && (
+                        <span style={{
+                          fontSize: '0.72rem',
+                          color: '#b85d36',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          background: 'rgba(217, 87, 43, 0.1)',
+                          padding: '2px 8px',
+                          borderRadius: 12
+                        }}>
+                          Review Request <ArrowRight size={11} />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

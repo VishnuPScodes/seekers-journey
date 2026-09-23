@@ -10,8 +10,7 @@ import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, get
 
 import { KundaliniSerpentSpiralMotif, YogicArtisticBanner } from '../components/SadhanaMotifs';
 import { HandDrawnBannerHeader } from '../components/HandDrawnNavbarEdge';
-
-
+import DoneForDayModal from '../components/DoneForDayModal';
 
 
 // ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
@@ -42,6 +41,7 @@ export default function Landing() {
   const [totalScore, setTotalScore] = useState(user?.totalCumulativeScore || 0);
   const [currentLevel, setCurrentLevel] = useState(user?.currentLevel || 1);
   const [leveledUpMsg, setLeveledUpMsg] = useState(null);
+  const [showDoneModal, setShowDoneModal] = useState(false);
 
   // Today's practice counts & Pebble Positions
   const [todayCounts, setTodayCounts] = useState({});
@@ -339,6 +339,44 @@ export default function Landing() {
                   );
                 })}
               </div>
+
+              {/* ── Done for the Day Action Pill ── */}
+              <div style={{ textAlign: 'center', margin: '26px 0 10px' }}>
+                <button
+                  type="button"
+                  className="btn-done-pill"
+                  onClick={() => setShowDoneModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'linear-gradient(135deg, rgba(217, 87, 43, 0.16) 0%, rgba(139, 107, 27, 0.16) 100%)',
+                    border: '1px solid rgba(217, 87, 43, 0.45)',
+                    borderRadius: 24,
+                    padding: '9px 24px',
+                    color: '#f4efd8',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: 'Outfit, sans-serif',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                    transition: 'all 0.25s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#d9572b';
+                    e.currentTarget.style.boxShadow = '0 0 18px rgba(217, 87, 43, 0.4)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(217, 87, 43, 0.45)';
+                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.35)';
+                    e.currentTarget.style.transform = 'none';
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>✨</span>
+                  <span>Done for the day 🙏</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="glass-card" style={{ textAlign: 'center', padding: '28px 20px', marginBottom: 16 }}>
@@ -358,6 +396,15 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* Done For The Day Consecrated Modal */}
+      <DoneForDayModal
+        isOpen={showDoneModal}
+        onClose={() => setShowDoneModal(false)}
+        todayCounts={todayCounts}
+        selectedPractices={selectedPractices}
+        user={user}
+      />
     </>
   );
 }

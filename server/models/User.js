@@ -96,6 +96,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  bio: {
+    type: String,
+    default: '',
+    trim: true,
+    maxlength: [300, 'Bio cannot exceed 300 characters'],
+  },
+  privacySettings: {
+    showCity: { type: Boolean, default: true },
+    showPractices: { type: Boolean, default: true },
+    showPrograms: { type: Boolean, default: true },
+    showPradakshinaCount: { type: Boolean, default: true },
+    showBio: { type: Boolean, default: true },
+  },
   cohortPersona: {
     type: String,
     enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Custom'],

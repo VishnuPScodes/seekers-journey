@@ -75,6 +75,44 @@ const PERSONA_PROGRAMS = {
       transmitsPractices: [],
     },
   ],
+  'diksh@gmail.com': [
+    {
+      programId: 'inner_engineering',
+      programName: 'Inner Engineering',
+      status: 'completed',
+      completionDate: new Date(Date.now() - 500 * 86400000),
+      location: 'Bengaluru, India',
+      reflection: 'The initiation into Shambhavi Mahamudra was the first time I experienced life beyond my thoughts and emotions.',
+      transmitsPractices: ['Shambhavi Mahamudra'],
+    },
+    {
+      programId: 'surya_kriya',
+      programName: 'Surya Kriya',
+      status: 'completed',
+      completionDate: new Date(Date.now() - 360 * 86400000),
+      location: 'Bengaluru, India',
+      reflection: 'A profound solar practice that creates immense stability and inner furnace.',
+      transmitsPractices: ['Surya Kriya'],
+    },
+    {
+      programId: 'bhava_spandana',
+      programName: 'Bhava Spandana Program (BSP)',
+      status: 'completed',
+      completionDate: new Date(Date.now() - 210 * 86400000),
+      location: 'Isha Yoga Center, Coimbatore',
+      reflection: 'Spanda Hall melted every boundary. An overwhelming explosion of devotion beyond thought.',
+      transmitsPractices: [],
+    },
+    {
+      programId: 'shoonya_intensive',
+      programName: 'Shoonya Intensive',
+      status: 'completed',
+      completionDate: new Date(Date.now() - 60 * 86400000),
+      location: 'Isha Yoga Center, Coimbatore',
+      reflection: 'Conscious stillness in Shoonya. Prana actively vibrant through Shakti Chalana.',
+      transmitsPractices: ['Shoonya Meditation', 'Shakti Chalana Kriya'],
+    },
+  ],
   'priya.nair@seekers.journey': [
     {
       programId: 'inner_engineering',
@@ -249,6 +287,8 @@ const PERSONA_PROGRAMS = {
   ],
 };
 
+const { syncUserProgramEvents } = require('../utils/programSyncHelper');
+
 async function seedUserPrograms() {
   try {
     await mongoose.connect(process.env.MONGO_URI, { tls: true });
@@ -278,7 +318,10 @@ async function seedUserPrograms() {
         totalInserted++;
       }
 
-      console.log(`✅ Seeded ${programs.length} authentic programs for ${user.name} (${email})`);
+      // Synchronize with JourneyEvents River of Time timeline
+      await syncUserProgramEvents(user._id);
+
+      console.log(`✅ Seeded & synced ${programs.length} authentic programs for ${user.name} (${email})`);
     }
 
     console.log(`🎉 Finished seeding. Total programs upserted: ${totalInserted}`);

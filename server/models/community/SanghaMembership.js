@@ -22,8 +22,8 @@ const sanghaMembershipSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'pending', 'blocked'],
-      default: 'active',
+      enum: ['active', 'pending', 'declined', 'blocked'],
+      default: 'pending',
       index: true,
     },
   },
