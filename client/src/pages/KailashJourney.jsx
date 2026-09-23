@@ -2,11 +2,20 @@ import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext';
 import { LOCATIONS, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
-import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed, Volume2, VolumeX, Play, Pause, Film, Sparkles } from 'lucide-react';
+import { ChevronLeft, Star, MapPin, Layers, X, LocateFixed, Volume2, VolumeX, Play, Pause, Film, Sparkles, Users, User, Footprints, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
 import HandDrawnNavbarEdge from '../components/HandDrawnNavbarEdge';
 import { LandmarkSketchAnchor, ClassicalTempleDanceSketch } from '../components/KailashLandmarkSketches';
 import hampiVideo from '../assets/videos/hampi.mp4';
+
+function getInitials(name) {
+  if (!name) return 'S';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 
 
 // ── Region color config (vivid manuscript palette)
@@ -138,6 +147,80 @@ export default function KailashJourney() {
   const [showLegend, setShowLegend] = useState(false);
   const [hampiVideoMuted, setHampiVideoMuted] = useState(true);
   const [showHampiModal, setShowHampiModal] = useState(false);
+
+  // ── Walking Companions state & fetch
+  const [companions, setCompanions] = useState([]);
+  const [loadingCompanions, setLoadingCompanions] = useState(true);
+  const [showCompanionsDrawer, setShowCompanionsDrawer] = useState(false);
+  const [activeCompanionModal, setActiveCompanionModal] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCompanions = async () => {
+      try {
+        const res = await api.get('/community/walking-companions');
+        if (isMounted && res.data?.companions) {
+          setCompanions(res.data.companions);
+        }
+      } catch (err) {
+        console.error('Error fetching walking companions for map:', err);
+      } finally {
+        if (isMounted) setLoadingCompanions(false);
+      }
+    };
+    fetchCompanions();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Compute map SVG coordinates for each companion
+  const companionMapPositions = useMemo(() => {
+    if (!companions || companions.length === 0) return [];
+
+    const levelGroups = {};
+    companions.forEach((comp) => {
+      const lvl = Math.max(1, Math.min(108, comp.currentLevel || 1));
+      if (!levelGroups[lvl]) levelGroups[lvl] = [];
+      levelGroups[lvl].push(comp);
+    });
+
+    const results = [];
+
+    Object.entries(levelGroups).forEach(([lvlStr, group]) => {
+      const lvl = parseInt(lvlStr, 10);
+      const basePt = SVG_PTS[Math.max(0, Math.min(107, lvl - 1))] || [450, 1600];
+      const total = group.length;
+      const isUserAtThisLevel = userLevel === lvl;
+
+      group.forEach((comp, idx) => {
+        let offsetX = 0;
+        let offsetY = -28;
+
+        if (total === 1 && !isUserAtThisLevel) {
+          offsetX = 22;
+          offsetY = -12;
+        } else {
+          const spreadIndex = idx - (total - 1) / 2;
+          offsetX = (isUserAtThisLevel ? 28 : 0) + spreadIndex * 34;
+          offsetY = -24 + (idx % 2 === 0 ? -12 : 12);
+        }
+
+        const cx = +(basePt[0] + offsetX).toFixed(1);
+        const cy = +(basePt[1] + offsetY).toFixed(1);
+
+        results.push({
+          ...comp,
+          level: lvl,
+          basePt,
+          cx,
+          cy,
+          loc: LOCATIONS.find(l => l.level === lvl) || LOCATIONS[0],
+        });
+      });
+    });
+
+    return results;
+  }, [companions, userLevel]);
+
 
   // ── Camera view state
   const [view, setView] = useState({
@@ -443,6 +526,12 @@ export default function KailashJourney() {
           50%      { r: 32; opacity: 0; }
         }
         .kpulse { animation: kpulse 2.4s ease-in-out infinite; }
+
+        @keyframes cpulse {
+          0%,100% { r: 14; opacity: 0.8; }
+          50%      { r: 26; opacity: 0; }
+        }
+        .cpulse { animation: cpulse 2.2s ease-in-out infinite; }
       `}</style>
 
       {/* ── TOP BAR (Saffron-Terracotta Hand-Drawn Manuscript Banner) ───────── */}
@@ -481,10 +570,29 @@ export default function KailashJourney() {
           </div>
         </div>
 
+        {/* Walking Companions Button */}
+        <button
+          onClick={() => setShowCompanionsDrawer(v => !v)}
+          style={{
+            background: showCompanionsDrawer ? '#ffffff' : 'rgba(255, 252, 247, 0.18)',
+            color: showCompanionsDrawer ? '#1b8a6b' : '#ffffff',
+            border: '1px solid rgba(255, 252, 247, 0.35)',
+            borderRadius: 8, padding: '6px 10px',
+            display: 'flex', alignItems: 'center', gap: 5,
+            cursor: 'pointer', fontSize: 11, fontWeight: 700,
+            position: 'relative', zIndex: 2,
+          }}
+          title="View seekers you are walking with"
+        >
+          <Users size={13} />
+          <span>Walking ({companions.length})</span>
+        </button>
+
         <button
           onClick={() => setShowLegend(v => !v)}
           style={{
             background: showLegend ? '#ffffff' : 'rgba(255, 252, 247, 0.18)',
+
             color: showLegend ? '#c45525' : '#ffffff',
             border: '1px solid rgba(255, 252, 247, 0.35)',
             borderRadius: 8, padding: '6px 10px',
@@ -715,7 +823,83 @@ export default function KailashJourney() {
               </g>
             </g>
 
+            {/* ── Walking Companions Location Markers ── */}
+            {companionMapPositions.map((comp) => {
+              const isSelectedComp = activeCompanionModal?._id === comp._id;
+
+              return (
+                <g
+                  key={`companion-${comp._id}`}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setActiveCompanionModal(comp);
+                    focusOnPoint([comp.cx, comp.cy], 6.5);
+                  }}
+                >
+                  {/* Dashed lead line to trail node */}
+                  <line
+                    x1={comp.basePt[0]} y1={comp.basePt[1]}
+                    x2={comp.cx} y2={comp.cy}
+                    stroke="#1b8a6b" strokeWidth="1.5"
+                    strokeDasharray="3 3" opacity={0.75}
+                  />
+
+                  {/* Pulsing emerald aura */}
+                  <circle
+                    cx={comp.cx} cy={comp.cy}
+                    r={14} fill="none"
+                    stroke="#1b8a6b" strokeWidth={2}
+                    opacity={0.75}
+                    className="cpulse"
+                  />
+
+                  {/* Selection ring */}
+                  {isSelectedComp && (
+                    <circle
+                      cx={comp.cx} cy={comp.cy}
+                      r={19} fill="none"
+                      stroke="#3e382d" strokeWidth={2.5}
+                    />
+                  )}
+
+                  {/* Companion Avatar Dot */}
+                  <circle
+                    cx={comp.cx} cy={comp.cy}
+                    r={11} fill="#1b8a6b"
+                    stroke="#ffffff" strokeWidth={2}
+                  />
+
+                  {/* Companion Initials */}
+                  <text
+                    x={comp.cx} y={comp.cy}
+                    textAnchor="middle" dominantBaseline="central"
+                    fontSize={8.5} fontWeight="900" fill="#ffffff"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {getInitials(comp.name)}
+                  </text>
+
+                  {/* Companion Name / Level Badge */}
+                  <g transform={`translate(${comp.cx}, ${comp.cy + 18})`}>
+                    <rect
+                      x="-45" y="-9" width="90" height="18" rx="6"
+                      fill="#1b8a6bee" stroke="#ffffff" strokeWidth="1"
+                    />
+                    <text
+                      x="0" y="0"
+                      textAnchor="middle" dominantBaseline="central"
+                      fontSize={8.5} fontWeight="800" fill="#ffffff"
+                      style={{ pointerEvents: 'none', letterSpacing: 0.2 }}
+                    >
+                      🚶 {comp.name.split(' ')[0]} (L{comp.level})
+                    </text>
+                  </g>
+                </g>
+              );
+            })}
+
             {/* ── Pilgrim Marker (Current Seeker Level) ── */}
+
             <g>
               <circle
                 cx={pilgrimPt[0]} cy={pilgrimPt[1]}
@@ -882,6 +1066,205 @@ export default function KailashJourney() {
               })}
             </div>
           )}
+
+          {/* ── Floating Walking Companions Drawer ── */}
+          {showCompanionsDrawer && (
+            <div style={{
+              position: 'absolute', top: 12, left: 12, width: 280, maxHeight: 'calc(100% - 24px)',
+              background: '#fcf8ec', border: '2px solid rgba(27, 138, 107, 0.5)',
+              borderRadius: 14, padding: '14px 14px', zIndex: 60,
+              boxShadow: '0 8px 30px rgba(62, 56, 45, 0.25)', overflowY: 'auto',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid rgba(27, 138, 107, 0.2)', paddingBottom: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: '#1b8a6b', textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 900, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Users size={14} /> Walking Companions ({companions.length})
+                  </div>
+                  <div style={{ fontSize: 9.5, color: '#6b5e48', marginTop: 2 }}>
+                    Seekers walking the sacred yatra with you
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCompanionsDrawer(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3e382d', padding: 2 }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {companions.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#7c725d', textAlign: 'center', padding: '20px 10px', fontStyle: 'italic', lineHeight: 1.5 }}>
+                  You aren't walking with any seekers yet. Go to the Sangha section and click "Walk With" on fellow seekers to see their live location on Mount Kailash!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {companions.map(comp => {
+                    const compLevel = comp.currentLevel || 1;
+                    const compPt = SVG_PTS[Math.max(0, compLevel - 1)];
+                    const diff = compLevel - userLevel;
+                    let diffLabel = 'Walking beside you';
+                    if (diff > 0) diffLabel = `🚀 ${diff} lvl${diff > 1 ? 's' : ''} ahead`;
+                    if (diff < 0) diffLabel = `👣 ${Math.abs(diff)} lvl${Math.abs(diff) > 1 ? 's' : ''} behind`;
+
+                    return (
+                      <div
+                        key={comp._id}
+                        onClick={() => {
+                          const compPos = companionMapPositions.find(p => p._id === comp._id);
+                          setActiveCompanionModal(compPos || comp);
+                          focusOnPoint(compPt, 6.5);
+                        }}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid rgba(27, 138, 107, 0.25)',
+                          borderRadius: 10, padding: '10px 11px',
+                          cursor: 'pointer', transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#1b8a6b'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(27, 138, 107, 0.25)'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: '50%',
+                            background: '#1b8a6b', color: '#ffffff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 12, fontWeight: 900, flexShrink: 0,
+                          }}>
+                            {getInitials(comp.name)}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#2d2519', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {comp.name}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#1b8a6b', fontWeight: 700, marginTop: 1 }}>
+                              Level {compLevel} · {diffLabel}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              focusOnPoint(compPt, 6.5);
+                            }}
+                            title="Center camera on seeker"
+                            style={{
+                              background: '#f0f9f5', border: '1px solid #1b8a6b44',
+                              color: '#1b8a6b', borderRadius: 6, padding: '4px 8px',
+                              fontSize: 10, fontWeight: 800, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 3,
+                            }}
+                          >
+                            <LocateFixed size={11} /> Locate
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Active Companion Location Popup Modal Card ── */}
+          {activeCompanionModal && (
+            <div style={{
+              position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+              width: '90%', maxWidth: 360,
+              background: '#fcf8ec', border: '2px solid #1b8a6b',
+              borderRadius: 16, padding: '16px 18px', zIndex: 100,
+              boxShadow: '0 12px 35px rgba(27, 138, 107, 0.35)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: '#1b8a6b', color: '#ffffff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 15, fontWeight: 900, boxShadow: '0 2px 8px rgba(27, 138, 107, 0.4)',
+                  }}>
+                    {getInitials(activeCompanionModal.name)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: '#2d2519' }}>
+                      {activeCompanionModal.name}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: '#1b8a6b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>🚶 Walking with you on Kailash Yatra</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveCompanionModal(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3e382d', padding: 2 }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Location Info Banner */}
+              <div style={{
+                background: '#ffffff', border: '1px solid rgba(27, 138, 107, 0.25)',
+                borderRadius: 10, padding: '10px 12px', marginBottom: 12,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: '#1b8a6b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    📍 Location: Level {activeCompanionModal.level || activeCompanionModal.currentLevel}
+                  </span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, color: '#ffffff', background: '#1b8a6b',
+                    padding: '2px 7px', borderRadius: 10,
+                  }}>
+                    {(activeCompanionModal.level || activeCompanionModal.currentLevel) === userLevel ? 'Beside You' : (activeCompanionModal.level || activeCompanionModal.currentLevel) > userLevel ? `${(activeCompanionModal.level || activeCompanionModal.currentLevel) - userLevel} Lvl Ahead` : `${userLevel - (activeCompanionModal.level || activeCompanionModal.currentLevel)} Lvl Behind`}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#3e382d' }}>
+                  {activeCompanionModal.loc?.name || LOCATIONS[(activeCompanionModal.level || activeCompanionModal.currentLevel) - 1]?.name || 'Sacred Trail Location'}
+                </div>
+                <div style={{ fontSize: 10.5, color: '#6b5e48', marginTop: 2, lineHeight: 1.3 }}>
+                  {activeCompanionModal.loc?.desc || 'Walking the consecrated path in devotion and silent discipline.'}
+                </div>
+              </div>
+
+              {/* Stats & Practices */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ flex: 1, background: '#f4ebd0', borderRadius: 8, padding: '6px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, color: '#7c725d', textTransform: 'uppercase', fontWeight: 700 }}>Total Score</div>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#d9572b' }}>{activeCompanionModal.totalCumulativeScore || 0} pts</div>
+                </div>
+                <div style={{ flex: 1, background: '#f4ebd0', borderRadius: 8, padding: '6px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, color: '#7c725d', textTransform: 'uppercase', fontWeight: 700 }}>Pradakshina</div>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#1b8a6b' }}>{activeCompanionModal.pradakshinaCount || 0} rounds</div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    const compPt = SVG_PTS[Math.max(0, (activeCompanionModal.level || activeCompanionModal.currentLevel) - 1)];
+                    focusOnPoint(compPt, 7.0);
+                  }}
+                  style={{
+                    flex: 1, background: '#1b8a6b', color: '#ffffff', border: 'none',
+                    borderRadius: 8, padding: '8px 12px', fontSize: 11, fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  }}
+                >
+                  <LocateFixed size={13} /> Focus Camera
+                </button>
+                <button
+                  onClick={() => navigate('/community')}
+                  style={{
+                    background: '#ffffff', color: '#3e382d', border: '1px solid rgba(62, 56, 45, 0.25)',
+                    borderRadius: 8, padding: '8px 12px', fontSize: 11, fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  View in Sangha
+                </button>
+              </div>
+            </div>
+          )}
+
 
           {/* ── Rich Destination Tooltip & Hampi Video Popup Card ── */}
           {tooltip.visible && tooltip.loc && (

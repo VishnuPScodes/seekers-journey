@@ -669,6 +669,45 @@ router.get('/sidebar', auth, async (req, res) => {
   }
 });
 
+// ─── 8A2. WALKING COMPANIONS: Seekers the user is walking with on the Kailash trail ───
+router.get('/walking-companions', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const activeFollows = await Follow.find({
+      followerId: userId,
+      status: 'active',
+    }).select('followingId');
+
+    const followingIds = activeFollows.map((f) => f.followingId);
+
+    if (followingIds.length === 0) {
+      return res.json({ companions: [] });
+    }
+
+    const companions = await User.find({ _id: { $in: followingIds } })
+      .select('name email currentLevel totalCumulativeScore pradakshinaCount selectedPractices avatarUrl')
+      .lean();
+
+    const formattedCompanions = companions.map((c) => ({
+      _id: c._id,
+      name: c.name || 'Anonymous Seeker',
+      email: c.email,
+      currentLevel: Math.max(1, Math.min(108, c.currentLevel || 1)),
+      totalCumulativeScore: c.totalCumulativeScore || 0,
+      pradakshinaCount: c.pradakshinaCount || 0,
+      selectedPractices: c.selectedPractices || [],
+      avatarUrl: c.avatarUrl || '',
+    }));
+
+    res.json({ companions: formattedCompanions });
+  } catch (error) {
+    console.error('Walking companions error:', error);
+    res.status(500).json({ message: 'Error retrieving walking companions', error: error.message });
+  }
+});
+
+
 // ─── 8B. SEEKERS SEARCH: Search fellow seekers by name, email, or practice ───
 router.get('/seekers', auth, async (req, res) => {
   try {
