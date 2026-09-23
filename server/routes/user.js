@@ -61,41 +61,63 @@ router.post('/practices', auth, async (req, res) => {
     }
 
     // Support both [String] and [{ name, dailyTarget, category, desc, isCustom }]
-    const selectedPractices = practices.map(p => (typeof p === 'string' ? p : p.name));
-    const practiceConfig = practices.map(p =>
-      typeof p === 'string'
-        ? { name: p, dailyTarget: getDefaultTarget(p), category: 'General', isCustom: false }
-        : {
-            name: p.name,
-            dailyTarget: p.dailyTarget ? Math.max(1, Number(p.dailyTarget)) : getDefaultTarget(p.name),
-            category: p.category || 'General',
-            desc: p.desc || '',
-            isCustom: Boolean(p.isCustom),
-          }
-    );
+    const selectedPractices = practices
+      .map(p => (typeof p === 'string' ? p.trim() : (p && p.name ? String(p.name).trim() : null)))
+      .filter(Boolean);
+
+    if (selectedPractices.length === 0) {
+      return res.status(400).json({ message: 'Valid practice names are required' });
+    }
+
+    const practiceConfig = practices
+      .filter(p => p && (typeof p === 'string' || (p.name && String(p.name).trim())))
+      .map(p => {
+        if (typeof p === 'string') {
+          const name = p.trim();
+          return { name, dailyTarget: getDefaultTarget(name), category: 'General', isCustom: false };
+        }
+        const name = String(p.name).trim();
+        return {
+          name,
+          dailyTarget: p.dailyTarget ? Math.max(1, Number(p.dailyTarget)) : getDefaultTarget(name),
+          category: p.category ? String(p.category).trim() : 'General',
+          desc: p.desc ? String(p.desc).trim() : '',
+          isCustom: Boolean(p.isCustom),
+        };
+      });
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { selectedPractices, practiceConfig, practicesSelected: true },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
-    if (user && user.selectedPractices.some(p => p.toLowerCase().includes('shambhavi'))) {
-      notifyShambhaviAdded(user).catch(err => console.error('Notify Shambhavi error:', err));
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({
+    // Safe check for Shambhavi notification
+    const hasShambhavi = Array.isArray(user.selectedPractices) && user.selectedPractices.some(
+      p => typeof p === 'string' && p.toLowerCase().includes('shambhavi')
+    );
+
+    if (hasShambhavi) {
+      notifyShambhaviAdded(user).catch(err => console.error('Notify Shambhavi error:', err.message));
+    }
+
+    return res.json({
       message: 'Practices saved successfully',
-      selectedPractices: user.selectedPractices,
-      practiceConfig: user.practiceConfig,
+      selectedPractices: user.selectedPractices || [],
+      practiceConfig: user.practiceConfig || [],
       customPractices: user.customPractices || [],
-      practicesSelected: user.practicesSelected,
+      practicesSelected: user.practicesSelected || false,
     });
   } catch (err) {
     console.error('Save practices error:', err);
-    res.status(500).json({ message: 'Server error saving practices' });
+    return res.status(500).json({ message: 'Server error saving practices' });
   }
 });
+
 
 // POST /api/user/custom-practice — add a custom practice to the user's account
 router.post('/custom-practice', auth, async (req, res) => {
