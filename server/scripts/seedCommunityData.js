@@ -84,7 +84,6 @@ async function seedCommunity() {
       user = await User.create({
         ...p,
         password: passwordHash,
-        isSynthetic: true,
       });
       console.log(` - Created persona: ${p.name}`);
     } else {
@@ -92,7 +91,6 @@ async function seedCommunity() {
       user.pradakshinaCount = p.pradakshinaCount;
       user.selectedPractices = p.selectedPractices;
       user.practicesSelected = true;
-      user.isSynthetic = true;
       await user.save();
       console.log(` - Updated persona: ${p.name}`);
     }
@@ -109,12 +107,10 @@ async function seedCommunity() {
     ]
   });
 
-  for (const hu of humanUsers) {
-    hu.isSynthetic = false;
-    await hu.save();
+  humanUsers.forEach((hu) => {
     console.log(` - Linked human seeker: ${hu.name} (${hu.email})`);
     userMap[hu.email] = hu;
-  }
+  });
 
   // ── 2. Create Authentic Sanghas ──
   console.log('Setting up sacred sanghas...');

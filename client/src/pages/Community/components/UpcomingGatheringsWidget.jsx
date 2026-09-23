@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, Users, Video, MapPin, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Calendar, Users, Video, MapPin, Check, ArrowRight } from 'lucide-react';
 import api from '../../../api';
+import GatheringDetailModal from './GatheringDetailModal';
 
 export default function UpcomingGatheringsWidget({ sanghaId = null, isEmbedded = false }) {
-  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedGatheringId, setSelectedGatheringId] = useState(null);
 
   const fetchEvents = async () => {
     try {
@@ -25,6 +26,28 @@ export default function UpcomingGatheringsWidget({ sanghaId = null, isEmbedded =
   useEffect(() => {
     fetchEvents();
   }, [sanghaId]);
+
+  const handleRsvpToggle = async (eventId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      const res = await api.post(`/community/events/${eventId}/rsvp`);
+      if (res.data) {
+        setEvents((prev) =>
+          prev.map((ev) =>
+            ev._id === eventId
+              ? {
+                  ...ev,
+                  isAttending: res.data.isAttending,
+                  attendeesCount: res.data.attendeesCount,
+                }
+              : ev
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Failed to toggle gathering RSVP:', err);
+    }
+  };
 
   const formatEventTime = (startTime) => {
     if (!startTime) return 'Upcoming';
@@ -60,7 +83,7 @@ export default function UpcomingGatheringsWidget({ sanghaId = null, isEmbedded =
           {events.slice(0, 3).map((ev) => (
             <div
               key={ev._id}
-              onClick={() => navigate(`/community/gatherings/${ev._id}`)}
+              onClick={() => setSelectedGatheringId(ev._id)}
               style={{
                 background: 'var(--comm-bg-card)',
                 border: '1px solid var(--comm-border-hairline)',
@@ -70,9 +93,8 @@ export default function UpcomingGatheringsWidget({ sanghaId = null, isEmbedded =
                 flexDirection: 'column',
                 gap: 8,
                 cursor: 'pointer',
-                transition: 'border-color 0.15s ease, transform 0.15s ease',
+                transition: 'border-color 0.15s ease',
               }}
-              title="Click to view full gathering details and RSVP"
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                 <div>
@@ -124,20 +146,15 @@ export default function UpcomingGatheringsWidget({ sanghaId = null, isEmbedded =
                   <Users size={13} /> {ev.attendeesCount || 0} attending
                 </span>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {ev.isAttending && (
-                    <span style={{ fontSize: '0.74rem', color: 'var(--comm-olive)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <CheckCircle2 size={12} /> Confirmed
-                    </span>
-                  )}
-                  <span
-                    className="comm-btn-small"
-                    style={{ fontSize: '0.76rem', padding: '3px 10px' }}
-                    id={`view-btn-${ev._id}`}
-                  >
-                    View Details →
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => handleRsvpToggle(ev._id, e)}
+                  className={`comm-btn-small ${ev.isAttending ? 'joined' : ''}`}
+                  style={{ fontSize: '0.76rem', padding: '3px 10px' }}
+                  id={`rsvp-btn-${ev._id}`}
+                >
+                  {ev.isAttending ? 'Attending ✓' : 'Details →'}
+                </button>
               </div>
             </div>
           ))}
@@ -153,6 +170,14 @@ export default function UpcomingGatheringsWidget({ sanghaId = null, isEmbedded =
           Browse All Gatherings Directory <ArrowRight size={13} />
         </Link>
       </div>
+
+      {selectedGatheringId && (
+        <GatheringDetailModal
+          gatheringId={selectedGatheringId}
+          onClose={() => setSelectedGatheringId(null)}
+          onUpdated={fetchEvents}
+        />
+      )}
     </>
   );
 

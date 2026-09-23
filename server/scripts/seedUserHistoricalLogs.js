@@ -9,7 +9,6 @@ const User = require('../models/User');
 const SadhanaLog = require('../models/SadhanaLog');
 const JourneyEvent = require('../models/JourneyEvent');
 const Mandala = require('../models/Mandala');
-const { syncUserProgramEvents } = require('../utils/programSyncHelper');
 
 const TARGET_USERS = [
   {
@@ -262,9 +261,6 @@ async function seedHistoricalLogs() {
 
     await JourneyEvent.insertMany(eventsToInsert);
     console.log(` Inserted ${eventsToInsert.length} JourneyEvent milestones.`);
-
-    // Synchronize completed UserPrograms as JourneyEvent program milestones
-    await syncUserProgramEvents(user._id);
 
     // 6. Seed active Mandala record
     await Mandala.deleteMany({ userId: user._id });

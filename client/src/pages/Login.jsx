@@ -22,8 +22,12 @@ export default function Login() {
     setError('');
 
     try {
-      await login(form.email, form.password);
-      navigate('/');
+      const user = await login(form.email, form.password);
+      if (user.practicesSelected) {
+        navigate('/');
+      } else {
+        navigate('/select-practices');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {

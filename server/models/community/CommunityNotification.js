@@ -15,7 +15,7 @@ const communityNotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['kudos', 'comment', 'follow', 'sangha_join', 'gathering_rsvp', 'join_request', 'join_approved'],
+      enum: ['kudos', 'comment', 'follow', 'sangha_join', 'gathering_rsvp'],
       required: true,
     },
     postId: {

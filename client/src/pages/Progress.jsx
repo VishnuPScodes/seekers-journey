@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Flame, Calendar, ChevronRight, Star } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import PersonaSwitcher from '../components/PersonaSwitcher';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { PRACTICE_ICON_EMOJI as PRACTICE_ICONS } from '../utils/practiceIcons';
@@ -32,6 +34,7 @@ function buildCalendarWeeks(days) {
   if (!days || days.length === 0) return [];
   const weeks = [];
   let week = [];
+  // Pad start so the first day lands on the correct column
   const dateStr = days[0].date.includes('T') ? days[0].date : days[0].date + 'T12:00:00';
   const first = new Date(dateStr);
   const startDow = first.getDay(); // 0=Sun
@@ -56,9 +59,10 @@ function dotStyle(day) {
   const count = day.practiceCount || 0;
   const status = day.status;
   if (count === 0) return { background: 'var(--pi-dot-empty)' };
-  if (status === 'high_activity') return { background: '#B85D36', boxShadow: '0 0 6px rgba(184,93,54,0.45)' };
-  if (status === 'target_achieved') return { background: '#4E6346', boxShadow: '0 0 4px rgba(78,99,70,0.35)' };
-  if (status === 'partial') return { background: '#C49A45', opacity: 0.85 };
+  if (status === 'high_activity') return { background: '#B85D36', boxShadow: '0 0 4px rgba(184,93,54,0.5)' };
+  if (status === 'target_achieved') return { background: '#4E6346' };
+  if (status === 'partial') return { background: '#C49A45', opacity: 0.75 };
+  // has sessions but no target set
   return { background: 'rgba(184,93,54,0.5)' };
 }
 
@@ -66,6 +70,8 @@ function dotStyle(day) {
 
 export default function Progress() {
   const { user } = useAuth();
+  const location  = useLocation();
+
   const [selectedRange, setSelectedRange] = useState('30');
   const [reportData,    setReportData]    = useState(null);
   const [loading,       setLoading]       = useState(true);
@@ -86,52 +92,59 @@ export default function Progress() {
     }
   };
 
-  useEffect(() => {
-    fetchReport(selectedRange);
-  }, [selectedRange]);
+  useEffect(() => { fetchReport(selectedRange); }, [selectedRange]);
 
   // ─── Derived Data ──────────────────────────────────────────────────────────
+
   const summary    = reportData?.summary    || {};
+  const progression = reportData?.progression || {};
   const insights   = reportData?.insights    || [];
   const breakdown  = reportData?.practiceBreakdown || [];
-  const tvaList    = reportData?.targetVsActual || [];
   const calendar   = reportData?.consistencyCalendar || [];
   const milestones = reportData?.milestones  || [];
 
   const calendarWeeks = useMemo(() => buildCalendarWeeks(calendar), [calendar]);
 
-  // Primary meaningful insight sentence
+  // Pick the single most meaningful insight sentence
   const primaryInsight = insights.find(i => i.type === 'consistency' || i.type === 'recent_trend') || insights[0];
 
-  // Max sessions in breakdown for proportional bar widths
+  // Max sessions in breakdown for relative bar widths
   const maxBreakdownCount = useMemo(() => {
     if (!breakdown.length) return 1;
     return Math.max(...breakdown.map(p => p.completedCount), 1);
   }, [breakdown]);
 
+  // Level progress percentage
+  const levelPercent = Math.min(100, progression.currentLevelScore ?? 0);
+
+  // ─── Empty / Loading State ────────────────────────────────────────────────
+
   const firstName = user?.name?.split(' ')[0] || 'Seeker';
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <>
       <Navbar />
       <div className="page pi-page">
-        <div className="pi-container" style={{ maxWidth: 760 }}>
+        <div className="pi-container">
 
           {/* ── PAGE HEADER ── */}
-          <div className="pi-header" style={{ marginBottom: 18 }}>
+          <div className="pi-header">
             <div className="pi-header-left">
-              <p className="pi-greeting">Your practice journey, {firstName} 🙏</p>
+              <p className="pi-greeting">Your practice, {firstName}</p>
               <h1 className="pi-title font-serif">Progress &amp; Insights</h1>
             </div>
             <div className="pi-header-right">
+              <PersonaSwitcher onSwitched={() => fetchReport(selectedRange)} />
               <Link to="/personal-journey" className="pi-link-pill">
-                📜 View River of Time →
+                📜 Journey
               </Link>
             </div>
           </div>
 
-          {/* ── TIME RANGE BAR ── */}
-          <div className="pi-range-bar" style={{ marginBottom: 20 }}>
+          {/* ── TIME RANGE PILLS ── */}
+          <div className="pi-range-bar">
             {TIME_RANGES.map(opt => (
               <button
                 key={opt.value}
@@ -150,11 +163,11 @@ export default function Progress() {
             )}
           </div>
 
-          {/* ── LOADING / ERROR / CONTENT ── */}
+          {/* ── LOADING / ERROR ── */}
           {loading ? (
             <div className="pi-loading">
               <div className="spinner" style={{ borderColor: 'var(--accent-terracotta) transparent' }} />
-              <p className="pi-loading-text font-serif">Reading your sacred practice records…</p>
+              <p className="pi-loading-text font-serif">Reading your practice records…</p>
             </div>
           ) : error ? (
             <div className="alert alert-error">{error}</div>
@@ -163,7 +176,7 @@ export default function Progress() {
               {/* ══════════════════════════════════════════════════════════ */}
               {/* 1. HERO STATS ROW                                         */}
               {/* ══════════════════════════════════════════════════════════ */}
-              <div className="pi-hero-grid" style={{ marginBottom: 20 }}>
+              <div className="pi-hero-grid">
                 {/* Streak */}
                 <div className="pi-hero-tile" id="hero-streak">
                   <div className="pi-hero-icon">🔥</div>
@@ -181,7 +194,7 @@ export default function Progress() {
                     {summary.totalSessions ?? 0}
                   </div>
                   <div className="pi-hero-label">
-                    {selectedRange === 'all' ? 'Total sessions' : `Sessions in ${selectedRange === '7' ? '7' : '30'} days`}
+                    {selectedRange === 'all' ? 'Total sessions' : `Sessions in ${selectedRange === '7' ? '7' : selectedRange === '30' ? '30' : '?'} days`}
                   </div>
                 </div>
 
@@ -193,116 +206,31 @@ export default function Progress() {
                     <span className="pi-hero-unit">%</span>
                   </div>
                   <div className="pi-hero-label">
-                    Active {summary.consistency?.activeDays ?? 0} of {summary.consistency?.totalDays ?? 0} days
+                    Days practiced &nbsp;·&nbsp; {summary.consistency?.activeDays ?? 0}/{summary.consistency?.totalDays ?? 0}
                   </div>
                 </div>
               </div>
 
               {/* ══════════════════════════════════════════════════════════ */}
-              {/* 2. PRIMARY INSIGHT QUOTATION                              */}
+              {/* 2. PRIMARY INSIGHT SENTENCE                               */}
               {/* ══════════════════════════════════════════════════════════ */}
               {primaryInsight && (
-                <div className="pi-insight-sentence" style={{ marginBottom: 22 }}>
+                <div className="pi-insight-sentence">
                   <span className="pi-insight-icon">✦</span>
                   <p className="pi-insight-text font-serif">"{primaryInsight.statement}"</p>
                 </div>
               )}
 
               {/* ══════════════════════════════════════════════════════════ */}
-              {/* 3. UNIFIED SADHANA PRACTICE PERFORMANCE                   */}
+              {/* 3. ACTIVITY CALENDAR                                      */}
               {/* ══════════════════════════════════════════════════════════ */}
-              {breakdown.length > 0 && (
-                <div className="pi-card" id="practice-performance" style={{ marginBottom: 22 }}>
-                  <div className="pi-card-header">
-                    <div>
-                      <h2 className="pi-card-title font-serif">Sadhana Performance</h2>
-                      <span className="pi-card-sub" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Completed sessions &amp; daily target adherence
-                      </span>
-                    </div>
-                    <Link to="/select-practices" className="pi-text-link" style={{ fontSize: '0.8rem', color: '#d9572b', fontWeight: 600 }}>
-                      Configure targets →
-                    </Link>
-                  </div>
-
-                  <div className="pi-practice-list">
-                    {breakdown.map((p, idx) => {
-                      const tva = tvaList.find(t => t.practiceName === p.practiceName);
-                      const dailyTarget = tva?.dailyTarget || 1;
-                      const actualAvg = tva?.actualDailyAverage || 0;
-                      const isMet = actualAvg >= dailyTarget;
-                      const fillPct = Math.min(100, Math.round((p.completedCount / maxBreakdownCount) * 100));
-
-                      return (
-                        <div key={p.practiceName} className="pi-practice-row" style={{ padding: '12px 0' }}>
-                          <span className="pi-practice-emoji" style={{ fontSize: 24, flexShrink: 0 }}>
-                            {PRACTICE_ICONS[p.practiceName] || '🙏'}
-                          </span>
-
-                          <div className="pi-practice-info" style={{ flex: 1, minWidth: 0 }}>
-                            <div className="pi-practice-name-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                              <span className="pi-practice-name" style={{ fontWeight: 700, fontSize: '0.92rem' }}>
-                                {p.practiceName}
-                              </span>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                  {p.completedCount} session{p.completedCount !== 1 ? 's' : ''}
-                                </span>
-
-                                <span
-                                  style={{
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                    padding: '2px 8px',
-                                    borderRadius: 12,
-                                    background: isMet ? 'rgba(78, 99, 70, 0.16)' : 'rgba(184, 93, 54, 0.14)',
-                                    color: isMet ? '#3d5236' : '#b85d36',
-                                    border: `1px solid ${isMet ? 'rgba(78, 99, 70, 0.3)' : 'rgba(184, 93, 54, 0.25)'}`,
-                                  }}
-                                >
-                                  {actualAvg} / {dailyTarget} daily {isMet ? '✓' : ''}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="pi-bar-bg" style={{ height: 6, borderRadius: 3, background: 'rgba(0,0,0,0.06)' }}>
-                              <div
-                                className="pi-bar-fill"
-                                style={{
-                                  width: `${fillPct}%`,
-                                  height: '100%',
-                                  borderRadius: 3,
-                                  background: isMet
-                                    ? 'linear-gradient(90deg, #4E6346, #6b8760)'
-                                    : 'linear-gradient(90deg, #d9572b, #e67e22)',
-                                  transition: 'width 0.4s ease',
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* ══════════════════════════════════════════════════════════ */}
-              {/* 4. ACTIVITY CALENDAR                                      */}
-              {/* ══════════════════════════════════════════════════════════ */}
-              <div className="pi-card" id="activity-calendar" style={{ marginBottom: 22 }}>
+              <div className="pi-card" id="activity-calendar">
                 <div className="pi-card-header">
-                  <div>
-                    <h2 className="pi-card-title font-serif">Activity Calendar</h2>
-                    <span className="pi-card-sub" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Daily sadhana rhythm over this period
-                    </span>
-                  </div>
+                  <h2 className="pi-card-title font-serif">Activity Calendar</h2>
                   <div className="pi-legend">
                     <span className="pi-legend-dot" style={{ background: 'var(--pi-dot-empty)' }} /> None
                     <span className="pi-legend-dot" style={{ background: 'rgba(196,154,69,0.75)' }} /> Partial
-                    <span className="pi-legend-dot" style={{ background: '#4E6346' }} /> Met
+                    <span className="pi-legend-dot" style={{ background: '#4E6346' }} /> Target met
                     <span className="pi-legend-dot" style={{ background: '#B85D36' }} /> Full+
                   </div>
                 </div>
@@ -343,38 +271,166 @@ export default function Progress() {
               </div>
 
               {/* ══════════════════════════════════════════════════════════ */}
-              {/* 5. SACRED MILESTONES (Clean & Minimalist)                 */}
+              {/* 4. LEVEL PROGRESSION (compact)                           */}
+              {/* ══════════════════════════════════════════════════════════ */}
+              <div className="pi-card pi-level-card" id="level-progression">
+                <div className="pi-level-row">
+                  <div className="pi-level-left">
+                    <span className="pi-level-badge">Level {progression.currentLevel ?? 1}</span>
+                    <span className="pi-level-arrow">→</span>
+                    <span className="pi-level-next">Level {(progression.currentLevel ?? 1) + 1}</span>
+                  </div>
+                  <span className="pi-level-pts">
+                    <strong>{progression.pointsToNextLevel ?? '—'}</strong> pts to go
+                  </span>
+                </div>
+                <div className="pi-level-bar-bg">
+                  <div
+                    className="pi-level-bar-fill"
+                    style={{ width: `${levelPercent}%` }}
+                  />
+                </div>
+                <div className="pi-level-sub">
+                  {progression.totalCumulativeScore ?? 0} lifetime points
+                </div>
+              </div>
+
+              {/* ══════════════════════════════════════════════════════════ */}
+              {/* 5. PRACTICE BREAKDOWN (CSS bars, no chart.js)            */}
+              {/* ══════════════════════════════════════════════════════════ */}
+              {breakdown.length > 0 && (
+                <div className="pi-card" id="practice-breakdown">
+                  <div className="pi-card-header">
+                    <h2 className="pi-card-title font-serif">Your Practices</h2>
+                    <Link to="/select-practices" className="pi-text-link">
+                      Edit practices →
+                    </Link>
+                  </div>
+                  <div className="pi-practice-list">
+                    {breakdown.map((p, idx) => {
+                      const fillPct = Math.round((p.completedCount / maxBreakdownCount) * 100);
+                      const isTop = idx === 0;
+                      return (
+                        <div key={p.practiceName} className="pi-practice-row">
+                          <span className="pi-practice-emoji">
+                            {PRACTICE_ICONS[p.practiceName] || '🙏'}
+                          </span>
+                          <div className="pi-practice-info">
+                            <div className="pi-practice-name-row">
+                              <span className="pi-practice-name">{p.practiceName}</span>
+                              <span className="pi-practice-count">
+                                {p.completedCount} session{p.completedCount !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div className="pi-bar-bg">
+                              <div
+                                className={`pi-bar-fill${isTop ? ' pi-bar-fill--top' : ''}`}
+                                style={{ width: `${fillPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ══════════════════════════════════════════════════════════ */}
+              {/* 6. TARGET VS ACTUAL (inline rows, no chart)              */}
+              {/* ══════════════════════════════════════════════════════════ */}
+              {(reportData?.targetVsActual || []).length > 0 && (
+                <div className="pi-card" id="target-vs-actual">
+                  <div className="pi-card-header">
+                    <h2 className="pi-card-title font-serif">Target vs. Actual</h2>
+                    <span className="pi-card-sub">Daily average over the period</span>
+                  </div>
+                  <div className="pi-tva-list">
+                    {(reportData?.targetVsActual || []).map((t) => {
+                      const ratio = t.dailyTarget > 0
+                        ? Math.min(100, Math.round((t.actualDailyAverage / t.dailyTarget) * 100))
+                        : 100;
+                      const met = t.actualDailyAverage >= t.dailyTarget;
+                      return (
+                        <div key={t.practiceName} className="pi-tva-row">
+                          <span className="pi-tva-emoji">{PRACTICE_ICONS[t.practiceName] || '🙏'}</span>
+                          <div className="pi-tva-info">
+                            <div className="pi-tva-name-row">
+                              <span className="pi-tva-name">{t.practiceName}</span>
+                              <span className={`pi-tva-ratio${met ? ' met' : ''}`}>
+                                {t.actualDailyAverage} / {t.dailyTarget} per day
+                              </span>
+                            </div>
+                            <div className="pi-bar-bg">
+                              <div
+                                className="pi-bar-fill"
+                                style={{
+                                  width: `${ratio}%`,
+                                  background: met ? '#4E6346' : '#B85D36',
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ══════════════════════════════════════════════════════════ */}
+              {/* 7. MILESTONES (max 3 recent)                             */}
               {/* ══════════════════════════════════════════════════════════ */}
               {milestones.length > 0 && (
                 <div className="pi-card" id="milestones">
                   <div className="pi-card-header">
-                    <h2 className="pi-card-title font-serif">Recent Milestones</h2>
-                    <Link to="/personal-journey" className="pi-text-link" style={{ fontSize: '0.8rem', color: '#d9572b', fontWeight: 600 }}>
-                      All milestones →
+                    <h2 className="pi-card-title font-serif">Milestones</h2>
+                    <Link to="/personal-journey" className="pi-text-link">
+                      Full history →
                     </Link>
                   </div>
                   <div className="pi-milestone-list">
                     {milestones.slice(0, 3).map((m, idx) => (
-                      <div key={idx} className="pi-milestone-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-                        <span className="pi-milestone-icon" style={{ fontSize: 22, flexShrink: 0 }}>
-                          {m.icon || '🪷'}
-                        </span>
+                      <div key={idx} className="pi-milestone-row">
+                        <span className="pi-milestone-icon">{m.icon || '🪷'}</span>
                         <div>
-                          <div className="pi-milestone-title" style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                            {m.title}
-                          </div>
-                          <div className="pi-milestone-date" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            {m.date ? formatShortDate(m.date) : ''}
-                          </div>
+                          <div className="pi-milestone-title">{m.title}</div>
+                          <div className="pi-milestone-date">{m.date ? formatShortDate(m.date) : ''}</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* ══════════════════════════════════════════════════════════ */}
+              {/* 8. NAVIGATION SHORTCUTS                                  */}
+              {/* ══════════════════════════════════════════════════════════ */}
+              <div className="pi-nav-links">
+                <Link to="/personal-journey" className="pi-nav-tile">
+                  <div>
+                    <div className="pi-nav-tile-title">River of Time</div>
+                    <div className="pi-nav-tile-sub">Your complete practice history</div>
+                  </div>
+                  <ChevronRight size={16} color="var(--accent-terracotta)" />
+                </Link>
+                <Link to="/select-practices" className="pi-nav-tile">
+                  <div>
+                    <div className="pi-nav-tile-title">Practices</div>
+                    <div className="pi-nav-tile-sub">Configure what you track</div>
+                  </div>
+                  <ChevronRight size={16} color="var(--accent-gold)" />
+                </Link>
+                <Link to="/journey" className="pi-nav-tile">
+                  <div>
+                    <div className="pi-nav-tile-title">Kailash Yatra</div>
+                    <div className="pi-nav-tile-sub">Digital pilgrimage progress</div>
+                  </div>
+                  <ChevronRight size={16} color="var(--accent-olive)" />
+                </Link>
+              </div>
             </>
           )}
-
         </div>
       </div>
     </>

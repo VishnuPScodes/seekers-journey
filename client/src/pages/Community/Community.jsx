@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
 import './Community.css';
 
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { X, Calendar, Clock, MapPin, MessageSquare, CheckCircle2 } from 'lucide-react';
 import FeedTabs from './components/FeedTabs';
 import PostComposer from './components/PostComposer';
@@ -13,19 +13,18 @@ import CommunitySidebar from './components/CommunitySidebar';
 import NotificationsPopover from './components/NotificationsPopover';
 import SeekerSearch from './components/SeekerSearch';
 import SeekerProfileModal from './components/SeekerProfileModal';
-import PrivacySettingsModal from './components/PrivacySettingsModal';
+import GatheringDetailModal from './components/GatheringDetailModal';
 
 export default function Community() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('following');
   const [posts, setPosts] = useState([]);
   const [gatherings, setGatherings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sidebarData, setSidebarData] = useState(null);
   const [selectedSeekerId, setSelectedSeekerId] = useState(null);
+  const [selectedGatheringId, setSelectedGatheringId] = useState(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Fetch feed or gatherings based on active tab
   const fetchFeed = useCallback(async (tabToFetch = activeTab) => {
@@ -260,7 +259,7 @@ export default function Community() {
                           cursor: 'pointer',
                           borderRadius: 'var(--comm-radius-md)',
                         }}
-                        onClick={() => navigate(`/community/gatherings/${g._id}`)}
+                        onClick={() => setSelectedGatheringId(g._id)}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                           <div>
@@ -299,7 +298,7 @@ export default function Community() {
                             className={`comm-btn-small ${g.isAttending ? 'joined' : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/community/gatherings/${g._id}${g.isAttending ? '?tab=chat' : ''}`);
+                              setSelectedGatheringId(g._id);
                             }}
                           >
                             {g.isAttending ? 'Open Chat 💬' : 'Details →'}
@@ -379,20 +378,22 @@ export default function Community() {
           />
         </div>
 
+        {/* ── Gathering Detail Modal ── */}
+        {selectedGatheringId && (
+          <GatheringDetailModal
+            gatheringId={selectedGatheringId}
+            onClose={() => setSelectedGatheringId(null)}
+            onUpdated={() => fetchFeed(activeTab)}
+          />
+        )}
         {selectedSeekerId && (
           <SeekerProfileModal
             seekerId={selectedSeekerId}
             onClose={() => setSelectedSeekerId(null)}
             onFollowToggle={handleFollowToggle}
             currentUserId={user?._id || user?.id}
-            onOpenPrivacySettings={() => setShowPrivacyModal(true)}
           />
         )}
-
-        <PrivacySettingsModal
-          isOpen={showPrivacyModal}
-          onClose={() => setShowPrivacyModal(false)}
-        />
 
         {/* ── Full Seeker Search Modal ── */}
         {showSearchModal && (

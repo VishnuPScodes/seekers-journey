@@ -21,7 +21,6 @@ import Community from './pages/Community';
 import SanghasDirectory from './pages/Community/SanghasDirectory';
 import SanghaDetail from './pages/Community/SanghaDetail';
 import GatheringsDirectory from './pages/Community/GatheringsDirectory';
-import GatheringDetail from './pages/Community/GatheringDetail';
 
 // Lazy-load the heavy Three.js game page
 const KailashJourney = lazy(() => import('./pages/KailashJourney'));
@@ -31,6 +30,8 @@ function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return <div className="page"><div className="spinner" style={{ width: 36, height: 36 }} /></div>;
   if (!user) return <Navigate to="/login" replace />;
+  const hasPractices = user.practicesSelected || (Array.isArray(user.selectedPractices) && user.selectedPractices.length > 0);
+  if (!hasPractices) return <Navigate to="/select-practices" replace />;
   return <Landing />;
 }
 
@@ -168,14 +169,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <GatheringsDirectory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/community/gatherings/:id"
-        element={
-          <ProtectedRoute>
-            <GatheringDetail />
           </ProtectedRoute>
         }
       />
