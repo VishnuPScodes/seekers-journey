@@ -28,6 +28,19 @@ const communityNotificationSchema = new mongoose.Schema(
       ref: 'Sangha',
       default: null,
     },
+    gatheringId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SanghaEvent',
+      default: null,
+    },
+    entityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    entityType: {
+      type: String,
+      default: null,
+    },
     message: {
       type: String,
       required: true,

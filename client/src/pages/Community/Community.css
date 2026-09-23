@@ -4,7 +4,10 @@
    Zero pollution to global index.css or other page components.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.comm-root-container {
+:root,
+.comm-root-container,
+.comm-modal-backdrop,
+.comm-modal-card {
   /* Scoped Theme Tokens */
   --comm-bg-parchment: #f4efd8;
   --comm-bg-card: #ece5cb;

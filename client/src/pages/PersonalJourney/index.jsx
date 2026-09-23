@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
+import { ArrowLeft } from 'lucide-react';
 
 import { normalizeJourneyData } from './journeyDataUtils';
 import JourneyHero from './components/JourneyHero';
@@ -14,6 +16,7 @@ import { WhisperModal, EditOriginModal, EventDetailModal } from './components/Jo
 import './PersonalJourney.css';
 
 export default function PersonalJourney() {
+  const navigate = useNavigate();
   const { user: authUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -99,6 +102,34 @@ export default function PersonalJourney() {
 
       <div className="pj-root-container">
         <main className="pj-content-wrapper animate-in">
+          {/* Back Navigation */}
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            id="btn-back-nav"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--pj-terracotta)',
+              fontWeight: 600,
+              fontSize: '0.92rem',
+              cursor: 'pointer',
+              marginBottom: 14,
+              padding: 0,
+            }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+
           {/* 1. Identity & Living Sadhana Standing */}
           <JourneyHero
             user={user}

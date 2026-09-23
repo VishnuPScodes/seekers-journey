@@ -8,6 +8,7 @@ import {
   Users,
   Search,
   ArrowRight,
+  ArrowLeft,
   Shield,
   MessageSquare,
   Sparkles,
@@ -395,11 +396,28 @@ export default function GatheringsDirectory() {
   const isSegmentedView = selectedType === 'all' && !searchQuery.trim();
 
   return (
-    <div className="comm-app-container">
+    <>
       <Navbar />
 
       <main className="comm-root-container">
         <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+          {/* ── Back Navigation ── */}
+          <button
+            type="button"
+            className="comm-back-nav"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/community');
+              }
+            }}
+            id="btn-back-nav"
+            style={{ marginBottom: 14 }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+
           {/* ── Directory Header ── */}
           <header
             className="comm-header"
@@ -1006,6 +1024,6 @@ export default function GatheringsDirectory() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

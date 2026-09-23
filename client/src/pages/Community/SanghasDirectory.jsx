@@ -9,6 +9,7 @@ import {
   Users,
   MapPin,
   ArrowRight,
+  ArrowLeft,
   Sparkles,
   X,
   Compass,
@@ -369,6 +370,23 @@ export default function SanghasDirectory() {
 
       <main className="comm-root-container">
         <div style={{ maxWidth: 1140, margin: '0 auto' }}>
+          {/* ── Back Navigation ── */}
+          <button
+            type="button"
+            className="comm-back-nav"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/community');
+              }
+            }}
+            id="btn-back-nav"
+            style={{ marginBottom: 14 }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+
           {/* ── Directory Header ── */}
           <header
             className="comm-header"

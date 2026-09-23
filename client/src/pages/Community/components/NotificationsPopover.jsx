@@ -74,12 +74,34 @@ export default function NotificationsPopover() {
 
     setIsOpen(false);
 
-    // Route dynamically based on notification type
-    const targetSanghaId = n.sanghaId || (n.entityType === 'Sangha' ? n.entityId : null);
+    const actorUserId = n.actorId?._id || n.actorId;
+    const targetSanghaId =
+      (n.sanghaId && typeof n.sanghaId === 'object' ? n.sanghaId._id : n.sanghaId) ||
+      (n.entityType === 'Sangha' ? n.entityId : null);
+    const targetGatheringId =
+      (n.gatheringId && typeof n.gatheringId === 'object' ? n.gatheringId._id : n.gatheringId) ||
+      (n.entityType === 'SanghaEvent' ? n.entityId : null) ||
+      (n.type === 'gathering_rsvp' ? n.entityId : null);
 
-    if (n.type === 'join_request') {
+    const isGatheringJoinRequest =
+      (n.type === 'gathering_rsvp' && n.message && n.message.includes('requested to join')) ||
+      (n.message && n.message.includes('requested to join your sacred gathering'));
+
+    const isCircleJoinRequest =
+      n.type === 'join_request' ||
+      (n.message && n.message.includes('requested to join your circle'));
+
+    if (isGatheringJoinRequest) {
+      const userParam = actorUserId ? `&userId=${actorUserId}` : '';
+      if (targetGatheringId) {
+        navigate(`/community/gatherings/${targetGatheringId}?tab=requests${userParam}`);
+      } else {
+        navigate('/community/gatherings');
+      }
+    } else if (isCircleJoinRequest) {
+      const userParam = actorUserId ? `&userId=${actorUserId}` : '';
       if (targetSanghaId) {
-        navigate(`/community/circles/${targetSanghaId}?tab=requests`);
+        navigate(`/community/circles/${targetSanghaId}?tab=requests${userParam}`);
       } else {
         navigate('/community/circles');
       }
@@ -89,9 +111,13 @@ export default function NotificationsPopover() {
       } else {
         navigate('/community/circles');
       }
-    } else if (n.type === 'gathering_rsvp') {
-      if (n.entityId) {
-        navigate(`/community/gatherings/${n.entityId}`);
+    } else if (
+      n.type === 'gathering_rsvp' ||
+      n.entityType === 'SanghaEvent' ||
+      (n.message && n.message.includes('sacred gathering'))
+    ) {
+      if (targetGatheringId) {
+        navigate(`/community/gatherings/${targetGatheringId}`);
       } else {
         navigate('/community/gatherings');
       }
@@ -106,8 +132,17 @@ export default function NotificationsPopover() {
     }
   };
 
-  const getIcon = (type) => {
-    switch (type) {
+  const getIcon = (n) => {
+    if (
+      (n.type === 'gathering_rsvp' && n.message && n.message.includes('requested to join')) ||
+      (n.message && n.message.includes('requested to join your sacred gathering'))
+    ) {
+      return '🏔️';
+    }
+    if (n.type === 'join_request' || (n.message && n.message.includes('requested to join your circle'))) {
+      return '🛡️';
+    }
+    switch (n.type) {
       case 'kudos':
         return '🙏';
       case 'comment':
@@ -251,7 +286,7 @@ export default function NotificationsPopover() {
                   }}
                   className="comm-notification-item"
                 >
-                  <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: 2 }}>{getIcon(n.type)}</span>
+                  <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: 2 }}>{getIcon(n)}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: 'var(--comm-text-charcoal)', fontWeight: n.isRead ? 400 : 600 }}>
                       {n.message}
@@ -260,7 +295,10 @@ export default function NotificationsPopover() {
                       <span style={{ fontSize: '0.72rem', color: 'var(--comm-text-light)' }}>
                         {getRelativeTime(n.createdAt)}
                       </span>
-                      {n.type === 'join_request' && (
+                      {(n.type === 'join_request' ||
+                        (n.type === 'gathering_rsvp' && n.message && n.message.includes('requested to join')) ||
+                        (n.message && n.message.includes('requested to join your sacred gathering')) ||
+                        (n.message && n.message.includes('requested to join your circle'))) && (
                         <span style={{
                           fontSize: '0.72rem',
                           color: '#b85d36',

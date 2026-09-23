@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
@@ -32,6 +32,7 @@ import {
 export default function GatheringDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
   const [gathering, setGathering] = useState(null);
@@ -47,6 +48,7 @@ export default function GatheringDetail() {
 
   // Seeker Profile Modal state
   const [profileModalUserId, setProfileModalUserId] = useState(null);
+  const [profilePendingRequestId, setProfilePendingRequestId] = useState(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Chat state
@@ -82,6 +84,34 @@ export default function GatheringDetail() {
   useEffect(() => {
     fetchGathering();
   }, [id]);
+
+  // Synchronize activeTab and applicant modal from URL search params (e.g. ?tab=requests&userId=...)
+  useEffect(() => {
+    if (gathering) {
+      const tabParam = searchParams.get('tab');
+      const userParam = searchParams.get('userId');
+      const isHost =
+        gathering.isCreator ||
+        gathering.createdBy?._id === user?._id ||
+        gathering.createdBy === user?._id;
+
+      if (tabParam === 'requests' && isHost) {
+        setActiveTab('requests');
+      }
+
+      if (userParam && isHost) {
+        setProfileModalUserId(userParam);
+        const matchingReq = (gathering.joinRequests || []).find(
+          (r) =>
+            (r.userId?._id?.toString() === userParam || r.userId?.toString() === userParam) &&
+            r.status === 'pending'
+        );
+        if (matchingReq) {
+          setProfilePendingRequestId(matchingReq._id);
+        }
+      }
+    }
+  }, [gathering, searchParams, user?._id]);
 
   useEffect(() => {
     if (activeTab === 'chat' && (gathering?.isAttending || gathering?.isCreator)) {
@@ -242,10 +272,17 @@ export default function GatheringDetail() {
             <button
               type="button"
               className="comm-back-nav"
-              onClick={() => navigate('/community/gatherings')}
+              onClick={() => {
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate('/community/gatherings');
+                }
+              }}
               style={{ margin: 0 }}
+              id="btn-back-from-gathering-detail"
             >
-              <ArrowLeft size={16} /> Back to Gatherings Directory
+              <ArrowLeft size={16} /> Back
             </button>
 
             {gathering.sanghaId && (
@@ -1282,7 +1319,12 @@ export default function GatheringDetail() {
                       {/* Left: Applicant details (Clickable to view profile) */}
                       <div
                         style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', flex: 1, minWidth: 260 }}
-                        onClick={() => seeker._id && setProfileModalUserId(seeker._id)}
+                        onClick={() => {
+                          if (seeker._id) {
+                            setProfileModalUserId(seeker._id);
+                            setProfilePendingRequestId(reqItem._id);
+                          }
+                        }}
                         title="Click to view seeker's complete spiritual profile"
                       >
                         <div className="comm-post-avatar" style={{ width: 46, height: 46, fontSize: '0.95rem' }}>
@@ -1445,7 +1487,22 @@ export default function GatheringDetail() {
       <SeekerProfileModal
         userId={profileModalUserId}
         isOpen={Boolean(profileModalUserId)}
-        onClose={() => setProfileModalUserId(null)}
+        onClose={() => {
+          setProfileModalUserId(null);
+          setProfilePendingRequestId(null);
+        }}
+        pendingRequestId={profilePendingRequestId}
+        requestContext="gathering"
+        onApprove={async (reqId) => {
+          await handleReviewRequest(reqId, 'accepted');
+          setProfileModalUserId(null);
+          setProfilePendingRequestId(null);
+        }}
+        onDecline={async (reqId) => {
+          await handleReviewRequest(reqId, 'declined');
+          setProfileModalUserId(null);
+          setProfilePendingRequestId(null);
+        }}
         onOpenPrivacySettings={() => setShowPrivacyModal(true)}
       />
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../api';
-import { AlertCircle, Sun, Plus, Minus, Sparkles, X, Check } from 'lucide-react';
+import { AlertCircle, Sun, Plus, Minus, Sparkles, X, Check, ArrowLeft } from 'lucide-react';
 import { getPracticeIcon } from '../utils/practiceIcons';
 
 const DEFAULT_PRACTICES = [
@@ -213,6 +213,36 @@ export default function SelectPractices() {
       <div className="page">
         <div className="container-lg animate-in" style={{ maxWidth: 460, padding: '0 4px' }}>
           <div className="glass-card">
+            {/* Back button if editing */}
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.state && window.history.state.idx > 0) {
+                    navigate(-1);
+                  } else {
+                    navigate('/');
+                  }
+                }}
+                id="btn-back-nav"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#d9572b',
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  marginBottom: 12,
+                  padding: 0,
+                }}
+              >
+                <ArrowLeft size={16} /> Back
+              </button>
+            )}
+
             {/* Header */}
             <div className="brand" style={{ marginBottom: 16 }}>
               <div className="brand-icon" style={{ display: 'flex', justifyContent: 'center' }}>

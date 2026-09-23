@@ -174,6 +174,20 @@ export default function SanghaDetail() {
     }
   }, [sangha?._id, sangha?.isOwnerOrAdmin]);
 
+  // Synchronize applicant modal from URL search params (e.g. ?tab=requests&userId=...)
+  useEffect(() => {
+    const userParam = searchParams.get('userId');
+    if (userParam && requests.length > 0 && sangha?.isOwnerOrAdmin) {
+      setProfileModalUserId(userParam);
+      const match = requests.find(
+        (r) => r.userId?._id?.toString() === userParam || r.userId?.toString() === userParam
+      );
+      if (match) {
+        setProfilePendingRequestId(match._id);
+      }
+    }
+  }, [requests, searchParams, sangha?.isOwnerOrAdmin]);
+
   // Join/leave or cancel request handler
   const handleJoinToggle = async () => {
     if (!sangha?._id) return;
@@ -328,10 +342,16 @@ export default function SanghaDetail() {
           <button
             type="button"
             className="comm-back-nav"
-            onClick={() => navigate('/community/sanghas')}
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/community/circles');
+              }
+            }}
             id="btn-back-to-sanghas"
           >
-            <ArrowLeft size={16} /> Back to Sangha Directory
+            <ArrowLeft size={16} /> Back
           </button>
 
           {/* ── Sangha Hero Banner ── */}
@@ -1035,6 +1055,7 @@ export default function SanghaDetail() {
           setProfilePendingRequestId(null);
         }}
         pendingRequestId={profilePendingRequestId}
+        requestContext="circle"
         onApprove={(reqId) => handleRequestAction(reqId, 'approve')}
         onDecline={(reqId) => handleRequestAction(reqId, 'decline')}
         onOpenPrivacySettings={() => setShowPrivacyModal(true)}

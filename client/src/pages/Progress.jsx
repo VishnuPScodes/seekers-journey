@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { ArrowLeft } from 'lucide-react';
 import { PRACTICE_ICON_EMOJI as PRACTICE_ICONS } from '../utils/practiceIcons';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ function dotStyle(day) {
 
 export default function Progress() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedRange, setSelectedRange] = useState('30');
   const [reportData,    setReportData]    = useState(null);
   const [loading,       setLoading]       = useState(true);
@@ -116,6 +118,33 @@ export default function Progress() {
       <Navbar />
       <div className="page pi-page">
         <div className="pi-container" style={{ maxWidth: 760 }}>
+          {/* Back Navigation */}
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            id="btn-back-nav"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'transparent',
+              border: 'none',
+              color: '#d9572b',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              marginBottom: 14,
+              padding: 0,
+            }}
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
 
           {/* ── PAGE HEADER ── */}
           <div className="pi-header" style={{ marginBottom: 18 }}>

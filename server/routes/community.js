@@ -1342,9 +1342,10 @@ router.post('/gatherings/:id/request-join', auth, async (req, res) => {
       await CommunityNotification.create({
         recipientId: gathering.createdBy,
         actorId: userId,
-        type: 'sangha_join',
+        type: 'gathering_rsvp',
+        gatheringId: gathering._id,
         entityId: gathering._id,
-        entityType: 'Sangha',
+        entityType: 'SanghaEvent',
         message: `${req.user.name} requested to join your sacred gathering: ${gathering.title}`,
       });
     }
@@ -1430,9 +1431,10 @@ router.put('/gatherings/:id/requests/:requestId', auth, async (req, res) => {
       await CommunityNotification.create({
         recipientId: requestItem.userId,
         actorId: userId,
-        type: 'sangha_join',
+        type: 'gathering_rsvp',
+        gatheringId: gathering._id,
         entityId: gathering._id,
-        entityType: 'Sangha',
+        entityType: 'SanghaEvent',
         message: `Your request to join "${gathering.title}" has been accepted! See you there in sacred presence. 🙏`,
       });
     }
@@ -1555,9 +1557,10 @@ router.post('/events/:id/rsvp', auth, async (req, res) => {
             await CommunityNotification.create({
               recipientId: event.createdBy,
               actorId: userId,
-              type: 'sangha_join',
+              type: 'gathering_rsvp',
+              gatheringId: event._id,
               entityId: event._id,
-              entityType: 'Sangha',
+              entityType: 'SanghaEvent',
               message: `${req.user.name || 'A seeker'} requested to join your sacred gathering: ${event.title}`,
             });
           }
@@ -1590,11 +1593,37 @@ router.get('/notifications', auth, async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(25)
         .populate('actorId', 'name currentLevel')
+        .populate('sanghaId', 'name slug')
+        .populate('gatheringId', 'title')
         .lean(),
       CommunityNotification.countDocuments({ recipientId: userId, isRead: false }),
     ]);
 
-    res.json({ notifications, unreadCount });
+    // Backward-compatibility: enrich gathering notifications if missing gatheringId
+    const enriched = await Promise.all(
+      notifications.map(async (n) => {
+        if (
+          !n.gatheringId &&
+          !n.entityId &&
+          n.message &&
+          n.message.includes('requested to join your sacred gathering:')
+        ) {
+          const title = n.message.split('requested to join your sacred gathering:')[1]?.trim();
+          if (title) {
+            const ev = await SanghaEvent.findOne({ title }).select('_id').lean();
+            if (ev) {
+              n.gatheringId = ev;
+              n.entityId = ev._id;
+              n.entityType = 'SanghaEvent';
+              n.type = 'gathering_rsvp';
+            }
+          }
+        }
+        return n;
+      })
+    );
+
+    res.json({ notifications: enriched, unreadCount });
   } catch (error) {
     console.error('Fetch notifications error:', error);
     res.status(500).json({ message: 'Error fetching notifications', error: error.message });
