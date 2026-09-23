@@ -104,13 +104,15 @@ export default function SeekerProfileModal({
         className="comm-modal-card"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: 470,
+          maxWidth: 440,
           width: '100%',
-          background: '#fffdf9',
-          border: '1px solid rgba(196, 154, 69, 0.35)',
-          borderRadius: 24,
-          boxShadow: '0 20px 60px rgba(44, 38, 31, 0.28), 0 2px 8px rgba(44, 38, 31, 0.08)',
-          padding: '24px 26px',
+          minHeight: 'auto',
+          height: 'auto',
+          background: 'linear-gradient(180deg, #fdfaf2 0%, #f6efdc 100%)',
+          border: '1.5px solid rgba(217, 87, 43, 0.28)',
+          borderRadius: 20,
+          boxShadow: '0 20px 48px rgba(35, 26, 18, 0.32), 0 0 0 1px rgba(196, 154, 69, 0.2)',
+          padding: '16px 20px 16px',
           maxHeight: '90vh',
           overflowY: 'auto',
           position: 'relative',
@@ -122,27 +124,28 @@ export default function SeekerProfileModal({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: 20,
-            paddingBottom: 12,
-            borderBottom: '1px solid rgba(217, 87, 43, 0.1)',
+            marginBottom: 12,
+            paddingBottom: 8,
+            borderBottom: '1px solid rgba(217, 87, 43, 0.12)',
           }}
         >
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 5,
               fontSize: '0.72rem',
-              color: '#b85d36',
+              color: '#b4421b',
               fontWeight: 800,
               textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.06em',
               background: 'rgba(217, 87, 43, 0.08)',
-              padding: '3px 10px',
+              border: '1px solid rgba(217, 87, 43, 0.22)',
+              padding: '2px 8px',
               borderRadius: 12,
             }}
           >
-            <Sparkles size={13} color="#d9572b" />
+            <Sparkles size={12} color="#d9572b" />
             <span>Seeker Profile</span>
           </div>
 
@@ -151,41 +154,42 @@ export default function SeekerProfileModal({
             onClick={onClose}
             aria-label="Close profile modal"
             style={{
-              width: 32,
-              height: 32,
+              width: 28,
+              height: 28,
               borderRadius: '50%',
-              background: 'rgba(0, 0, 0, 0.04)',
+              background: 'transparent',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              color: '#8c7e6c',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.08)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.04)')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#d9572b')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#8c7e6c')}
           >
-            <X size={17} color="#6e6353" />
+            <X size={17} />
           </button>
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '52px 0' }}>
+          <div style={{ textAlign: 'center', padding: '36px 0' }}>
             <div
               className="spinner"
               style={{
-                width: 36,
-                height: 36,
-                margin: '0 auto 14px',
+                width: 30,
+                height: 30,
+                margin: '0 auto 10px',
                 borderColor: '#d9572b transparent #d9572b transparent',
               }}
             />
-            <p style={{ color: '#d9572b', fontSize: '0.9rem', fontWeight: 600 }}>
+            <p style={{ color: '#d9572b', fontSize: '0.84rem', fontWeight: 600, margin: 0 }}>
               Gathering seeker's consecrated presence...
             </p>
           </div>
         ) : error || !profile ? (
-          <div style={{ textAlign: 'center', padding: '36px 0', color: '#6e6353' }}>
+          <div style={{ textAlign: 'center', padding: '24px 0', color: '#6e6353' }}>
             <p>{error || 'Seeker details unavailable.'}</p>
           </div>
         ) : (
@@ -197,29 +201,29 @@ export default function SeekerProfileModal({
                 flexDirection: 'column',
                 alignItems: 'center',
                 textAlign: 'center',
-                paddingBottom: 20,
-                borderBottom: '1px solid rgba(217, 87, 43, 0.1)',
-                marginBottom: 20,
+                paddingBottom: 12,
+                borderBottom: '1px solid rgba(217, 87, 43, 0.12)',
+                marginBottom: 10,
               }}
             >
-              {/* Vibrant Consecrated Avatar */}
+              {/* Consecrated Avatar */}
               <div
                 style={{
-                  width: 76,
-                  height: 76,
+                  width: 54,
+                  height: 54,
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #d9572b 0%, #a23512 100%)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.8rem',
+                  fontSize: '1.35rem',
                   fontWeight: 800,
                   fontFamily: '"Cormorant Garamond", Georgia, serif',
-                  border: '3px solid #fffdf9',
-                  boxShadow: '0 0 0 3px rgba(217, 87, 43, 0.35), 0 8px 24px rgba(217, 87, 43, 0.3)',
+                  border: '2px solid #fffdf9',
+                  boxShadow: '0 0 0 2px rgba(217, 87, 43, 0.35), 0 4px 14px rgba(217, 87, 43, 0.25)',
                   letterSpacing: '1px',
-                  marginBottom: 12,
+                  marginBottom: 6,
                   position: 'relative',
                   userSelect: 'none',
                 }}
@@ -231,30 +235,30 @@ export default function SeekerProfileModal({
               <h2
                 style={{
                   fontFamily: '"Cormorant Garamond", Georgia, serif',
-                  fontSize: '1.65rem',
+                  fontSize: '1.35rem',
                   fontWeight: 700,
                   color: '#1e1b15',
-                  margin: '0 0 6px',
+                  margin: '0 0 4px',
                   lineHeight: 1.2,
                 }}
               >
                 {profile.name}{' '}
                 {profile.isSelf && (
-                  <span style={{ fontSize: '0.82rem', color: '#6e6353', fontWeight: 500 }}>(You)</span>
+                  <span style={{ fontSize: '0.78rem', color: '#6e6353', fontWeight: 500 }}>(You)</span>
                 )}
               </h2>
 
               {/* Level, Title & Location Pills */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <span
                   style={{
                     background: 'linear-gradient(135deg, rgba(196, 154, 69, 0.18), rgba(217, 87, 43, 0.12))',
                     border: '1px solid rgba(196, 154, 69, 0.4)',
                     color: '#8b6b1b',
                     fontWeight: 700,
-                    padding: '3px 10px',
-                    borderRadius: 20,
-                    fontSize: '0.76rem',
+                    padding: '2px 8px',
+                    borderRadius: 16,
+                    fontSize: '0.72rem',
                   }}
                 >
                   Level {profile.currentLevel} • {profile.levelTitle || 'Sadhak'}
@@ -263,111 +267,105 @@ export default function SeekerProfileModal({
                 {profile.city ? (
                   <span
                     style={{
-                      fontSize: '0.78rem',
+                      fontSize: '0.72rem',
                       color: '#6e6353',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
                       background: 'rgba(0,0,0,0.03)',
-                      padding: '3px 10px',
-                      borderRadius: 20,
+                      padding: '2px 8px',
+                      borderRadius: 16,
                       border: '1px solid rgba(0,0,0,0.06)',
                     }}
                   >
-                    <MapPin size={12} color="#d9572b" /> {profile.city}
+                    <MapPin size={11} color="#d9572b" /> {profile.city}
                   </span>
                 ) : (
                   <span
                     style={{
-                      fontSize: '0.74rem',
+                      fontSize: '0.7rem',
                       color: '#948674',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4,
+                      gap: 3,
                       background: 'rgba(0,0,0,0.03)',
-                      padding: '3px 10px',
-                      borderRadius: 20,
+                      padding: '2px 8px',
+                      borderRadius: 16,
                     }}
                   >
-                    <Lock size={11} /> Location Private
+                    <Lock size={10} /> Location Private
                   </span>
                 )}
               </div>
 
-              {/* Spiritual Bio / Sacred Intention */}
-              {profile.bio ? (
+              {/* Bio quote if present */}
+              {profile.bio && (
                 <div
                   style={{
-                    marginTop: 14,
-                    fontSize: '0.88rem',
-                    lineHeight: 1.5,
+                    marginTop: 8,
+                    fontSize: '0.78rem',
+                    lineHeight: 1.35,
                     color: '#3d3528',
                     fontStyle: 'italic',
-                    background: '#fbf5e6',
-                    borderLeft: '4px solid #d9572b',
+                    background: 'rgba(251, 245, 230, 0.75)',
                     border: '1px solid rgba(196, 154, 69, 0.28)',
-                    borderLeftWidth: 4,
-                    borderLeftColor: '#d9572b',
-                    padding: '10px 16px',
-                    borderRadius: 12,
-                    maxWidth: 400,
+                    borderLeft: '3px solid #d9572b',
+                    padding: '5px 12px',
+                    borderRadius: 8,
+                    maxWidth: 380,
                     textAlign: 'center',
                   }}
                 >
                   "{profile.bio}"
                 </div>
-              ) : (
-                <div style={{ marginTop: 10, fontSize: '0.78rem', color: '#948674' }}>
-                  🔒 Bio kept private by seeker
-                </div>
               )}
             </div>
 
             {/* Profile Attributes Sections */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Daily Sadhana Disciplines */}
               <div>
                 <div
                   style={{
-                    fontSize: '0.74rem',
+                    fontSize: '0.7rem',
                     fontWeight: 800,
                     color: '#6e6353',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    marginBottom: 8,
+                    letterSpacing: '0.05em',
+                    marginBottom: 4,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 5,
                   }}
                 >
-                  <Flower2 size={13} color="#4E6346" />
+                  <Flower2 size={11} color="#4E6346" />
                   <span>Daily Sadhana Practices</span>
                 </div>
 
                 {profile.selectedPractices && profile.selectedPractices.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {profile.selectedPractices.map((p, i) => (
                       <span
                         key={i}
                         style={{
-                          background: 'rgba(78, 99, 70, 0.1)',
-                          border: '1px solid rgba(78, 99, 70, 0.28)',
+                          background: 'rgba(78, 99, 70, 0.08)',
+                          border: '1px solid rgba(78, 99, 70, 0.25)',
                           color: '#34482e',
-                          fontSize: '0.8rem',
+                          fontSize: '0.74rem',
                           fontWeight: 600,
-                          padding: '4px 12px',
-                          borderRadius: 20,
+                          padding: '2px 8px',
+                          borderRadius: 14,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 5,
+                          gap: 4,
                         }}
                       >
-                        <Flower2 size={12} color="#4E6346" /> {p}
+                        <Flower2 size={10} color="#4E6346" /> {p}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.82rem', color: '#948674' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#948674' }}>
                     🔒 Practices kept private by seeker
                   </div>
                 )}
@@ -377,23 +375,23 @@ export default function SeekerProfileModal({
               <div>
                 <div
                   style={{
-                    fontSize: '0.74rem',
+                    fontSize: '0.7rem',
                     fontWeight: 800,
                     color: '#6e6353',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    marginBottom: 8,
+                    letterSpacing: '0.05em',
+                    marginBottom: 4,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 5,
                   }}
                 >
-                  <Shield size={13} color="#d9572b" />
+                  <Shield size={11} color="#d9572b" />
                   <span>Initiated Programs & Sadhana</span>
                 </div>
 
                 {profile.programs && profile.programs.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {profile.programs.map((prog, i) => (
                       <div
                         key={i}
@@ -401,24 +399,24 @@ export default function SeekerProfileModal({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '8px 12px',
-                          background: '#faf6eb',
-                          borderRadius: 10,
+                          padding: '5px 10px',
+                          background: 'rgba(255, 255, 255, 0.65)',
+                          borderRadius: 8,
                           border: '1px solid rgba(196, 154, 69, 0.22)',
-                          fontSize: '0.84rem',
+                          fontSize: '0.78rem',
                         }}
                       >
-                        <span style={{ fontWeight: 600, color: '#1e1b15', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Check size={14} color="#4E6346" strokeWidth={2.5} /> {prog.programName}
+                        <span style={{ fontWeight: 600, color: '#1e1b15', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <Check size={12} color="#4E6346" strokeWidth={2.5} /> {prog.programName}
                         </span>
                         <span
                           style={{
-                            fontSize: '0.74rem',
+                            fontSize: '0.7rem',
                             color: '#8b6b1b',
                             fontWeight: 700,
                             background: 'rgba(196, 154, 69, 0.12)',
-                            padding: '2px 8px',
-                            borderRadius: 8,
+                            padding: '1px 6px',
+                            borderRadius: 6,
                           }}
                         >
                           {prog.completionDate ? new Date(prog.completionDate).getFullYear() : 'Initiated'}
@@ -427,7 +425,7 @@ export default function SeekerProfileModal({
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.82rem', color: '#948674' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#948674' }}>
                     🔒 Programs kept private by seeker
                   </div>
                 )}
@@ -440,16 +438,16 @@ export default function SeekerProfileModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    background: 'linear-gradient(135deg, rgba(196, 154, 69, 0.12), rgba(217, 87, 43, 0.08))',
-                    borderRadius: 12,
-                    border: '1px solid rgba(196, 154, 69, 0.3)',
+                    padding: '7px 11px',
+                    background: 'linear-gradient(135deg, rgba(196, 154, 69, 0.1), rgba(217, 87, 43, 0.06))',
+                    borderRadius: 10,
+                    border: '1px solid rgba(196, 154, 69, 0.25)',
                   }}
                 >
-                  <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#8b6b1b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#8b6b1b', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span>🏔️</span> Sacred Pradakshina Count
                   </span>
-                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#d9572b' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#d9572b' }}>
                     {profile.pradakshinaCount} Rounds
                   </span>
                 </div>
@@ -460,12 +458,12 @@ export default function SeekerProfileModal({
             {pendingRequestId && onApprove && onDecline && (
               <div
                 style={{
-                  marginTop: 24,
-                  padding: '16px 18px',
-                  borderRadius: 16,
+                  marginTop: 10,
+                  padding: '10px 12px',
+                  borderRadius: 12,
                   background: 'linear-gradient(135deg, rgba(251, 245, 230, 0.95), rgba(247, 238, 216, 0.75))',
-                  border: '1px solid rgba(196, 154, 69, 0.4)',
-                  boxShadow: '0 4px 16px rgba(196, 154, 69, 0.12)',
+                  border: '1px solid rgba(196, 154, 69, 0.35)',
+                  boxShadow: '0 2px 8px rgba(196, 154, 69, 0.1)',
                   textAlign: 'center',
                 }}
               >
@@ -473,16 +471,16 @@ export default function SeekerProfileModal({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6,
-                    fontSize: '0.74rem',
+                    gap: 5,
+                    fontSize: '0.7rem',
                     fontWeight: 800,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
+                    letterSpacing: '0.05em',
                     color: '#92400e',
                     background: 'rgba(217, 119, 6, 0.12)',
-                    padding: '3px 10px',
-                    borderRadius: 12,
-                    marginBottom: 8,
+                    padding: '2px 7px',
+                    borderRadius: 8,
+                    marginBottom: 4,
                   }}
                 >
                   <span>⚡</span>
@@ -493,34 +491,33 @@ export default function SeekerProfileModal({
                   </span>
                 </div>
 
-                <p style={{ fontSize: '0.82rem', color: '#6e6353', margin: '0 0 14px', lineHeight: 1.4 }}>
+                <p style={{ fontSize: '0.75rem', color: '#6e6353', margin: '0 0 8px', lineHeight: 1.3 }}>
                   {isGathering
-                    ? 'Review seeker’s alignment and practices before confirming presence in the sacred convocation.'
-                    : 'Review seeker’s alignment and practices before blessing their entry into the circle.'}
+                    ? 'Review seeker’s alignment and practices before confirming presence.'
+                    : 'Review seeker’s alignment and practices before blessing entry.'}
                 </p>
 
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                   <button
                     type="button"
                     onClick={handleApprove}
                     disabled={acting}
-                    className="comm-btn-small"
                     style={{
                       background: 'linear-gradient(135deg, #4E6346 0%, #3d5236 100%)',
                       color: '#ffffff',
                       border: 'none',
-                      padding: '9px 22px',
-                      borderRadius: 24,
+                      padding: '6px 16px',
+                      borderRadius: 18,
                       fontWeight: 700,
-                      fontSize: '0.88rem',
+                      fontSize: '0.8rem',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 6,
+                      gap: 5,
                       cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(78, 99, 70, 0.3)',
+                      boxShadow: '0 2px 8px rgba(78, 99, 70, 0.25)',
                     }}
                   >
-                    <Check size={16} />
+                    <Check size={14} />
                     <span>{isGathering ? 'Approve Attendee 🙏' : 'Approve Seeker 🙏'}</span>
                   </button>
 
@@ -528,22 +525,21 @@ export default function SeekerProfileModal({
                     type="button"
                     onClick={handleDecline}
                     disabled={acting}
-                    className="comm-btn-small"
                     style={{
                       background: 'transparent',
                       color: '#6e6353',
-                      border: '1px solid rgba(110, 99, 83, 0.35)',
-                      padding: '9px 18px',
-                      borderRadius: 24,
-                      fontSize: '0.86rem',
+                      border: '1px solid rgba(110, 99, 83, 0.32)',
+                      padding: '6px 14px',
+                      borderRadius: 18,
+                      fontSize: '0.8rem',
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 5,
+                      gap: 4,
                     }}
                   >
-                    <X size={15} /> Decline
+                    <X size={13} /> Decline
                   </button>
                 </div>
               </div>

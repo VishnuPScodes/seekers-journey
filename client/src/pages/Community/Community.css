@@ -44,7 +44,9 @@
 
   --comm-shadow-card: 0 4px 18px rgba(44, 38, 31, 0.06), 0 1px 3px rgba(44, 38, 31, 0.04);
   --comm-shadow-hover: 0 8px 28px rgba(217, 87, 43, 0.12), 0 2px 8px rgba(44, 38, 31, 0.06);
+}
 
+.comm-root-container {
   font-family: var(--comm-font-sans);
   color: var(--comm-text-charcoal);
   min-height: 100vh;
@@ -1335,9 +1337,11 @@
   border-radius: var(--comm-radius-lg);
   max-width: 520px;
   width: 100%;
-  padding: 28px;
+  padding: 24px;
   box-shadow: 0 16px 40px rgba(30, 27, 21, 0.22);
   position: relative;
+  min-height: auto;
+  height: auto;
 }
 
 .comm-modal-header {
