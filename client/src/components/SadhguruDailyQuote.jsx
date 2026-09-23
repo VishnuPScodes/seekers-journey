@@ -2,6 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { Quote, Sparkles, ExternalLink } from 'lucide-react';
 import api from '../api';
 
+// ── Hand-Drawn Lotus & Flower Sketch Component (Artifact Style) ───────────────
+function HandDrawnFlowerSketch({ size = 76, color = '#d9572b', opacity = 0.85, style = {} }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: 'block', opacity, ...style }}
+    >
+      {/* Central blooming lotus petal */}
+      <path
+        d="M 50 14 C 44 30, 47 46, 50 56 C 53 46, 56 30, 50 14 Z"
+        stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="rgba(217, 87, 43, 0.08)"
+      />
+      {/* Mid lotus petals */}
+      <path
+        d="M 50 56 C 37 42, 27 32, 21 24 C 27 38, 37 48, 50 56 Z"
+        stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="rgba(217, 87, 43, 0.05)"
+      />
+      <path
+        d="M 50 56 C 63 42, 73 32, 79 24 C 73 38, 63 48, 50 56 Z"
+        stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="rgba(217, 87, 43, 0.05)"
+      />
+      {/* Outer lotus petals */}
+      <path
+        d="M 50 56 C 32 48, 14 45, 8 38 C 17 50, 33 57, 50 56 Z"
+        stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <path
+        d="M 50 56 C 68 48, 86 45, 92 38 C 83 50, 67 57, 50 56 Z"
+        stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"
+      />
+      {/* Base lotus stem flourish & water lines */}
+      <path d="M 18 64 C 34 70, 66 70, 82 64" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+      <path d="M 28 72 C 40 76, 60 76, 72 72" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+      {/* Dew drop & radiance particles */}
+      <circle cx="50" cy="8" r="1.5" fill={color} />
+      <circle cx="21" cy="18" r="1.2" fill={color} opacity="0.75" />
+      <circle cx="79" cy="18" r="1.2" fill={color} opacity="0.75" />
+      <circle cx="8" cy="34" r="1" fill={color} opacity="0.6" />
+      <circle cx="92" cy="34" r="1" fill={color} opacity="0.6" />
+    </svg>
+  );
+}
+
 export default function SadhguruDailyQuote() {
   const [quoteData, setQuoteData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,11 +77,11 @@ export default function SadhguruDailyQuote() {
       <div
         className="glass-card quote-skeleton-card animate-pulse"
         style={{
-          padding: '20px 24px',
-          marginBottom: 24,
-          borderRadius: 16,
-          background: 'linear-gradient(135deg, rgba(217, 87, 43, 0.08), rgba(184, 67, 27, 0.04))',
-          border: '1px solid rgba(217, 87, 43, 0.18)',
+          padding: '22px 26px',
+          marginBottom: 20,
+          borderRadius: 18,
+          background: 'linear-gradient(135deg, rgba(238, 226, 198, 0.7), rgba(245, 238, 222, 0.85))',
+          border: '1.5px solid rgba(217, 87, 43, 0.25)',
           minHeight: 110,
           display: 'flex',
           alignItems: 'center',
@@ -42,8 +89,8 @@ export default function SadhguruDailyQuote() {
           gap: 12
         }}
       >
-        <Sparkles size={18} className="animate-spin" style={{ color: '#d9572b', opacity: 0.6 }} />
-        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'system-ui, sans-serif' }}>
+        <Sparkles size={18} className="animate-spin" style={{ color: '#d9572b', opacity: 0.7 }} />
+        <span style={{ fontSize: 13, color: '#6e6454', fontFamily: 'system-ui, sans-serif', fontWeight: 600 }}>
           Fetching Daily Wisdom from Sadhguru...
         </span>
       </div>
@@ -61,7 +108,7 @@ export default function SadhguruDailyQuote() {
     <div
       className="sadhguru-quote-container animate-in"
       style={{
-        marginBottom: 24,
+        marginBottom: 20,
         position: 'relative',
         zIndex: 2,
       }}
@@ -72,39 +119,67 @@ export default function SadhguruDailyQuote() {
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 20,
-          padding: '24px 28px',
-          background: 'linear-gradient(135deg, rgba(42, 24, 18, 0.92) 0%, rgba(24, 15, 12, 0.96) 100%)',
-          boxShadow: '0 12px 36px rgba(217, 87, 43, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(217, 87, 43, 0.3)',
+          padding: '22px 26px',
+          background: 'linear-gradient(135deg, rgba(244, 234, 210, 0.94) 0%, rgba(238, 224, 192, 0.96) 100%)',
+          boxShadow: '0 10px 30px rgba(217, 87, 43, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+          border: '1.5px solid rgba(217, 87, 43, 0.35)',
           backdropFilter: 'blur(16px)',
         }}
       >
-        {/* Background glow & subtle accent */}
+        {/* Top-Right Decorative Flower Lotus Artwork (Artifact Hand-Drawn Style) */}
         <div
           style={{
             position: 'absolute',
-            top: '-40%',
-            right: '-10%',
-            width: '280px',
-            height: '280px',
-            background: 'radial-gradient(circle, rgba(217, 87, 43, 0.22) 0%, rgba(0, 0, 0, 0) 70%)',
+            top: -6,
+            right: 8,
+            pointerEvents: 'none',
+            opacity: 0.28,
+            transform: 'rotate(15deg)',
+          }}
+        >
+          <HandDrawnFlowerSketch size={92} color="#d9572b" />
+        </div>
+
+        {/* Bottom-Left Decorative Flower Flourish */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: -16,
+            left: -12,
+            pointerEvents: 'none',
+            opacity: 0.18,
+            transform: 'rotate(-40deg) scaleX(-1)',
+          }}
+        >
+          <HandDrawnFlowerSketch size={84} color="#d9572b" />
+        </div>
+
+        {/* Radial warm orange ambient background glow */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-30%',
+            right: '-5%',
+            width: '240px',
+            height: '240px',
+            background: 'radial-gradient(circle, rgba(217, 87, 43, 0.14) 0%, rgba(0, 0, 0, 0) 70%)',
             pointerEvents: 'none',
             borderRadius: '50%',
           }}
         />
 
-        <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Quote Image thumbnail if available */}
+        <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+          {/* Quote Image thumbnail with orange/gold halo */}
           {quote.imageUrl && (
             <div
               style={{
-                width: 76,
-                height: 76,
+                width: 74,
+                height: 74,
                 borderRadius: '50%',
                 overflow: 'hidden',
                 flexShrink: 0,
-                border: '2px solid rgba(229, 169, 60, 0.6)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+                border: '2px solid #d9572b',
+                boxShadow: '0 4px 14px rgba(217, 87, 43, 0.28), 0 0 0 3px rgba(217, 87, 43, 0.12)',
               }}
             >
               <img
@@ -115,27 +190,25 @@ export default function SadhguruDailyQuote() {
             </div>
           )}
 
-          {/* Quote Text & Info */}
+          {/* Quote Text & Attribution */}
           <div style={{ flex: 1, minWidth: 220 }}>
-            {/* Quote Body */}
-
-            <div style={{ position: 'relative', paddingLeft: 22, marginTop: 6 }}>
+            <div style={{ position: 'relative', paddingLeft: 22 }}>
               <Quote
                 size={16}
                 style={{
                   position: 'absolute',
                   left: 0,
                   top: 2,
-                  color: '#e5a93c',
-                  opacity: 0.7,
+                  color: '#d9572b',
+                  opacity: 0.85,
                   transform: 'scaleX(-1)',
                 }}
               />
               <p
                 style={{
-                  fontSize: 15,
+                  fontSize: 16,
                   lineHeight: 1.55,
-                  color: '#fceee6',
+                  color: '#3e382d',
                   fontFamily: '"Cormorant Garamond", Georgia, serif',
                   fontWeight: 600,
                   letterSpacing: '0.2px',
@@ -148,14 +221,18 @@ export default function SadhguruDailyQuote() {
               <div
                 style={{
                   marginTop: 6,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 700,
-                  color: '#e5a93c',
+                  color: '#d9572b',
                   textAlign: 'right',
-                  fontFamily: 'system-ui, sans-serif',
+                  fontFamily: '"Inter", system-ui, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'flex-end',
+                  gap: 6,
                 }}
               >
-                — Sadhguru
+                <span>— Sadhguru</span>
               </div>
             </div>
           </div>
