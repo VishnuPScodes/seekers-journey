@@ -28,7 +28,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
+// ─── API Routes (Standard /api prefix) ────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/sadhana', sadhanaRoutes);
@@ -37,6 +37,17 @@ app.use('/api/journey', journeyRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/community', communityRoutes);
+
+// ─── Fallback Alias Routes (Gracefully handles requests missing /api) ──────────
+app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
+app.use('/sadhana', sadhanaRoutes);
+app.use('/life', lifeRoutes);
+app.use('/journey', journeyRoutes);
+app.use('/insights', insightsRoutes);
+app.use('/admin', adminRoutes);
+app.use('/community', communityRoutes);
+
 
 // ─── Health Checks & Root Route ───────────────────────────────────────────────
 const healthCheck = (req, res) => {

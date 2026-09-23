@@ -2,9 +2,17 @@ import axios from 'axios';
 
 // Normalize baseURL: strip trailing slashes and ensure it ends with /api
 const getBaseURL = () => {
-  let raw = (import.meta.env.VITE_API_URL || '/api').trim();
-  raw = raw.replace(/\/+$/, '');
-  return raw.endsWith('/api') ? raw : `${raw}/api`;
+  let envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (!envUrl) {
+    return '/api';
+  }
+  // Strip trailing slashes
+  envUrl = envUrl.replace(/\/+$/, '');
+  // Ensure it ends with /api
+  if (!envUrl.endsWith('/api')) {
+    envUrl = `${envUrl}/api`;
+  }
+  return envUrl;
 };
 
 const api = axios.create({
@@ -12,8 +20,18 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT token to every request (with graceful admin token isolation)
+// Interceptor: ensure baseURL has /api and attach JWT auth headers
 api.interceptors.request.use((config) => {
+  // Ensure config.baseURL is properly normalized
+  if (config.baseURL) {
+    let base = config.baseURL.trim().replace(/\/+$/, '');
+    if (!base.endsWith('/api') && !base.includes('/api/')) {
+      config.baseURL = `${base}/api`;
+    } else {
+      config.baseURL = base;
+    }
+  }
+
   const isAdminReq = config.url && config.url.includes('/admin');
 
   if (isAdminReq) {
