@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
+const UserProgram = require('../models/UserProgram');
 const SadhanaLog = require('../models/SadhanaLog');
 const JourneyEvent = require('../models/JourneyEvent');
 const { scoreToLevel, calculateSadhanaScore } = require('../utils/scoring');
@@ -368,6 +370,122 @@ router.post('/pebble-positions', auth, async (req, res) => {
   } catch (err) {
     console.error('Save pebble positions error:', err);
     res.status(500).json({ message: 'Server error saving pebble positions' });
+  }
+});
+
+// ─── PRIVACY SETTINGS & PUBLIC SEEKER PROFILE ────────────────────────────────
+
+// GET /api/user/privacy — Fetch current user's privacy settings and bio
+router.get('/privacy', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('privacySettings bio originStoryText');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.json({
+      privacySettings: user.privacySettings || {
+        showCity: true,
+        showPractices: true,
+        showPrograms: true,
+        showPradakshinaCount: true,
+        showBio: true,
+      },
+      bio: user.bio || user.originStoryText || '',
+    });
+  } catch (err) {
+    console.error('Fetch privacy error:', err);
+    res.status(500).json({ message: 'Server error fetching privacy settings' });
+  }
+});
+
+// PUT /api/user/privacy — Update current user's privacy settings and bio
+router.put('/privacy', auth, async (req, res) => {
+  try {
+    const { privacySettings, bio } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (privacySettings && typeof privacySettings === 'object') {
+      user.privacySettings = {
+        showCity: privacySettings.showCity !== false,
+        showPractices: privacySettings.showPractices !== false,
+        showPrograms: privacySettings.showPrograms !== false,
+        showPradakshinaCount: privacySettings.showPradakshinaCount !== false,
+        showBio: privacySettings.showBio !== false,
+      };
+    }
+
+    if (typeof bio === 'string') {
+      user.bio = bio.trim();
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Sacred privacy settings saved successfully',
+      privacySettings: user.privacySettings,
+      bio: user.bio,
+    });
+  } catch (err) {
+    console.error('Update privacy error:', err);
+    res.status(500).json({ message: 'Server error updating privacy settings' });
+  }
+});
+
+// GET /api/user/:id/public — Fetch seeker profile with only what they made public
+router.get('/:id/public', auth, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ message: 'Invalid seeker ID' });
+    }
+
+    const targetUser = await User.findById(targetId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Seeker profile not found' });
+    }
+
+    const p = targetUser.privacySettings || {};
+    const isSelf = req.user._id.toString() === targetId.toString();
+
+    // Query programs if public or viewing own profile
+    let programs = [];
+    if (p.showPrograms !== false || isSelf) {
+      programs = await UserProgram.find({
+        userId: targetId,
+        status: { $in: ['completed', 'in_progress'] },
+      })
+        .select('programName programId status completionDate location')
+        .sort({ completionDate: -1 })
+        .lean();
+    }
+
+    // Level Title progression
+    const level = targetUser.currentLevel || 1;
+    let levelTitle = 'Sadhak';
+    if (level >= 21) levelTitle = 'Ishanga';
+    else if (level >= 14) levelTitle = 'Brahmachari';
+    else if (level >= 7) levelTitle = 'Yogi';
+    else if (level >= 3) levelTitle = 'Practitioner';
+
+    res.json({
+      seeker: {
+        _id: targetUser._id,
+        name: targetUser.name,
+        currentLevel: level,
+        levelTitle,
+        city: (p.showCity !== false || isSelf) ? (targetUser.city || 'India') : null,
+        selectedPractices: (p.showPractices !== false || isSelf) ? (targetUser.selectedPractices || []) : [],
+        pradakshinaCount: (p.showPradakshinaCount !== false || isSelf) ? (targetUser.pradakshinaCount || 0) : null,
+        bio: (p.showBio !== false || isSelf) ? (targetUser.bio || targetUser.originStoryText || targetUser.initialMotivation || '') : null,
+        programs,
+        privacySettings: targetUser.privacySettings || {},
+        isSelf,
+      },
+    });
+  } catch (err) {
+    console.error('Public seeker profile error:', err);
+    res.status(500).json({ message: 'Server error retrieving seeker profile' });
   }
 });
 

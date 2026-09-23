@@ -6,6 +6,7 @@ const Comment = require('./Comment');
 const Kudos = require('./Kudos');
 const SanghaEvent = require('./SanghaEvent');
 const GatheringChatMessage = require('./GatheringChatMessage');
+const SanghaChatMessage = require('./SanghaChatMessage');
 const CommunityNotification = require('./CommunityNotification');
 
 module.exports = {
@@ -17,5 +18,6 @@ module.exports = {
   Kudos,
   SanghaEvent,
   GatheringChatMessage,
+  SanghaChatMessage,
   CommunityNotification,
 };

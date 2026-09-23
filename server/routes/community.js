@@ -12,6 +12,7 @@ const {
   Kudos,
   SanghaEvent,
   GatheringChatMessage,
+  SanghaChatMessage,
   CommunityNotification,
 } = require('../models/community');
 const User = require('../models/User');
@@ -31,6 +32,21 @@ router.get('/feed', auth, async (req, res) => {
     let query = { status: 'active' };
 
     if (sanghaId && mongoose.Types.ObjectId.isValid(sanghaId)) {
+      const activeMembership = await SanghaMembership.findOne({
+        sanghaId,
+        userId,
+        status: 'active',
+      });
+      const targetSangha = await Sangha.findById(sanghaId);
+      const isCreator = targetSangha?.createdBy && targetSangha.createdBy.toString() === userId.toString();
+
+      if (!activeMembership && !isCreator) {
+        return res.status(403).json({
+          message: 'Circle reflections are sacred and visible only to approved circle members',
+          feed: [],
+          total: 0,
+        });
+      }
       query.sanghaId = sanghaId;
     } else if (tab === 'following') {
       // Find who the current user follows
@@ -354,7 +370,7 @@ router.post('/follow/:targetUserId', auth, async (req, res) => {
   }
 });
 
-// ─── 7. SANGHAS: Join or Leave a Sangha ───────────────────────────────────────
+// ─── 7. SANGHAS: Join or Leave a Sangha (with Creator Approval) ─────────────
 router.post('/sanghas/:id/join', auth, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -372,40 +388,230 @@ router.post('/sanghas/:id/join', auth, async (req, res) => {
     const existingMembership = await SanghaMembership.findOne({ sanghaId, userId });
 
     if (existingMembership) {
-      // Leave Sangha
-      await SanghaMembership.deleteOne({ _id: existingMembership._id });
-      const updatedSangha = await Sangha.findByIdAndUpdate(
-        sanghaId,
-        { $inc: { membersCount: -1 } },
-        { new: true }
-      );
-      return res.json({
-        isMember: false,
-        membersCount: Math.max(1, updatedSangha ? updatedSangha.membersCount : 1),
-        message: 'Left Sangha',
-      });
+      if (existingMembership.status === 'active') {
+        // Leave Sangha
+        await SanghaMembership.deleteOne({ _id: existingMembership._id });
+        const updatedSangha = await Sangha.findByIdAndUpdate(
+          sanghaId,
+          { $inc: { membersCount: -1 } },
+          { new: true }
+        );
+        return res.json({
+          isMember: false,
+          membershipStatus: null,
+          membersCount: Math.max(1, updatedSangha ? updatedSangha.membersCount : 1),
+          message: 'Left Sangha',
+        });
+      } else {
+        // Cancel pending/declined request
+        await SanghaMembership.deleteOne({ _id: existingMembership._id });
+        return res.json({
+          isMember: false,
+          membershipStatus: null,
+          membersCount: sangha.membersCount,
+          message: 'Join request canceled',
+        });
+      }
     } else {
-      // Join Sangha
-      await SanghaMembership.create({
+      // Check if creator or public circle
+      const isCreator = sangha.createdBy && sangha.createdBy.toString() === userId.toString();
+      const isPublic = sangha.visibility === 'public' && sangha.joinPolicy !== 'request';
+      const status = (isCreator || isPublic) ? 'active' : 'pending';
+      const role = isCreator ? 'owner' : 'member';
+
+      const newMembership = await SanghaMembership.create({
         sanghaId,
         userId,
-        role: 'member',
-        status: 'active',
+        role,
+        status,
       });
-      const updatedSangha = await Sangha.findByIdAndUpdate(
-        sanghaId,
-        { $inc: { membersCount: 1 } },
-        { new: true }
-      );
-      return res.json({
-        isMember: true,
-        membersCount: updatedSangha ? updatedSangha.membersCount : 1,
-        message: 'Joined Sangha',
-      });
+
+      if (status === 'active') {
+        const updatedSangha = await Sangha.findByIdAndUpdate(
+          sanghaId,
+          { $inc: { membersCount: 1 } },
+          { new: true }
+        );
+        return res.json({
+          isMember: true,
+          membershipStatus: 'active',
+          membersCount: updatedSangha ? updatedSangha.membersCount : 1,
+          message: 'Joined Sangha',
+        });
+      } else {
+        // Notify Sangha creator
+        if (sangha.createdBy) {
+          await CommunityNotification.create({
+            recipientId: sangha.createdBy,
+            actorId: userId,
+            type: 'join_request',
+            sanghaId,
+            message: `${req.user.name || 'A seeker'} has requested to join your circle: "${sangha.name}"`,
+          });
+        }
+        return res.json({
+          isMember: false,
+          membershipStatus: 'pending',
+          membersCount: sangha.membersCount,
+          message: 'Join request submitted for approval',
+        });
+      }
     }
   } catch (error) {
     console.error('Sangha join error:', error);
     res.status(500).json({ message: 'Error toggling Sangha membership', error: error.message });
+  }
+});
+
+// GET /api/community/sanghas/:id/requests (or pending-requests) — Pending join requests
+router.get(['/sanghas/:id/requests', '/sanghas/:id/pending-requests'], auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const sanghaId = req.params.id;
+
+    const sangha = await Sangha.findById(sanghaId);
+    if (!sangha) return res.status(404).json({ message: 'Sangha not found' });
+
+    const isCreator = sangha.createdBy && sangha.createdBy.toString() === userId.toString();
+    const adminMembership = await SanghaMembership.findOne({
+      sanghaId,
+      userId,
+      role: { $in: ['owner', 'admin'] },
+      status: 'active',
+    });
+
+    if (!isCreator && !adminMembership) {
+      return res.status(403).json({ message: 'Only Circle creators and admins can view join requests' });
+    }
+
+    const requests = await SanghaMembership.find({ sanghaId, status: 'pending' })
+      .populate('userId', 'name currentLevel city email selectedPractices')
+      .sort({ createdAt: -1 });
+
+    res.json({ requests });
+  } catch (error) {
+    console.error('Fetch sangha requests error:', error);
+    res.status(500).json({ message: 'Error fetching join requests', error: error.message });
+  }
+});
+
+// PUT /api/community/sanghas/:id/requests/:membershipId — Approve or decline join request
+router.put('/sanghas/:id/requests/:membershipId', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id: sanghaId, membershipId } = req.params;
+    const { action } = req.body; // 'approve' | 'decline'
+
+    const sangha = await Sangha.findById(sanghaId);
+    if (!sangha) return res.status(404).json({ message: 'Sangha not found' });
+
+    const isCreator = sangha.createdBy && sangha.createdBy.toString() === userId.toString();
+    const adminMembership = await SanghaMembership.findOne({
+      sanghaId,
+      userId,
+      role: { $in: ['owner', 'admin'] },
+      status: 'active',
+    });
+
+    if (!isCreator && !adminMembership) {
+      return res.status(403).json({ message: 'Only Circle creators and admins can review join requests' });
+    }
+
+    const membership = await SanghaMembership.findById(membershipId);
+    if (!membership || membership.sanghaId.toString() !== sanghaId) {
+      return res.status(404).json({ message: 'Join request not found' });
+    }
+
+    if (action === 'approve') {
+      membership.status = 'active';
+      await membership.save();
+      await Sangha.findByIdAndUpdate(sanghaId, { $inc: { membersCount: 1 } });
+
+      // Notify the seeker
+      await CommunityNotification.create({
+        recipientId: membership.userId,
+        actorId: userId,
+        type: 'join_approved',
+        sanghaId,
+        message: `Your request to join "${sangha.name}" was lovingly approved 🙏 Welcome to the circle!`,
+      });
+
+      return res.json({ message: 'Join request approved', status: 'active', membership });
+    } else {
+      membership.status = 'declined';
+      await membership.save();
+      return res.json({ message: 'Join request declined', status: 'declined', membership });
+    }
+  } catch (error) {
+    console.error('Review sangha request error:', error);
+    res.status(500).json({ message: 'Error reviewing request', error: error.message });
+  }
+});
+
+// GET /api/community/sanghas/:id/messages — In-circle chat stream for active members
+router.get('/sanghas/:id/messages', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const sanghaId = req.params.id;
+
+    const membership = await SanghaMembership.findOne({
+      sanghaId,
+      userId,
+      status: 'active',
+    });
+
+    if (!membership) {
+      return res.status(403).json({ message: 'Only confirmed members can enter the Circle Chat Sanctuary' });
+    }
+
+    const messages = await SanghaChatMessage.find({ sanghaId })
+      .sort({ createdAt: 1 })
+      .limit(60)
+      .populate('senderId', 'name currentLevel')
+      .lean();
+
+    res.json({ messages });
+  } catch (error) {
+    console.error('Fetch circle messages error:', error);
+    res.status(500).json({ message: 'Error fetching circle messages', error: error.message });
+  }
+});
+
+// POST /api/community/sanghas/:id/messages — Send chat message in Circle Sanctuary
+router.post('/sanghas/:id/messages', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const sanghaId = req.params.id;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Message content is required' });
+    }
+
+    const membership = await SanghaMembership.findOne({
+      sanghaId,
+      userId,
+      status: 'active',
+    });
+
+    if (!membership) {
+      return res.status(403).json({ message: 'Only confirmed members can send messages in the Circle Chat Sanctuary' });
+    }
+
+    const msg = await SanghaChatMessage.create({
+      sanghaId,
+      senderId: userId,
+      content: content.trim(),
+    });
+
+    const populated = await SanghaChatMessage.findById(msg._id)
+      .populate('senderId', 'name currentLevel')
+      .lean();
+
+    res.status(201).json({ message: populated });
+  } catch (error) {
+    console.error('Send circle message error:', error);
+    res.status(500).json({ message: 'Error posting circle message', error: error.message });
   }
 });
 
@@ -599,35 +805,71 @@ router.get('/sanghas', auth, async (req, res) => {
       query.$or = [{ name: searchRegex }, { tagline: searchRegex }, { location: searchRegex }];
     }
 
-    // Get current seeker's joined sanghas
+    // Get current seeker's memberships (active & pending)
     const memberships = await SanghaMembership.find({
       userId,
-      status: 'active',
-    }).select('sanghaId role');
+    }).select('sanghaId role status');
 
     const membershipMap = new Map(
-      memberships.map((m) => [m.sanghaId.toString(), m.role])
+      memberships.map((m) => [m.sanghaId.toString(), m])
     );
 
     if (my === 'true') {
-      query._id = { $in: Array.from(membershipMap.keys()) };
-      delete query.visibility; // Show even private if user is a member
+      const activeIds = memberships.filter(m => m.status === 'active').map(m => m.sanghaId);
+      query._id = { $in: activeIds };
+      delete query.visibility;
     }
 
     const sanghas = await Sangha.find(query)
       .sort({ isFeatured: -1, membersCount: -1, createdAt: -1 })
       .lean();
 
-    const enriched = sanghas.map((s) => ({
-      ...s,
-      isMember: membershipMap.has(s._id.toString()),
-      userRole: membershipMap.get(s._id.toString()) || null,
-    }));
+    const ownerSanghaIds = sanghas
+      .filter((s) => (s.createdBy && s.createdBy.toString() === userId.toString()) || membershipMap.get(s._id.toString())?.role === 'owner')
+      .map((s) => s._id);
+
+    let pendingCountsMap = {};
+    if (ownerSanghaIds.length > 0) {
+      const pendingCounts = await SanghaMembership.aggregate([
+        { $match: { sanghaId: { $in: ownerSanghaIds }, status: 'pending' } },
+        { $group: { _id: '$sanghaId', count: { $sum: 1 } } }
+      ]);
+      pendingCounts.forEach(p => {
+        pendingCountsMap[p._id.toString()] = p.count;
+      });
+    }
+
+    const enriched = sanghas.map((s) => {
+      const m = membershipMap.get(s._id.toString());
+      const isOwner = (s.createdBy && s.createdBy.toString() === userId.toString()) || (m && m.role === 'owner');
+      const isPrivateCircle = s.visibility === 'private' || s.joinPolicy === 'request';
+      return {
+        ...s,
+        isMember: m?.status === 'active',
+        membershipStatus: m ? m.status : null,
+        userRole: m ? m.role : null,
+        isOwner,
+        isPrivateCircle,
+        pendingRequestsCount: isOwner ? (pendingCountsMap[s._id.toString()] || 0) : 0,
+      };
+    });
 
     res.json({ sanghas: enriched });
   } catch (error) {
     console.error('Sanghas directory error:', error);
     res.status(500).json({ message: 'Error fetching sanghas directory', error: error.message });
+  }
+});
+
+// POST /api/community/notifications/:id/read — Mark single notification as read
+router.post('/notifications/:id/read', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    await CommunityNotification.updateOne({ _id: req.params.id, recipientId: userId }, { isRead: true });
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Mark single read error:', error);
+    res.status(500).json({ message: 'Error updating notification', error: error.message });
   }
 });
 
@@ -655,14 +897,20 @@ router.get('/sanghas/:idOrSlug', auth, async (req, res) => {
     const membership = await SanghaMembership.findOne({
       sanghaId: sangha._id,
       userId,
-      status: 'active',
     });
+
+    const isOwnerOrAdmin = (sangha.createdBy && sangha.createdBy._id?.toString() === userId.toString()) ||
+      (membership && ['owner', 'admin'].includes(membership.role));
+    const isPrivateCircle = sangha.visibility === 'private' || sangha.joinPolicy === 'request';
 
     res.json({
       sangha: {
         ...sangha,
-        isMember: !!membership,
+        isMember: membership?.status === 'active',
+        membershipStatus: membership ? membership.status : null,
         userRole: membership ? membership.role : null,
+        isOwnerOrAdmin,
+        isPrivateCircle,
       },
     });
   } catch (error) {
@@ -678,10 +926,28 @@ router.get('/sanghas/:idOrSlug/members', auth, async (req, res) => {
     const { idOrSlug } = req.params;
 
     let sanghaId = idOrSlug;
+    let sanghaDoc;
     if (!mongoose.Types.ObjectId.isValid(idOrSlug)) {
-      const s = await Sangha.findOne({ slug: idOrSlug.toLowerCase() }).select('_id');
-      if (!s) return res.status(404).json({ message: 'Sangha not found' });
-      sanghaId = s._id;
+      sanghaDoc = await Sangha.findOne({ slug: idOrSlug.toLowerCase() });
+      if (!sanghaDoc) return res.status(404).json({ message: 'Sangha not found' });
+      sanghaId = sanghaDoc._id;
+    } else {
+      sanghaDoc = await Sangha.findById(sanghaId);
+      if (!sanghaDoc) return res.status(404).json({ message: 'Sangha not found' });
+    }
+
+    const activeMembership = await SanghaMembership.findOne({
+      sanghaId,
+      userId,
+      status: 'active',
+    });
+    const isCreator = sanghaDoc.createdBy && sanghaDoc.createdBy.toString() === userId.toString();
+
+    if (!activeMembership && !isCreator) {
+      return res.status(403).json({
+        message: 'Only approved circle members can view fellow seekers in this circle',
+        members: [],
+      });
     }
 
     const memberships = await SanghaMembership.find({
@@ -734,7 +1000,11 @@ router.post('/sanghas', auth, async (req, res) => {
       location = '',
       joinPolicy = 'open',
       visibility = 'public',
+      isPrivate,
     } = req.body;
+
+    const finalVisibility = isPrivate === true || visibility === 'private' ? 'private' : 'public';
+    const finalJoinPolicy = isPrivate === true || joinPolicy === 'request' || visibility === 'private' ? 'request' : 'open';
 
     if (!name || !name.trim()) {
       return res.status(400).json({ message: 'Sangha name is required.' });
@@ -760,8 +1030,8 @@ router.post('/sanghas', auth, async (req, res) => {
       description: description.trim(),
       type,
       location: location.trim(),
-      joinPolicy,
-      visibility,
+      joinPolicy: finalJoinPolicy,
+      visibility: finalVisibility,
       createdBy: userId,
       membersCount: 1,
       postsCount: 0,
@@ -867,11 +1137,16 @@ const handleGetGatherings = async (req, res) => {
       const isAttending = (ev.attendees || []).some((id) => id.toString() === userId.toString());
       const isCreator = ev.createdBy?._id?.toString() === userId.toString();
       const myReq = (ev.joinRequests || []).find((r) => r.userId?.toString() === userId.toString());
+      const pendingRequestsCount = isCreator
+        ? (ev.joinRequests || []).filter((r) => r.status === 'pending').length
+        : 0;
 
       return {
         ...ev,
         isAttending,
         isCreator,
+        isOwner: isCreator,
+        pendingRequestsCount,
         myJoinRequest: myReq ? { status: myReq.status, requestedAt: myReq.requestedAt, note: myReq.note } : null,
       };
     });
@@ -887,14 +1162,15 @@ router.get('/gatherings', auth, handleGetGatherings);
 router.get('/events', auth, handleGetGatherings);
 
 // GET /api/community/gatherings/:id — Get detailed gathering view
-router.get('/gatherings/:id', auth, async (req, res) => {
+// GET /api/community/gatherings/:id (or /events/:id) — Dedicated Gathering Detail Page
+router.get(['/gatherings/:id', '/events/:id'], auth, async (req, res) => {
   try {
     const userId = req.user._id;
     const gathering = await SanghaEvent.findById(req.params.id)
       .populate('sanghaId', 'name slug type')
       .populate('createdBy', 'name email currentLevel')
-      .populate('attendees', 'name email currentLevel')
-      .populate('joinRequests.userId', 'name email currentLevel')
+      .populate('attendees', 'name email currentLevel city selectedPractices bio')
+      .populate('joinRequests.userId', 'name email currentLevel city selectedPractices bio')
       .lean();
 
     if (!gathering) {
@@ -1044,6 +1320,40 @@ router.post('/gatherings/:id/request-join', auth, async (req, res) => {
   }
 });
 
+// POST /api/community/gatherings/:id/leave — Withdraw request or cancel attendance
+router.post('/gatherings/:id/leave', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const gathering = await SanghaEvent.findById(req.params.id);
+    if (!gathering) return res.status(404).json({ message: 'Gathering not found' });
+
+    // Remove from attendees if present
+    const wasAttending = gathering.attendees.some((id) => id.toString() === userId.toString());
+    if (wasAttending) {
+      gathering.attendees = gathering.attendees.filter((id) => id.toString() !== userId.toString());
+      gathering.attendeesCount = Math.max(0, (gathering.attendeesCount || 1) - 1);
+    }
+
+    // Remove any join requests from user
+    gathering.joinRequests = (gathering.joinRequests || []).filter(
+      (r) => r.userId.toString() !== userId.toString()
+    );
+
+    await gathering.save();
+
+    res.json({
+      success: true,
+      isAttending: false,
+      myJoinRequest: null,
+      attendeesCount: gathering.attendeesCount,
+      message: wasAttending ? 'Attendance canceled.' : 'Join request withdrawn.',
+    });
+  } catch (error) {
+    console.error('Leave gathering error:', error);
+    res.status(500).json({ message: 'Error updating attendance', error: error.message });
+  }
+});
+
 // PUT /api/community/gatherings/:id/requests/:requestId — Host accepts or declines join request
 router.put('/gatherings/:id/requests/:requestId', auth, async (req, res) => {
   try {
@@ -1183,10 +1493,47 @@ router.post('/events/:id/rsvp', auth, async (req, res) => {
       await event.save();
       return res.json({ isAttending: false, attendeesCount: event.attendeesCount });
     } else {
-      event.attendees.push(userId);
-      event.attendeesCount = (event.attendeesCount || 0) + 1;
-      await event.save();
-      return res.json({ isAttending: true, attendeesCount: event.attendeesCount });
+      // Check if requires host approval
+      if (event.requiresApproval && event.createdBy.toString() !== userId.toString()) {
+        const existingReqIndex = (event.joinRequests || []).findIndex(
+          (r) => r.userId.toString() === userId.toString()
+        );
+        if (existingReqIndex >= 0) {
+          // Cancel pending request
+          event.joinRequests.splice(existingReqIndex, 1);
+          await event.save();
+          return res.json({ isAttending: false, myJoinRequest: null, message: 'Request withdrawn' });
+        } else {
+          // Submit request
+          event.joinRequests.push({
+            userId,
+            status: 'pending',
+            requestedAt: new Date(),
+            note: 'RSVP from community dashboard',
+          });
+          await event.save();
+          if (event.createdBy) {
+            await CommunityNotification.create({
+              recipientId: event.createdBy,
+              actorId: userId,
+              type: 'sangha_join',
+              entityId: event._id,
+              entityType: 'Sangha',
+              message: `${req.user.name || 'A seeker'} requested to join your sacred gathering: ${event.title}`,
+            });
+          }
+          return res.json({
+            isAttending: false,
+            myJoinRequest: { status: 'pending' },
+            message: 'Request submitted for host approval',
+          });
+        }
+      } else {
+        event.attendees.push(userId);
+        event.attendeesCount = (event.attendeesCount || 0) + 1;
+        await event.save();
+        return res.json({ isAttending: true, attendeesCount: event.attendeesCount });
+      }
     }
   } catch (error) {
     console.error('RSVP error:', error);
