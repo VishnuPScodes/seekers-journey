@@ -166,4 +166,85 @@ router.post('/ask', auth, async (req, res) => {
   }
 });
 
+// ─── Daily Sadhguru Quote Web Scraper Route ──────────────────────────────────
+let cachedQuote = null;
+let cachedQuoteTimestamp = 0;
+
+router.get('/sadhguru-quote', async (req, res) => {
+  try {
+    const NOW = Date.now();
+    // Cache for 30 minutes to reduce outbound traffic
+    if (cachedQuote && (NOW - cachedQuoteTimestamp < 30 * 60 * 1000)) {
+      return res.json({ success: true, ...cachedQuote });
+    }
+
+    const response = await fetch('https://isha.sadhguru.org/en/wisdom/type/quotes', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const html = await response.text();
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
+
+    if (nextDataMatch) {
+      const json = JSON.parse(nextDataMatch[1]);
+      const cards = json?.props?.pageProps?.postsData?.cards || [];
+      if (cards.length > 0) {
+        const top = cards[0];
+        const quoteData = {
+          quote: {
+            title: top.title,
+            text: top.summary,
+            imageUrl: top.cardImage?.url || null,
+            url: top.url ? `https://isha.sadhguru.org${top.url}` : 'https://isha.sadhguru.org/en/wisdom/type/quotes',
+          },
+          recentQuotes: cards.slice(0, 5).map(c => ({
+            title: c.title,
+            text: c.summary,
+            imageUrl: c.cardImage?.url || null,
+            url: c.url ? `https://isha.sadhguru.org${c.url}` : null,
+          }))
+        };
+        cachedQuote = quoteData;
+        cachedQuoteTimestamp = NOW;
+        return res.json({ success: true, ...quoteData });
+      }
+    }
+
+    // Fallback static if page structure changes
+    const fallback = {
+      quote: {
+        title: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        text: "The seed of Enlightenment is there in every being. Enlightenment is a realization.",
+        imageUrl: "https://static.sadhguru.org/d/46272/1790128806-image_1790068446_9792.jpg",
+        url: "https://isha.sadhguru.org/en/wisdom/type/quotes"
+      },
+      recentQuotes: []
+    };
+    return res.json({ success: true, ...fallback });
+  } catch (err) {
+    console.error('Error in /sadhguru-quote route:', err.message);
+    if (cachedQuote) {
+      return res.json({ success: true, ...cachedQuote });
+    }
+    return res.json({
+      success: true,
+      quote: {
+        title: "Daily Wisdom",
+        text: "The seed of Enlightenment is there in every being. Enlightenment is a realization.",
+        imageUrl: "https://static.sadhguru.org/d/46272/1790128806-image_1790068446_9792.jpg",
+        url: "https://isha.sadhguru.org/en/wisdom/type/quotes"
+      },
+      recentQuotes: []
+    });
+  }
+});
+
 module.exports = router;
+

@@ -9,6 +9,8 @@ import TornPaperEdge from '../components/TornPaperEdge';
 import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
 import { KundaliniSerpentSpiralMotif, YogicArtisticBanner } from '../components/SadhanaMotifs';
+import { HandDrawnBannerHeader } from '../components/HandDrawnNavbarEdge';
+import SadhguruDailyQuote from '../components/SadhguruDailyQuote';
 
 
 // ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
@@ -298,12 +300,10 @@ export default function Landing() {
 
           </div>
 
-          {/* ── Sacred Yogic Artistic Banner (Pillars of Sadhana: Agni, Samata, Prana) ── */}
-          <YogicArtisticBanner color="#d9572b" />
-
           {/* ── Sacred Sadhana Shrine Cards ────────────────────────────── */}
           {selectedPractices.length > 0 ? (
             <div className="shrine-cards-wrapper animate-in" style={{ animationDelay: '0.1s', margin: '20px 0 28px' }}>
+              <SadhguruDailyQuote />
               <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 14, textAlign: 'center' }}>
                 <Zap size={12} style={{ color: '#d9572b' }} />
                 Sacred Sadhana Shrine Tiles • Tap to record daily practice
@@ -352,8 +352,14 @@ export default function Landing() {
             </div>
           )}
 
+          {/* ── Sacred Yogic Artistic Banner (Centered Horizontally at Bottom) ── */}
+          <div style={{ marginTop: 36, marginBottom: 24, display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <YogicArtisticBanner color="#d9572b" />
+          </div>
+
         </div>
       </div>
     </>
   );
 }
+
