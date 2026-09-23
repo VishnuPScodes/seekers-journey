@@ -215,9 +215,8 @@ export default function Landing() {
       <div className="page river-page" style={{ paddingTop: 96 }}>
         <div className="container-lg animate-in" style={{ maxWidth: 840, padding: '0 8px', position: 'relative', zIndex: 2 }}>
 
-
-          {/* ── Header with Floating Kundalini Spiral Motif ───────────────── */}
-          <div className="landing-hero" style={{ marginBottom: 12, textAlign: 'center', position: 'relative' }}>
+          {/* ── 1. Namaskaram Hero Greeting ──────────────────────────────── */}
+          <div className="landing-hero" style={{ marginBottom: 16, textAlign: 'center', position: 'relative' }}>
             <div style={{ position: 'absolute', top: -10, left: 16, opacity: 0.22, pointerEvents: 'none' }}>
               <KundaliniSerpentSpiralMotif size={56} color="#d9572b" strokeWidth={1.8} />
             </div>
@@ -236,14 +235,18 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* ── Level & Score Card ──────────────────────────────────────── */}
+          {/* ── 2. Sadhguru Daily Quote Card ──────────────────────────────── */}
+          <SadhguruDailyQuote />
+
+
+          {/* ── 3. Level & Score Card ──────────────────────────────────────── */}
           <div
             className="level-score-card animate-in"
             onClick={() => navigate('/journey')}
             role="button"
             tabIndex={0}
             id="level-score-card"
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', marginBottom: 20 }}
           >
             {/* Left: Level badge */}
             <div className="level-badge-large">
@@ -300,10 +303,9 @@ export default function Landing() {
 
           </div>
 
-          {/* ── Sacred Sadhana Shrine Cards ────────────────────────────── */}
+          {/* ── 4. Sacred Sadhana Shrine Cards ────────────────────────────── */}
           {selectedPractices.length > 0 ? (
-            <div className="shrine-cards-wrapper animate-in" style={{ animationDelay: '0.1s', margin: '20px 0 28px' }}>
-              <SadhguruDailyQuote />
+            <div className="shrine-cards-wrapper animate-in" style={{ animationDelay: '0.1s', margin: '12px 0 28px' }}>
               <div className="sadhana-bubbles-label" style={{ padding: '0 4px', marginBottom: 14, textAlign: 'center' }}>
                 <Zap size={12} style={{ color: '#d9572b' }} />
                 Sacred Sadhana Shrine Tiles • Tap to record daily practice
@@ -352,13 +354,14 @@ export default function Landing() {
             </div>
           )}
 
-          {/* ── Sacred Yogic Artistic Banner (Centered Horizontally at Bottom) ── */}
+          {/* ── 5. Sacred Yogic Artistic Banner (Centered Horizontally at Bottom) ── */}
           <div style={{ marginTop: 36, marginBottom: 24, display: 'flex', justifyContent: 'center', width: '100%' }}>
             <YogicArtisticBanner color="#d9572b" />
           </div>
 
         </div>
       </div>
+
     </>
   );
 }
