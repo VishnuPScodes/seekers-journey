@@ -5,6 +5,7 @@ import api from '../api';
 import GrowthAnalyticsModal from '../components/GrowthAnalyticsModal';
 import ShambhaviCandidatesModal from '../components/ShambhaviCandidatesModal';
 import AdminNotificationsModal from '../components/AdminNotificationsModal';
+import AdminProgramRegistrationsModal from '../components/AdminProgramRegistrationsModal';
 
 export default function AdminDashboard() {
   const { adminUser, adminLogout, getAdminToken } = useAdminAuth();
@@ -15,6 +16,7 @@ export default function AdminDashboard() {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showShambhaviModal, setShowShambhaviModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [showRegistrationsModal, setShowRegistrationsModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const isNewJoinersRoute = location.pathname.includes('/new-joiners');
   const [activeTab, setActiveTab] = useState(isNewJoinersRoute ? 'new_joiners' : 'all');
@@ -305,6 +307,27 @@ export default function AdminDashboard() {
               }}
             >
               📊 Growth Analytics
+            </button>
+            <button
+              onClick={() => setShowRegistrationsModal(true)}
+              style={{
+                backgroundColor: '#c49a45',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(196, 154, 69, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              id="btn-admin-program-registrations"
+            >
+              🏛️ Program Registrations
             </button>
             <button
               onClick={fetchUsersData}
@@ -1211,6 +1234,13 @@ export default function AdminDashboard() {
         }}
         getAdminToken={getAdminToken}
         onOpenShambhaviModal={() => setShowShambhaviModal(true)}
+      />
+
+      {/* ── Admin Program Registrations Pop-Up Modal ──────────────────── */}
+      <AdminProgramRegistrationsModal
+        isOpen={showRegistrationsModal}
+        onClose={() => setShowRegistrationsModal(false)}
+        getAdminToken={getAdminToken}
       />
     </div>
   );

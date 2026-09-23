@@ -330,6 +330,39 @@ export default function AdminNotificationsModal({
                             {item.message}
                           </p>
 
+                          {/* Rich metadata display for Program Registrations */}
+                          {item.type === 'program_interest' && item.metadata && (
+                            <div style={{
+                              margin: '6px 0',
+                              padding: '6px 10px',
+                              backgroundColor: 'rgba(217, 87, 43, 0.06)',
+                              borderRadius: '6px',
+                              border: '1px dashed rgba(217, 87, 43, 0.25)',
+                              fontSize: '11.5px',
+                              color: '#5c5243',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '3px',
+                            }}>
+                              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                {item.metadata.seekerPhone && (
+                                  <span>📞 <strong>Phone:</strong> {item.metadata.seekerPhone}</span>
+                                )}
+                                {item.metadata.preferredLocation && (
+                                  <span>📍 <strong>Location:</strong> {item.metadata.preferredLocation}</span>
+                                )}
+                                {item.metadata.preferredTimeframe && (
+                                  <span>⏳ <strong>Timeframe:</strong> {item.metadata.preferredTimeframe}</span>
+                                )}
+                              </div>
+                              {item.metadata.spiritualAspiration && (
+                                <div style={{ fontStyle: 'italic', color: '#7e6b53', marginTop: '2px' }}>
+                                  "{item.metadata.spiritualAspiration}"
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: '#7e6b53' }}>
                             <span>👤 <strong>{item.userName}</strong> ({item.userEmail})</span>
                             <span>·</span>

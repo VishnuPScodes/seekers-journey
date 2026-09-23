@@ -240,12 +240,14 @@ export function normalizeJourneyData(apiData, authUser) {
 
   const mandala = apiData?.mandala || null;
   const seva = Array.isArray(apiData?.seva) ? apiData.seva : [];
+  const registrations = Array.isArray(apiData?.registrations) ? apiData.registrations : [];
 
   return {
     user: normalizedUser,
     events,
     programs,
     officialPrograms,
+    registrations,
     mandala,
     seva,
   };

@@ -4,10 +4,11 @@ const auth = require('../middleware/auth');
 const JourneyEvent = require('../models/JourneyEvent');
 const User = require('../models/User');
 const UserProgram = require('../models/UserProgram');
+const ProgramRegistration = require('../models/ProgramRegistration');
 const Mandala = require('../models/Mandala');
 const VolunteeringEvent = require('../models/VolunteeringEvent');
 const { OFFICIAL_PROGRAMS, VOLUNTEERING_PATHWAYS, SYNTHETIC_PERSONAS } = require('../config/ishaReferenceData');
-const { notifyProgramInterest, notifyInnerEngineeringCompleted } = require('../services/notificationService');
+const { notifyProgramInterest, notifyInnerEngineeringCompleted, createNotification } = require('../services/notificationService');
 const { evaluateProgramEligibility, PROGRAM_CATALOG } = require('../utils/programPrerequisites');
 const { syncUserProgramEvents } = require('../utils/programSyncHelper');
 
@@ -34,8 +35,14 @@ router.get('/me', auth, async (req, res) => {
     // 1. Chronological wave events sorted ascending (from past to today)
     const events = await JourneyEvent.find({ userId }).sort({ date: 1, createdAt: 1 });
 
-    // 2. Programs completed
-    const programs = await UserProgram.find({ userId }).sort({ completionDate: 1 });
+    // 2. Programs completed (exclude expressed interest / pending registrations)
+    const programs = await UserProgram.find({
+      userId,
+      status: { $nin: ['interested', 'registered'] },
+    }).sort({ completionDate: 1 });
+
+    // 2b. Program registration interests
+    const registrations = await ProgramRegistration.find({ userId }).sort({ createdAt: -1 });
 
     // 3. Active / latest Mandala
     const mandala = await Mandala.findOne({ userId }).sort({ createdAt: -1 });
@@ -80,6 +87,7 @@ router.get('/me', auth, async (req, res) => {
       },
       events,
       programs,
+      registrations,
       mandala,
       seva,
       officialPrograms: OFFICIAL_PROGRAMS,
@@ -490,5 +498,111 @@ router.post(['/program', '/programs'], auth, async (req, res) => {
   }
 });
 
+// POST /api/journey/program-registrations — Submit interest / registration form for advanced program
+router.post('/program-registrations', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const {
+      programId,
+      programName,
+      seekerName,
+      seekerEmail,
+      seekerPhone,
+      preferredLocation,
+      preferredTimeframe,
+      spiritualAspiration,
+      prerequisitesStatus,
+    } = req.body;
+
+    if (!programId || !programName) {
+      return res.status(400).json({ message: 'Program ID and Program Name are required' });
+    }
+
+    const registration = await ProgramRegistration.create({
+      userId,
+      seekerName: seekerName?.trim() || user.name,
+      seekerEmail: seekerEmail?.trim() || user.email,
+      seekerPhone: seekerPhone?.trim() || '',
+      programId,
+      programName,
+      preferredLocation: preferredLocation || 'Isha Yoga Center, Coimbatore',
+      preferredTimeframe: preferredTimeframe || 'Upcoming 1-3 Months',
+      spiritualAspiration: spiritualAspiration?.trim() || '',
+      prerequisitesStatus: prerequisitesStatus || 'Eligible',
+      status: 'pending_review',
+    });
+
+    // Also update/record in UserProgram so seeker profile tracks their expressed interest
+    let up = await UserProgram.findOne({ userId, programId });
+    if (up) {
+      if (up.status !== 'completed') {
+        up.status = 'interested';
+        up.location = preferredLocation || up.location;
+        await up.save();
+      }
+    } else {
+      await UserProgram.create({
+        userId,
+        programId,
+        programName,
+        status: 'interested',
+        location: preferredLocation || 'Isha Yoga Center, Coimbatore',
+        reflection: spiritualAspiration || '',
+      });
+    }
+
+    // Trigger Admin Notification with rich metadata
+    try {
+      const dedupKey = `program_reg:${userId}:${programId}:${Date.now()}`;
+      await createNotification({
+        userId,
+        userName: seekerName?.trim() || user.name,
+        userEmail: seekerEmail?.trim() || user.email,
+        type: 'program_interest',
+        title: `🏛️ Advanced Program Interest: ${programName}`,
+        message: `${seekerName || user.name} (${seekerEmail || user.email}) expressed interest for ${programName}. Preferred: ${preferredLocation || 'Coimbatore'}, ${preferredTimeframe || 'Upcoming'}.`,
+        metadata: {
+          programId,
+          programName,
+          seekerPhone: seekerPhone || '',
+          preferredLocation,
+          preferredTimeframe,
+          spiritualAspiration,
+          prerequisitesStatus,
+          registrationId: registration._id,
+        },
+        dedupKey,
+      });
+    } catch (notifErr) {
+      console.error('Trigger admin notification error:', notifErr);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Interest for ${programName} successfully recorded 🙏`,
+      registration,
+    });
+  } catch (err) {
+    console.error('Program registration error:', err);
+    res.status(500).json({ message: 'Server error saving program registration' });
+  }
+});
+
+// GET /api/journey/program-registrations — Get user's own registrations
+router.get('/program-registrations', auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const registrations = await ProgramRegistration.find({ userId }).sort({ createdAt: -1 });
+    res.json({ registrations });
+  } catch (err) {
+    console.error('Get program registrations error:', err);
+    res.status(500).json({ message: 'Server error fetching registrations' });
+  }
+});
+
 module.exports = router;
+
 

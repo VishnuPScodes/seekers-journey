@@ -314,5 +314,95 @@ router.delete('/notifications', adminAuth, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PROGRAM REGISTRATIONS ADMIN MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+const ProgramRegistration = require('../models/ProgramRegistration');
+
+// GET /api/admin/program-registrations — List all seeker program registrations
+router.get('/program-registrations', adminAuth, async (req, res) => {
+  try {
+    const { status, programId, search } = req.query;
+    const query = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (programId && programId !== 'all') {
+      query.programId = programId;
+    }
+    if (search && search.trim()) {
+      const q = search.trim();
+      query.$or = [
+        { seekerName: { $regex: q, $options: 'i' } },
+        { seekerEmail: { $regex: q, $options: 'i' } },
+        { programName: { $regex: q, $options: 'i' } },
+        { seekerPhone: { $regex: q, $options: 'i' } },
+      ];
+    }
+
+    const registrations = await ProgramRegistration.find(query)
+      .sort({ createdAt: -1 })
+      .populate('userId', 'name email city region currentLevel selectedPractices')
+      .lean();
+
+    const allRegs = await ProgramRegistration.find({}).lean();
+    const stats = {
+      total: allRegs.length,
+      pending: allRegs.filter(r => r.status === 'pending_review').length,
+      contacted: allRegs.filter(r => r.status === 'contacted').length,
+      approved: allRegs.filter(r => r.status === 'approved').length,
+      waitlisted: allRegs.filter(r => r.status === 'waitlisted').length,
+    };
+
+    res.json({
+      registrations,
+      stats,
+    });
+  } catch (err) {
+    console.error('Fetch program registrations error:', err);
+    res.status(500).json({ message: 'Server error fetching registrations' });
+  }
+});
+
+// PUT /api/admin/program-registrations/:id — Update status or notes
+router.put('/program-registrations/:id', adminAuth, async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    const update = {};
+    if (status) update.status = status;
+    if (notes !== undefined) update.notes = notes;
+
+    const registration = await ProgramRegistration.findByIdAndUpdate(
+      req.params.id,
+      { $set: update },
+      { new: true }
+    );
+
+    if (!registration) {
+      return res.status(404).json({ message: 'Registration not found' });
+    }
+
+    res.json({
+      message: 'Registration updated successfully',
+      registration,
+    });
+  } catch (err) {
+    console.error('Update program registration error:', err);
+    res.status(500).json({ message: 'Server error updating registration' });
+  }
+});
+
+// DELETE /api/admin/program-registrations/:id — Delete a registration
+router.delete('/program-registrations/:id', adminAuth, async (req, res) => {
+  try {
+    await ProgramRegistration.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Registration deleted successfully' });
+  } catch (err) {
+    console.error('Delete program registration error:', err);
+    res.status(500).json({ message: 'Server error deleting registration' });
+  }
+});
+
 module.exports = router;
 

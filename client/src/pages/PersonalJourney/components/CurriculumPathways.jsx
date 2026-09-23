@@ -5,6 +5,8 @@ export default function CurriculumPathways({
   user,
   programs = [],
   officialPrograms = [],
+  registrations = [],
+  onOpenRegistration,
 }) {
   // Completed programs list matching official programs
   const completedPrograms = useMemo(() => {
@@ -149,9 +151,11 @@ export default function CurriculumPathways({
             });
 
             const isEligible = prereqList.length === 0 || prereqList.every(p => p.isDone);
+            const userReg = registrations.find(r => r.programId === prog.id);
+            const isRegistered = Boolean(userReg);
 
             return (
-              <div key={prog.id} className={`pj-prereq-card ${isEligible ? 'eligible' : ''}`}>
+              <div key={prog.id} className={`pj-prereq-card ${isEligible ? 'eligible' : ''}`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 24 }}>{prog.icon}</span>
@@ -181,66 +185,125 @@ export default function CurriculumPathways({
                   </p>
                 </div>
 
-                {/* Prerequisite Stepping Stones */}
-                <div className="pj-prereq-checklist">
-                  <span className="pj-tag" style={{ fontSize: 9, color: 'var(--pj-text-muted)', display: 'block', marginBottom: 6 }}>
-                    Pathway Prerequisites:
-                  </span>
+                <div>
+                  {/* Prerequisite Stepping Stones */}
+                  <div className="pj-prereq-checklist">
+                    <span className="pj-tag" style={{ fontSize: 9, color: 'var(--pj-text-muted)', display: 'block', marginBottom: 6 }}>
+                      Pathway Prerequisites:
+                    </span>
 
-                  {prereqList.length === 0 ? (
-                    <div style={{ fontSize: 11, color: 'var(--pj-olive)', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
-                      ✓ Open Registration (No prerequisites required)
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      {prereqList.map(pr => (
-                        <div
-                          key={pr.id}
-                          style={{
+                    {prereqList.length === 0 ? (
+                      <div style={{ fontSize: 11, color: 'var(--pj-olive)', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                        ✓ Open Registration (No prerequisites required)
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {prereqList.map(pr => (
+                          <div
+                            key={pr.id}
+                            style={{
+                              fontSize: 11,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              color: pr.isDone ? 'var(--pj-text-charcoal)' : 'var(--pj-text-muted)',
+                            }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <span style={{ color: pr.isDone ? 'var(--pj-olive)' : 'var(--pj-text-muted)', fontWeight: 700 }}>
+                                {pr.isDone ? '✓' : '○'}
+                              </span>{' '}
+                              {pr.name}
+                            </span>
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              color: pr.isDone ? 'var(--pj-olive)' : 'var(--pj-saffron)',
+                            }}>
+                              {pr.isDone ? 'Complete' : 'Pending'}
+                            </span>
+                          </div>
+                        ))}
+
+                        {prog.id === 'samyama' && (
+                          <div style={{
                             fontSize: 11,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            color: pr.isDone ? 'var(--pj-text-charcoal)' : 'var(--pj-text-muted)',
-                          }}
-                        >
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ color: pr.isDone ? 'var(--pj-olive)' : 'var(--pj-text-muted)', fontWeight: 700 }}>
-                              {pr.isDone ? '✓' : '○'}
-                            </span>{' '}
-                            {pr.name}
-                          </span>
-                          <span style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: pr.isDone ? 'var(--pj-olive)' : 'var(--pj-saffron)',
+                            color: 'var(--pj-text-charcoal)',
+                            borderTop: '1px dashed var(--pj-border-hairline)',
+                            paddingTop: 4,
+                            marginTop: 2,
                           }}>
-                            {pr.isDone ? 'Complete' : 'Pending'}
-                          </span>
-                        </div>
-                      ))}
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <span style={{ color: 'var(--pj-olive)', fontWeight: 700 }}>✓</span> 60 Days Daily Practice
+                            </span>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--pj-olive)' }}>
+                              Active
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                      {prog.id === 'samyama' && (
-                        <div style={{
-                          fontSize: 11,
-                          display: 'flex',
+                  {/* Register Interest Action */}
+                  <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--pj-border-hairline)' }}>
+                    {isRegistered ? (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: 'var(--pj-olive)',
+                        background: 'rgba(78, 99, 70, 0.12)',
+                        padding: '6px 12px',
+                        borderRadius: 'var(--pj-radius-pill)',
+                        border: '1px solid rgba(78, 99, 70, 0.3)',
+                      }}>
+                        <CheckCircle2 size={13} color="var(--pj-olive)" />
+                        <span>Interest Registered ({userReg.status === 'contacted' ? 'Contacted' : userReg.status === 'approved' ? 'Approved' : 'Pending Review'})</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onOpenRegistration && onOpenRegistration(prog, isEligible)}
+                        style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
-                          color: 'var(--pj-text-charcoal)',
-                          borderTop: '1px dashed var(--pj-border-hairline)',
-                          paddingTop: 4,
-                          marginTop: 2,
-                        }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ color: 'var(--pj-olive)', fontWeight: 700 }}>✓</span> 60 Days Daily Practice
-                          </span>
-                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--pj-olive)' }}>
-                            Active
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                          gap: 6,
+                          background: isEligible
+                            ? 'linear-gradient(135deg, #d9572b 0%, #b85d36 100%)'
+                            : 'rgba(62, 56, 45, 0.08)',
+                          color: isEligible ? '#ffffff' : 'var(--pj-text-charcoal)',
+                          border: isEligible ? 'none' : '1px solid var(--pj-border)',
+                          padding: '7px 14px',
+                          borderRadius: 20,
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          boxShadow: isEligible ? '0 3px 10px rgba(217, 87, 43, 0.22)' : 'none',
+                          transition: 'all 0.15s ease',
+                          width: '100%',
+                          justifyContent: 'center',
+                        }}
+                        id={`btn-register-${prog.id}`}
+                      >
+                        {isEligible ? (
+                          <>
+                            <Sparkles size={14} /> Register Interest
+                          </>
+                        ) : (
+                          <>
+                            <Compass size={14} /> Express Interest / Notify Me
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

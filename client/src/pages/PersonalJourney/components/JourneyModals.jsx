@@ -309,3 +309,189 @@ export function EventDetailModal({
     </>
   );
 }
+
+export function AddMilestoneModal({
+  isOpen,
+  onClose,
+  onSave,
+  saving,
+}) {
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('milestone');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('🏔️');
+
+  const ICON_OPTIONS = ['🏔️', '🪷', '🏛️', '🙏', '✨', '🔥', '☀️', '🌸', '🌿'];
+  const CATEGORY_OPTIONS = [
+    { id: 'milestone', label: 'Milestone 🏔️' },
+    { id: 'sadhana', label: 'Sadhana 🪷' },
+    { id: 'program', label: 'Program 🏛️' },
+    { id: 'seva', label: 'Seva & Offering 🙏' },
+    { id: 'personal', label: 'Personal Insight ✨' },
+  ];
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onSave({
+      title: title.trim(),
+      category,
+      date,
+      description: description.trim(),
+      icon,
+    });
+  };
+
+  return (
+    <div className="pj-modal-backdrop" onClick={onClose}>
+      <div className="pj-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <h3 className="pj-serif" style={{ fontSize: 22, fontWeight: 700, color: 'var(--pj-text-charcoal)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🏔️</span> Add Journey Milestone
+          </h3>
+          <button type="button" onClick={onClose} className="pj-modal-close-btn">
+            <X size={18} />
+          </button>
+        </div>
+
+        <p style={{ fontSize: 13, color: 'var(--pj-text-secondary)', marginBottom: 14, lineHeight: 1.45 }}>
+          Inscribe a milestone into your River of Time — whether an initiation, a personal vow, retreat, or spiritual milestone.
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 12 }}>
+            <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 5 }}>
+              Milestone Title *
+            </label>
+            <input
+              type="text"
+              className="pj-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. 108 Surya Kriyas Completed, Silent Retreat"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div>
+              <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 5 }}>
+                Category
+              </label>
+              <select
+                className="pj-input"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                style={{ padding: '8px 10px' }}
+              >
+                {CATEGORY_OPTIONS.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 5 }}>
+                Date
+              </label>
+              <input
+                type="date"
+                className="pj-input"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Icon picker */}
+          <div style={{ marginBottom: 12 }}>
+            <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 5 }}>
+              Sacred Icon
+            </label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {ICON_OPTIONS.map((ic) => (
+                <button
+                  key={ic}
+                  type="button"
+                  onClick={() => setIcon(ic)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: icon === ic ? 'rgba(217, 87, 43, 0.2)' : 'var(--pj-bg-card-subtle)',
+                    border: icon === ic ? '2px solid var(--pj-terracotta)' : '1px solid var(--pj-border)',
+                    fontSize: '1.15rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {ic}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 5 }}>
+              Spiritual Note / Reflection (Optional)
+            </label>
+            <textarea
+              className="pj-input"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Reflect on what this milestone opened within your being..."
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--pj-border)',
+                color: 'var(--pj-text-secondary)',
+                borderRadius: 'var(--pj-radius-sm)',
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="pj-whisper-trigger-btn"
+              style={{
+                background: 'linear-gradient(135deg, #d9572b 0%, #b85d36 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 20px',
+                borderRadius: 20,
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              {saving ? 'Inscribing...' : '✓ Save Milestone 🙏'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -1,9 +1,9 @@
 import React from 'react';
-import { MapPin, Feather, Mountain } from 'lucide-react';
+import { MapPin, Mountain } from 'lucide-react';
 import PersonaSwitcher from '../../../components/PersonaSwitcher';
 import { KundaliniSerpentSpiralMotif } from '../../../components/SadhanaMotifs';
 
-export default function JourneyHero({ user, onOpenReflection, onPersonaSwitched }) {
+export default function JourneyHero({ user, onPersonaSwitched }) {
   const practices = user?.selectedPractices || ['Shambhavi Mahamudra'];
   const level = user?.currentLevel || 1;
   const score = user?.totalCumulativeScore || 0;
@@ -36,18 +36,9 @@ export default function JourneyHero({ user, onOpenReflection, onPersonaSwitched 
           </p>
         </div>
 
-        {/* Action Controls: Persona Switcher + Whisper of Grace */}
+        {/* Action Controls: Persona Switcher */}
         <div className="pj-hero-actions">
           <PersonaSwitcher onSwitched={onPersonaSwitched} />
-          <button
-            type="button"
-            onClick={onOpenReflection}
-            className="pj-whisper-trigger-btn"
-            title="Record a micro-reflection of your sadhana"
-            id="btn-whisper-grace"
-          >
-            <Feather size={14} /> Whisper of Grace
-          </button>
         </div>
       </div>
 

@@ -10,8 +10,8 @@ import JourneyHero from './components/JourneyHero';
 import OriginStoryCard from './components/OriginStoryCard';
 import RiverOfTime from './components/RiverOfTime';
 import CurriculumPathways from './components/CurriculumPathways';
-import MandalaSevaCard from './components/MandalaSevaCard';
-import { WhisperModal, EditOriginModal, EventDetailModal } from './components/JourneyModals';
+import ProgramRegistrationModal from './components/ProgramRegistrationModal';
+import { WhisperModal, EditOriginModal, EventDetailModal, AddMilestoneModal } from './components/JourneyModals';
 
 import './PersonalJourney.css';
 
@@ -26,7 +26,11 @@ export default function PersonalJourney() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [whisperModalOpen, setWhisperModalOpen] = useState(false);
   const [editOriginModalOpen, setEditOriginModalOpen] = useState(false);
+  const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
+  const [registerModalData, setRegisterModalData] = useState(null); // { program, isEligible }
   const [savingReflection, setSavingReflection] = useState(false);
+  const [savingMilestone, setSavingMilestone] = useState(false);
+  const [savingRegistration, setSavingRegistration] = useState(false);
 
   // Fetch and normalize all journey data
   const fetchJourneyData = useCallback(async () => {
@@ -78,6 +82,37 @@ export default function PersonalJourney() {
     }
   };
 
+  // Handle saving manual milestone into River of Time
+  const handleSaveMilestone = async (milestoneData) => {
+    try {
+      setSavingMilestone(true);
+      await api.post('/journey/events', milestoneData);
+      setMilestoneModalOpen(false);
+      await fetchJourneyData();
+    } catch (err) {
+      console.error('Failed to create milestone:', err);
+      alert(err.response?.data?.message || 'Failed to save milestone');
+    } finally {
+      setSavingMilestone(false);
+    }
+  };
+
+  // Handle saving advanced program registration interest
+  const handleSaveRegistration = async (registrationPayload) => {
+    try {
+      setSavingRegistration(true);
+      await api.post('/journey/program-registrations', registrationPayload);
+      await fetchJourneyData();
+      return true;
+    } catch (err) {
+      console.error('Failed to submit program registration:', err);
+      alert(err.response?.data?.message || 'Failed to submit registration. Please try again.');
+      return false;
+    } finally {
+      setSavingRegistration(false);
+    }
+  };
+
   if (loading && !journeyData) {
     return (
       <>
@@ -94,7 +129,7 @@ export default function PersonalJourney() {
     );
   }
 
-  const { user, events, programs, officialPrograms, mandala, seva } = journeyData;
+  const { user, events, programs, officialPrograms, registrations = [] } = journeyData;
 
   return (
     <>
@@ -133,7 +168,6 @@ export default function PersonalJourney() {
           {/* 1. Identity & Living Sadhana Standing */}
           <JourneyHero
             user={user}
-            onOpenReflection={() => setWhisperModalOpen(true)}
             onPersonaSwitched={fetchJourneyData}
           />
 
@@ -147,7 +181,8 @@ export default function PersonalJourney() {
           <RiverOfTime
             events={events}
             onSelectEvent={setSelectedEvent}
-            onOpenAddMemory={() => setWhisperModalOpen(true)}
+            onOpenAddMilestone={() => setMilestoneModalOpen(true)}
+            onOpenAddMemory={() => setMilestoneModalOpen(true)}
           />
 
           {/* 4. Sacred Curriculum & Mountain Ascent */}
@@ -155,17 +190,29 @@ export default function PersonalJourney() {
             user={user}
             programs={programs}
             officialPrograms={officialPrograms}
-          />
-
-          {/* 5. Mandala Rhythm & Sacred Seva */}
-          <MandalaSevaCard
-            user={user}
-            mandala={mandala}
-            seva={seva}
+            registrations={registrations}
+            onOpenRegistration={(prog, isEligible) => setRegisterModalData({ program: prog, isEligible })}
           />
         </main>
 
         {/* ── MODALS ── */}
+        <ProgramRegistrationModal
+          isOpen={Boolean(registerModalData)}
+          onClose={() => setRegisterModalData(null)}
+          program={registerModalData?.program}
+          isEligible={registerModalData?.isEligible}
+          currentUser={user}
+          onSave={handleSaveRegistration}
+          saving={savingRegistration}
+        />
+
+        <AddMilestoneModal
+          isOpen={milestoneModalOpen}
+          onClose={() => setMilestoneModalOpen(false)}
+          onSave={handleSaveMilestone}
+          saving={savingMilestone}
+        />
+
         <WhisperModal
           isOpen={whisperModalOpen}
           onClose={() => setWhisperModalOpen(false)}

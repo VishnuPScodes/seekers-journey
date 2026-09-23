@@ -5,7 +5,7 @@ import { ZoomIn, ZoomOut, Calendar, Plus, Sparkles } from 'lucide-react';
 export default function RiverOfTime({
   events = [],
   onSelectEvent,
-  onOpenAddMemory,
+  onOpenAddMilestone,
 }) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = Overview, 1.6 = Detailed
@@ -86,15 +86,40 @@ export default function RiverOfTime({
             Serpentine Chronicle
           </span>
           <h2 className="pj-serif pj-river-title">
-            The River of Time (Nadi Stream)
+            The River of Time
           </h2>
           <p style={{ fontSize: 13, color: 'var(--pj-text-muted)', margin: '2px 0 0' }}>
-            A flowing stream of your sacred initiations, silence retreats, whispers, and seva milestones.
+            A flowing stream of your sacred initiations, silence retreats, and milestones.
           </p>
         </div>
 
-        {/* Controls: Zoom & Scrubber */}
-        <div className="pj-river-controls">
+        {/* Controls: Add Milestone, Zoom & Scrubber */}
+        <div className="pj-river-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {onOpenAddMilestone && (
+            <button
+              type="button"
+              onClick={onOpenAddMilestone}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'linear-gradient(135deg, #d9572b 0%, #b85d36 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 3px 10px rgba(217, 87, 43, 0.25)',
+                transition: 'all 0.15s ease',
+              }}
+              id="btn-add-milestone"
+            >
+              <Plus size={15} /> Add Milestone
+            </button>
+          )}
+
           {/* Zoom Toggle */}
           <div className="pj-zoom-toggle">
             <button
