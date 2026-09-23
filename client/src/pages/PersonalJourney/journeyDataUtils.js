@@ -110,28 +110,32 @@ export function generateSeedMilestones(user) {
 export function normalizeJourneyData(apiData, authUser) {
   const rawUser = apiData?.user || authUser || {};
 
-  const name = rawUser.name || authUser?.name || 'Seeker of Grace';
-  const city = rawUser.city || 'Bengaluru';
-  const region = rawUser.region || 'India';
+  const name = rawUser.name || authUser?.name || 'Seeker';
+  const city = rawUser.city || authUser?.city || '';
+  const region = rawUser.region || authUser?.region || '';
   const journeyStartDate = rawUser.journeyStartDate || rawUser.createdAt || new Date();
   const timeOnPathLabel = rawUser.timeOnPathLabel || formatTimeOnPath(journeyStartDate);
   const selectedPractices = (rawUser.selectedPractices && rawUser.selectedPractices.length > 0)
     ? rawUser.selectedPractices
-    : (authUser?.selectedPractices?.length ? authUser.selectedPractices : ['Shambhavi Mahamudra']);
+    : (authUser?.selectedPractices?.length ? authUser.selectedPractices : []);
 
   const currentLevel = rawUser.currentLevel || authUser?.currentLevel || 1;
   const totalCumulativeScore = rawUser.totalCumulativeScore ?? authUser?.totalCumulativeScore ?? 0;
   const pradakshinaCount = rawUser.pradakshinaCount || 0;
-  const cohortPersona = rawUser.cohortPersona || 'B';
+  const cohortPersona = rawUser.cohortPersona || '';
 
   // Origin Story
+  const rawStoryText = rawUser.originStory?.originStoryText;
+  const originStoryText = (rawStoryText !== undefined && rawStoryText !== null) ? rawStoryText : '';
+  const hasStory = Boolean(originStoryText.trim());
+
   const originStory = {
     discoveryDate: rawUser.originStory?.discoveryDate || null,
-    discoveryChannel: rawUser.originStory?.discoveryChannel || 'YouTube Video Discourse',
-    firstAttraction: rawUser.originStory?.firstAttraction || 'Clarity and profound logic of Sadhguru',
-    initialMotivation: rawUser.originStory?.initialMotivation || 'Seeking inner balance and conscious growth',
-    originStoryText: rawUser.originStory?.originStoryText ||
-      'First encountered Sadhguru during a pivotal life transition. The razor-sharp clarity and practical yogic technologies dismantled intellectual resistance, opening a deep longing for daily sadhana.',
+    discoveryChannel: rawUser.originStory?.discoveryChannel || '',
+    firstAttraction: rawUser.originStory?.firstAttraction || '',
+    initialMotivation: rawUser.originStory?.initialMotivation || '',
+    originStoryText,
+    hasStory,
   };
 
   const normalizedUser = {
@@ -149,11 +153,8 @@ export function normalizeJourneyData(apiData, authUser) {
     originStory,
   };
 
-  // Events normalization
-  let rawEvents = Array.isArray(apiData?.events) ? apiData.events : [];
-  if (rawEvents.length === 0) {
-    rawEvents = generateSeedMilestones(normalizedUser);
-  }
+  // Events normalization (use authentic seeker events without synthetic seed injection)
+  const rawEvents = Array.isArray(apiData?.events) ? apiData.events : [];
 
   // Ensure all events have valid date strings and categories
   const events = rawEvents

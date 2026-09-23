@@ -316,7 +316,7 @@ export default function Community() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <MapPin size={13} color="var(--comm-terracotta)" />
-                            <span>{g.venue?.name || g.locationOrLink || 'Bengaluru'}</span>
+                            <span>{g.venue?.name || g.locationOrLink || (g.isOnline ? 'Online Gathering' : 'Local Center')}</span>
                           </div>
                           {g.contactPerson?.name && (
                             <div style={{ color: 'var(--comm-text-charcoal)' }}>

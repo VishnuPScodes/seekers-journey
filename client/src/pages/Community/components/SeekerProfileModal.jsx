@@ -143,7 +143,7 @@ export default function SeekerProfileModal({
             }}
           >
             <Sparkles size={13} color="#d9572b" />
-            <span>Seeker Spiritual Profile</span>
+            <span>Seeker Profile</span>
           </div>
 
           <button

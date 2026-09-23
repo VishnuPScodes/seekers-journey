@@ -42,7 +42,7 @@ export default function CommunitySidebar({
           onClick={() => onSeekerClick && currentUserId && onSeekerClick(currentUserId)}
           role={onSeekerClick ? 'button' : undefined}
           tabIndex={onSeekerClick ? 0 : undefined}
-          title={onSeekerClick ? 'View your spiritual profile scroll' : undefined}
+          title={onSeekerClick ? 'View your profile' : undefined}
           style={{ cursor: onSeekerClick ? 'pointer' : 'default' }}
         >
           <div className="comm-presence-avatar">{userInitials}</div>
@@ -207,7 +207,7 @@ export default function CommunitySidebar({
                     onClick={() => onSeekerClick && onSeekerClick(seeker._id)}
                     role={onSeekerClick ? 'button' : undefined}
                     tabIndex={onSeekerClick ? 0 : undefined}
-                    title={onSeekerClick ? `View ${seeker.name}'s spiritual profile` : undefined}
+                    title={onSeekerClick ? `View ${seeker.name}'s profile` : undefined}
                     style={{ cursor: onSeekerClick ? 'pointer' : 'default' }}
                   >
                     <div className="comm-mini-avatar">{sInitials}</div>

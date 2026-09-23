@@ -358,7 +358,7 @@ export function AddMilestoneModal({
         </div>
 
         <p style={{ fontSize: 13, color: 'var(--pj-text-secondary)', marginBottom: 14, lineHeight: 1.45 }}>
-          Inscribe a milestone into your River of Time — whether an initiation, a personal vow, retreat, or spiritual milestone.
+          Inscribe a milestone into your River of Time — whether an initiation, a personal vow, retreat, or sadhana milestone.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -443,7 +443,7 @@ export function AddMilestoneModal({
 
           <div style={{ marginBottom: 16 }}>
             <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 5 }}>
-              Spiritual Note / Reflection (Optional)
+              Personal Reflection / Note (Optional)
             </label>
             <textarea
               className="pj-input"

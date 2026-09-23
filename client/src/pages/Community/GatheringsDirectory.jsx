@@ -46,7 +46,7 @@ export default function GatheringsDirectory() {
   const [newStartTime, setNewStartTime] = useState('06:00');
   const [newEndTime, setNewEndTime] = useState('08:00');
   const [newVenueName, setNewVenueName] = useState('');
-  const [newCity, setNewCity] = useState('Bengaluru');
+  const [newCity, setNewCity] = useState(user?.city || '');
   const [newAddress, setNewAddress] = useState('');
   const [newOnlineLink, setNewOnlineLink] = useState('');
   const [newRequiresApproval, setNewRequiresApproval] = useState(true);
@@ -102,7 +102,7 @@ export default function GatheringsDirectory() {
         venue: {
           name: newVenueName.trim() || (newType === 'online' ? 'Online Consecrated Space' : 'Sadhana Space'),
           address: newAddress.trim(),
-          city: newCity.trim() || 'Bengaluru',
+          city: newCity.trim() || user?.city || '',
         },
         contactPerson: {
           name: user?.name || 'Isha Volunteer',
@@ -296,7 +296,7 @@ export default function GatheringsDirectory() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <MapPin size={14} color="var(--comm-terracotta)" />
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {g.venue?.name || g.locationOrLink || 'Bengaluru Ashram'} ({g.venue?.city || 'Bengaluru'})
+                {g.venue?.name || g.locationOrLink || (g.isOnline ? 'Online Gathering' : 'Local Center')}{g.venue?.city ? ` (${g.venue.city})` : ''}
               </span>
             </div>
 

@@ -168,7 +168,6 @@ export default function PersonalJourney() {
           {/* 1. Identity & Living Sadhana Standing */}
           <JourneyHero
             user={user}
-            onPersonaSwitched={fetchJourneyData}
           />
 
           {/* 2. "Where I Started" — Origin Story */}

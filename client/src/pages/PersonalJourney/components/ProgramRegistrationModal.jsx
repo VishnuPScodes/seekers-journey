@@ -113,7 +113,7 @@ export default function ProgramRegistrationModal({
               className="pj-serif"
               style={{ fontSize: 22, fontWeight: 700, color: 'var(--pj-text-charcoal)', margin: 0 }}
             >
-              Register: {program.name}
+              Express Interest: {program.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--pj-text-muted)', margin: '2px 0 0' }}>
               {program.duration || 'Residential Consecrated Immersion'}
@@ -142,10 +142,10 @@ export default function ProgramRegistrationModal({
               <CheckCircle2 size={32} color="var(--pj-olive)" />
             </div>
             <h4 className="pj-serif" style={{ fontSize: 20, color: 'var(--pj-text-charcoal)', margin: '0 0 6px' }}>
-              Registration Interest Inscribed 🙏
+              Interest Expressed 🙏
             </h4>
             <p style={{ fontSize: 13, color: 'var(--pj-text-muted)', margin: 0, lineHeight: 1.45 }}>
-              Your interest for <strong>{program.name}</strong> has been stored in the consecrated ledger.
+              Your interest for <strong>{program.name}</strong> has been recorded.
               The program coordinator will reach out as admissions open.
             </p>
           </div>
@@ -234,14 +234,14 @@ export default function ProgramRegistrationModal({
 
             <div style={{ marginBottom: 16 }}>
               <label className="pj-tag" style={{ color: 'var(--pj-text-muted)', display: 'block', marginBottom: 4 }}>
-                Spiritual Longing / Preparation Notes (Optional)
+                Personal Longing / Preparation Notes (Optional)
               </label>
               <textarea
                 className="pj-input"
                 rows={3}
                 value={formData.spiritualAspiration}
                 onChange={(e) => setFormData({ ...formData, spiritualAspiration: e.target.value })}
-                placeholder="What draws you to this sacred program? Any questions or sadhana milestones you wish to share..."
+                placeholder="What draws you to this program? Any questions or sadhana notes you wish to share..."
                 style={{ resize: 'vertical' }}
               />
             </div>
@@ -276,7 +276,7 @@ export default function ProgramRegistrationModal({
                   fontWeight: 700,
                 }}
               >
-                {saving ? 'Inscribing...' : '✓ Submit Registration Interest 🙏'}
+                {saving ? 'Inscribing...' : '✓ Submit Interest 🙏'}
               </button>
             </div>
           </form>

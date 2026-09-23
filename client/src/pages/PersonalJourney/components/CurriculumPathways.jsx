@@ -8,14 +8,18 @@ export default function CurriculumPathways({
   registrations = [],
   onOpenRegistration,
 }) {
-  // Completed programs list matching official programs
+  // Completed programs list matching official programs: only completed programs
   const completedPrograms = useMemo(() => {
-    return officialPrograms.filter(prog => programs.some(p => p.programId === prog.id));
+    return officialPrograms.filter(prog =>
+      programs.some(p => p.programId === prog.id && (p.status === 'completed' || !p.status))
+    );
   }, [officialPrograms, programs]);
 
-  // Upcoming programs not yet completed
+  // Upcoming programs: programs NOT completed yet (expressed interest remains here!)
   const upcomingPrograms = useMemo(() => {
-    return officialPrograms.filter(prog => !programs.some(p => p.programId === prog.id));
+    return officialPrograms.filter(prog =>
+      !programs.some(p => p.programId === prog.id && (p.status === 'completed' || !p.status))
+    );
   }, [officialPrograms, programs]);
 
   // Count eligible advanced programs
@@ -254,18 +258,41 @@ export default function CurriculumPathways({
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        justifyContent: 'space-between',
                         gap: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: 'var(--pj-olive)',
-                        background: 'rgba(78, 99, 70, 0.12)',
-                        padding: '6px 12px',
-                        borderRadius: 'var(--pj-radius-pill)',
-                        border: '1px solid rgba(78, 99, 70, 0.3)',
+                        width: '100%',
                       }}>
-                        <CheckCircle2 size={13} color="var(--pj-olive)" />
-                        <span>Interest Registered ({userReg.status === 'contacted' ? 'Contacted' : userReg.status === 'approved' ? 'Approved' : 'Pending Review'})</span>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--pj-olive)',
+                          background: 'rgba(78, 99, 70, 0.12)',
+                          padding: '6px 12px',
+                          borderRadius: 'var(--pj-radius-pill)',
+                          border: '1px solid rgba(78, 99, 70, 0.3)',
+                        }}>
+                          <CheckCircle2 size={13} color="var(--pj-olive)" />
+                          <span>Interest Expressed ({userReg.status === 'contacted' ? 'Contacted' : userReg.status === 'approved' ? 'Approved' : 'Pending Review'})</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenRegistration && onOpenRegistration(prog, isEligible)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--pj-terracotta)',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            padding: '2px 6px',
+                          }}
+                        >
+                          Update
+                        </button>
                       </div>
                     ) : (
                       <button
@@ -290,17 +317,9 @@ export default function CurriculumPathways({
                           width: '100%',
                           justifyContent: 'center',
                         }}
-                        id={`btn-register-${prog.id}`}
+                        id={`btn-express-interest-${prog.id}`}
                       >
-                        {isEligible ? (
-                          <>
-                            <Sparkles size={14} /> Register Interest
-                          </>
-                        ) : (
-                          <>
-                            <Compass size={14} /> Express Interest / Notify Me
-                          </>
-                        )}
+                        <Sparkles size={14} /> Express Interest
                       </button>
                     )}
                   </div>

@@ -28,7 +28,20 @@ export function AuthProvider({ children }) {
 
     if (stored && token) {
       try {
-        setUser(JSON.parse(stored));
+        const parsedStored = JSON.parse(stored);
+        if (
+          parsedStored?.isSynthetic ||
+          parsedStored?.email?.endsWith('@seekers.journey') ||
+          parsedStored?.email?.endsWith('@synthetic.isha.demo')
+        ) {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        setUser(parsedStored);
         // Refresh user data from server to get latest score/level
         api.get('/user/me').then(({ data }) => {
           const currentStored = localStorage.getItem(USER_KEY);

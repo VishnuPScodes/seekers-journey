@@ -15,7 +15,6 @@ import {
   Settings2,
 } from 'lucide-react';
 import HandDrawnNavbarEdge from './HandDrawnNavbarEdge';
-import PersonaSwitcher from './PersonaSwitcher';
 import PrivacySettingsModal from '../pages/Community/components/PrivacySettingsModal';
 import PracticeSettingsModal from './PracticeSettingsModal';
 
@@ -127,15 +126,13 @@ export default function Navbar() {
 
         {/* Desktop User Section */}
         <div className="navbar-user desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <PersonaSwitcher />
-
           {/* Dedicated Spiritual Privacy Shield */}
           <button
             type="button"
             className="navbar-privacy-btn"
             onClick={() => setShowPrivacy(true)}
-            title="Spiritual Privacy Settings"
-            aria-label="Spiritual Privacy Settings"
+            title="Privacy Settings"
+            aria-label="Privacy Settings"
             style={{
               background: 'rgba(139, 107, 27, 0.08)',
               border: '1px solid rgba(139, 107, 27, 0.3)',
@@ -258,9 +255,11 @@ export default function Navbar() {
                     >
                       Level {currentLevel}
                     </span>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      📍 {user.city || 'Bengaluru'}
-                    </span>
+                    {user.city && (
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        📍 {user.city}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -321,7 +320,7 @@ export default function Navbar() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <Compass size={15} color="#c49a45" />
-                    <span>📜 My Spiritual Journey</span>
+                    <span>📜 My Journey</span>
                   </button>
 
                   <button
@@ -379,7 +378,7 @@ export default function Navbar() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <Shield size={15} color="#8b6b1b" />
-                    <span>🛡️ Spiritual Privacy</span>
+                    <span>🛡️ Privacy Settings</span>
                   </button>
 
                   <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
@@ -444,7 +443,7 @@ export default function Navbar() {
           <div className="user-details">
             <span className="user-name">{user.name || 'Practitioner'}</span>
             <span className="user-email">{user.email}</span>
-            <span className="user-station-tag">Spiritual Station • Level {currentLevel}</span>
+            <span className="user-station-tag">Sadhana Standing • Level {currentLevel}</span>
             
             <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
               <button
@@ -510,9 +509,6 @@ export default function Navbar() {
         </div>
 
         <div className="nav-drawer-footer" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'stretch' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <PersonaSwitcher />
-          </div>
           <button className="btn-drawer-logout" onClick={handleLogout}>
             <LogOut size={16} /> Logout
           </button>
