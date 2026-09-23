@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Quote, Sparkles, ExternalLink } from 'lucide-react';
+import { Quote, Sparkles } from 'lucide-react';
 import api from '../api';
+import { HandDrawnBrushBorder } from './HandDrawnNavbarEdge';
+
 
 // ── Hand-Drawn Lotus & Flower Sketch Component (Artifact Style) ───────────────
 function HandDrawnFlowerSketch({ size = 76, color = '#d9572b', opacity = 0.85, style = {} }) {
@@ -119,13 +121,16 @@ export default function SadhguruDailyQuote() {
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 20,
-          padding: '22px 26px',
+          padding: '24px 28px',
           background: 'linear-gradient(135deg, rgba(244, 234, 210, 0.94) 0%, rgba(238, 224, 192, 0.96) 100%)',
           boxShadow: '0 10px 30px rgba(217, 87, 43, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
-          border: '1.5px solid rgba(217, 87, 43, 0.35)',
+          border: 'none',
           backdropFilter: 'blur(16px)',
         }}
       >
+        {/* Organic Hand-Drawn Painted Brush Border Overlay */}
+        <HandDrawnBrushBorder color="#d9572b" strokeWidth={2} opacity={0.65} />
+
         {/* Top-Right Decorative Flower Lotus Artwork (Artifact Hand-Drawn Style) */}
         <div
           style={{

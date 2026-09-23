@@ -202,3 +202,91 @@ export function HandDrawnBannerHeader({ title, subtitle }) {
   );
 }
 
+/**
+ * HandDrawnBrushBorder
+ * Organic hand-drawn / painted brush-stroke outline for cards & tiles.
+ * Replaces plain straight CSS borders with a hand-sketched organic stroke finish.
+ */
+export function HandDrawnBrushBorder({ color = '#d9572b', strokeWidth = 1.8, opacity = 0.7 }) {
+  return (
+    <svg
+      width="100%"
+      height="100%"
+      viewBox="0 0 800 160"
+      preserveAspectRatio="none"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'none',
+        zIndex: 5,
+      }}
+    >
+      {/* Primary Organic Hand-Drawn Wavy Brush Outline */}
+      <path
+        d="M 22,3 
+           C 120,1 250,5 380,2 
+           C 510,4 640,1 776,4 
+           C 794,7 797,20 797,38 
+           C 796,72 798,108 796,138 
+           C 794,154 780,157 762,157 
+           C 620,159 460,156 310,158 
+           C 160,156.5 45,158.5 22,155 
+           C 5,153 3,138 3,120 
+           C 4,85 2,50 4,22 
+           C 4,7 8,3 22,3 Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={opacity}
+      />
+
+      {/* Layered Organic Sketch Line (Hand-Drawn Double Outline Effect) */}
+      <path
+        d="M 26,5 
+           C 130,2.5 260,6 390,3.5 
+           C 520,5.5 650,2.5 772,6 
+           C 792,9 795,22 795,40 
+           C 794,74 796,110 794,136 
+           C 792,152 778,155 760,155 
+           C 618,157 458,154.5 308,156.5 
+           C 158,155 42,157 20,153 
+           C 7,151 5,136 5,118 
+           C 6,83 4,48 6,24 
+           C 6,9 10,5 26,5 Z"
+        stroke={color}
+        strokeWidth={strokeWidth * 0.65}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={opacity * 0.45}
+        strokeDasharray="180 16 110 12 240 20"
+      />
+
+      {/* Decorative Hand-Drawn Corner Paint Flecks / Dots */}
+      <g opacity={opacity * 0.7} stroke={color} strokeWidth={strokeWidth * 0.75} fill="none" strokeLinecap="round">
+        {/* Top-Left Corner Accent */}
+        <path d="M 12 18 C 8 14 14 8 18 12" />
+        <circle cx="9" cy="9" r="1.2" fill={color} />
+
+        {/* Top-Right Corner Accent */}
+        <path d="M 788 18 C 792 14 786 8 782 12" />
+        <circle cx="791" cy="9" r="1.2" fill={color} />
+
+        {/* Bottom-Left Corner Accent */}
+        <path d="M 12 142 C 8 146 14 152 18 148" />
+        <circle cx="9" cy="151" r="1.2" fill={color} />
+
+        {/* Bottom-Right Corner Accent */}
+        <path d="M 788 142 C 792 146 786 152 782 148" />
+        <circle cx="791" cy="151" r="1.2" fill={color} />
+      </g>
+    </svg>
+  );
+}
+
+

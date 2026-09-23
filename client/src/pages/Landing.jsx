@@ -9,8 +9,9 @@ import TornPaperEdge from '../components/TornPaperEdge';
 import { getLocation, getLevelProgress, getPointsToNextLevel, getKmTraveled, getKmRemaining } from '../utils/locations';
 
 import { KundaliniSerpentSpiralMotif, YogicArtisticBanner } from '../components/SadhanaMotifs';
-import { HandDrawnBannerHeader } from '../components/HandDrawnNavbarEdge';
+import { HandDrawnBannerHeader, HandDrawnBrushBorder } from '../components/HandDrawnNavbarEdge';
 import SadhguruDailyQuote from '../components/SadhguruDailyQuote';
+
 
 
 // ── Iridescent 3D Glass Orbs scatter helper (unequal sizes inspired by reference image)
@@ -246,8 +247,11 @@ export default function Landing() {
             role="button"
             tabIndex={0}
             id="level-score-card"
-            style={{ cursor: 'pointer', marginBottom: 20 }}
+            style={{ cursor: 'pointer', marginBottom: 20, position: 'relative', border: 'none' }}
           >
+            {/* Hand-Drawn Painted Brush Border Overlay */}
+            <HandDrawnBrushBorder color="#d9572b" strokeWidth={1.8} opacity={0.55} />
+
             {/* Left: Level badge */}
             <div className="level-badge-large">
               <div className="level-badge-ring" style={{ '--progress': levelProgress }} />
