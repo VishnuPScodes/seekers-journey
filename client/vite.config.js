@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      devOptions: {
+        enabled: false, // Disable Service Worker caching in dev mode so changes reflect instantly
+      },
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons.svg'],
       manifest: {
