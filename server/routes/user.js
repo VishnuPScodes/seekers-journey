@@ -56,37 +56,100 @@ router.get('/me', auth, async (req, res) => {
 // POST /api/user/practices — save selected practices with daily targets
 router.post('/practices', auth, async (req, res) => {
   try {
-    const { practices } = req.body;
+    let { practices } = req.body;
+
+    // 1. If practices is a stringified JSON, parse it
+    if (typeof practices === 'string') {
+      try {
+        practices = JSON.parse(practices);
+      } catch (_) {
+        practices = [practices];
+      }
+    }
+
+    // 2. If practices was wrapped in a single-element stringified array
+    if (Array.isArray(practices) && practices.length === 1 && typeof practices[0] === 'string') {
+      const trimmed = practices[0].trim();
+      if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          practices = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (_) {}
+      }
+    }
 
     if (!practices || !Array.isArray(practices) || practices.length === 0) {
       return res.status(400).json({ message: 'Please select at least one practice' });
     }
 
-    // Support both [String] and [{ name, dailyTarget, category, desc, isCustom }]
-    const selectedPractices = practices
-      .map(p => (typeof p === 'string' ? p.trim() : (p && p.name ? String(p.name).trim() : null)))
-      .filter(Boolean);
+    // 3. Normalize each element in practices array
+    const normalizedList = [];
 
-    if (selectedPractices.length === 0) {
+    for (let p of practices) {
+      if (!p) continue;
+
+      // If element p is a stringified object or stringified array
+      if (typeof p === 'string') {
+        const trimmed = p.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              for (const inner of parsed) {
+                if (inner && typeof inner === 'object' && inner.name) {
+                  normalizedList.push(inner);
+                } else if (typeof inner === 'string' && inner.trim()) {
+                  normalizedList.push({ name: inner.trim() });
+                }
+              }
+              continue;
+            } else if (parsed && typeof parsed === 'object') {
+              p = parsed;
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (typeof p === 'string') {
+        const cleanName = p.trim();
+        if (cleanName && !cleanName.startsWith('{') && !cleanName.startsWith('[')) {
+          normalizedList.push({
+            name: cleanName,
+            dailyTarget: getDefaultTarget(cleanName),
+            category: 'General',
+            desc: '',
+            isCustom: false,
+          });
+        }
+      } else if (p && typeof p === 'object' && p.name) {
+        const cleanName = String(p.name).trim();
+        if (cleanName && !cleanName.startsWith('{') && !cleanName.startsWith('[')) {
+          normalizedList.push({
+            name: cleanName,
+            dailyTarget: p.dailyTarget ? Math.max(1, Number(p.dailyTarget) || 2) : getDefaultTarget(cleanName),
+            category: p.category ? String(p.category).trim() : 'General',
+            desc: p.desc ? String(p.desc).trim() : '',
+            isCustom: Boolean(p.isCustom),
+          });
+        }
+      }
+    }
+
+    if (normalizedList.length === 0) {
       return res.status(400).json({ message: 'Valid practice names are required' });
     }
 
-    const practiceConfig = practices
-      .filter(p => p && (typeof p === 'string' || (p.name && String(p.name).trim())))
-      .map(p => {
-        if (typeof p === 'string') {
-          const name = p.trim();
-          return { name, dailyTarget: getDefaultTarget(name), category: 'General', isCustom: false };
-        }
-        const name = String(p.name).trim();
-        return {
-          name,
-          dailyTarget: p.dailyTarget ? Math.max(1, Number(p.dailyTarget)) : getDefaultTarget(name),
-          category: p.category ? String(p.category).trim() : 'General',
-          desc: p.desc ? String(p.desc).trim() : '',
-          isCustom: Boolean(p.isCustom),
-        };
-      });
+    // Selected practices: array of clean practice name strings for User.selectedPractices ([String])
+    const selectedPractices = normalizedList.map(item => item.name);
+
+    // Practice config: array of config objects for User.practiceConfig ([Object])
+    const practiceConfig = normalizedList.map(item => ({
+      name: item.name,
+      dailyTarget: item.dailyTarget,
+      category: item.category,
+      desc: item.desc,
+      isCustom: item.isCustom,
+    }));
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -116,9 +179,10 @@ router.post('/practices', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Save practices error:', err);
-    return res.status(500).json({ message: 'Server error saving practices' });
+    return res.status(500).json({ message: 'Server error saving practices', error: err.message });
   }
 });
+
 
 
 // POST /api/user/custom-practice — add a custom practice to the user's account
