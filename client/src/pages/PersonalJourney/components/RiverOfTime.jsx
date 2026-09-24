@@ -6,6 +6,7 @@ export default function RiverOfTime({
   events = [],
   onSelectEvent,
   onOpenAddMilestone,
+  onOpenAddMemory = onOpenAddMilestone,
 }) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = Overview, 1.6 = Detailed

@@ -113,7 +113,7 @@ export default function PersonalJourney() {
     }
   };
 
-  if (loading && !journeyData) {
+  if (loading || !journeyData) {
     return (
       <>
         <Navbar />
@@ -129,7 +129,7 @@ export default function PersonalJourney() {
     );
   }
 
-  const { user, events, programs, officialPrograms, registrations = [] } = journeyData;
+  const { user = {}, events = [], programs = [], officialPrograms = [], registrations = [] } = journeyData || {};
 
   return (
     <>
